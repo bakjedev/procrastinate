@@ -53,6 +53,24 @@
 				"windows",
 				"release"
 			]
+		},
+		{
+			"name": "linux-debug",
+			"displayName": "Linux Debug",
+			"description": "Debug build for Linux",
+			"inherits": [
+				"linux",
+				"debug"
+			]
+		},
+		{
+			"name": "linux-release",
+			"displayName": "Linux Release",
+			"description": "Release build for Linux",
+			"inherits": [
+				"linux",
+				"release"
+			]
 		}
 	],
 	"buildPresets": [
@@ -63,6 +81,14 @@
 		{
 			"name": "windows-release",
 			"configurePreset": "windows-release"
+		},
+		{
+			"name": "linux-debug",
+			"configurePreset": "linux-debug"
+		},
+		{
+			"name": "linux-release",
+			"configurePreset": "linux-release"
 		}
 	]
 }

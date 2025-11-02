@@ -45,6 +45,46 @@
 			]
 		},
 		{
+			"label": "Build Linux Debug",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"${workspaceFolder}/build/linux-debug"
+			],
+			"group": "build",
+			"problemMatcher": [
+				"$gcc"
+			],
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"dependsOn": [
+				"Configure Linux Debug"
+			]
+		},
+		{
+			"label": "Build Linux Release",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"${workspaceFolder}/build/linux-release"
+			],
+			"group": "build",
+			"problemMatcher": [
+				"$gcc"
+			],
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"dependsOn": [
+				"Configure Linux Release"
+			]
+		},
+		{
 			"label": "Configure Windows Debug",
 			"type": "shell",
 			"command": "cmake",
@@ -61,6 +101,26 @@
 			"args": [
 				"--preset",
 				"windows-release"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "Configure Linux Debug",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--preset",
+				"linux-debug"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "Configure Linux Release",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--preset",
+				"linux-release"
 			],
 			"problemMatcher": []
 		}

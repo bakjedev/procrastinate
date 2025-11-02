@@ -24,6 +24,37 @@
 			"environment": [],
 			"console": "integratedTerminal",
 			"preLaunchTask": "Build Windows Release"
+		},
+		{
+			"name": "Linux Debug",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/linux-debug/runtime/procrastinate",
+			"args": [],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}",
+			"environment": [],
+			"MIMode": "gdb",
+			"setupCommands": [
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				}
+			],
+			"preLaunchTask": "Build Linux Debug"
+		},
+		{
+			"name": "Linux Release",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/linux-release/runtime/procrastinate",
+			"args": [],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}",
+			"environment": [],
+			"MIMode": "gdb",
+			"preLaunchTask": "Build Linux Release"
 		}
 	]
 }
