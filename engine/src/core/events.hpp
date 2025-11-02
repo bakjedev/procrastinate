@@ -1,5 +1,7 @@
 #pragma once
+#include <cstdint>
 #include <vector>
+
 
 enum class EventType : uint8_t {
   Quit,
