@@ -1,0 +1,1 @@
+target_link_libraries(engine PUBLIC SDL3::SDL3)
