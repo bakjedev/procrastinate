@@ -2,6 +2,7 @@
 #include "core/events.hpp"
 #include "core/window.hpp"
 #include "input/input.hpp"
+#include "input/input_enums.hpp"
 #include "util/util.hpp"
 
 int main() {
@@ -17,11 +18,15 @@ int main() {
     window.update(event_manager);
     input.update(event_manager);
 
-    if (input.keyDown(KeyboardKey::Space)) {
-      Util::println("ASDASD");
+    if (input.mouseButtonReleased(MouseButton::Left)) {
+      Util::println("RELEASED");
     }
-
-    input.updatePrev();
+    if (input.mouseButtonPressed(MouseButton::Right)) {
+      Util::println("PRESSED");
+    }
+    if (input.mouseButtonDown(MouseButton::Middle)) {
+      Util::println("DOWN");
+    }
   }
   return 0;
 }
