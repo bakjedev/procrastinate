@@ -1,0 +1,57 @@
+name: Release Build
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        build_type: [Debug, Release]
+        include:
+          - os: ubuntu-latest
+            preset_prefix: linux
+          - os: windows-latest
+            preset_prefix: windows
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set preset name
+        id: preset
+        shell: bash
+        run: |
+          if [ "${{ matrix.build_type }}" == "Debug" ]; then
+            echo "name=${{ matrix.preset_prefix }}-debug" >> $GITHUB_OUTPUT
+          else
+            echo "name=${{ matrix.preset_prefix }}-release" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Install Ninja (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build clang
+      
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install ninja -y
+          choco install llvm -y
+      
+      - name: Configure CMake
+        run: cmake --preset ${{ steps.preset.outputs.name }}
+      
+      - name: Build
+        run: cmake --build build/${{ steps.preset.outputs.name }}
