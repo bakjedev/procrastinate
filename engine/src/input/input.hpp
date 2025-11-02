@@ -1,3 +1,4 @@
+#pragma once
 #include <bitset>
 
 #include "core/events.hpp"

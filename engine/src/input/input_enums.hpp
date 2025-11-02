@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstdint>
 
 enum class KeyboardKey : uint8_t {
