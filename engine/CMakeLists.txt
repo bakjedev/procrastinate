@@ -4,6 +4,7 @@ target_sources(engine PRIVATE
 	src/core/engine.cpp
 	src/core/events.cpp
 	src/core/window.cpp
+	src/input/input.cpp
 )
 
 target_compile_options(engine PRIVATE

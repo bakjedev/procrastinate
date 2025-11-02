@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "events.hpp"
+#include "input/input.hpp"
 #include "util/util.hpp"
 #include "window.hpp"
 
@@ -11,6 +12,7 @@ Engine::Engine() {
   Util::print("HELLO \n");
   m_eventManager = std::make_unique<EventManager>();
   m_window = std::make_unique<Window>(1920, 1080, false);
+  m_input = std::make_unique<Input>();
 }
 
 Engine::~Engine() { Util::print("BYE \n"); }
@@ -23,4 +25,9 @@ EventManager& Engine::getEventManager() const {
 Window& Engine::getWindow() const {
   assert(m_window && "No window!");
   return *m_window;
+}
+
+Input& Engine::getInput() const {
+  assert(m_input && "No input!");
+  return *m_input;
 }
