@@ -22,6 +22,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: Set preset name
+        id: preset
+        shell: bash
+        run: |
+          if [ "${{ matrix.build_type }}" == "Debug" ]; then
+            echo "name=${{ matrix.preset_prefix }}-debug" >> $GITHUB_OUTPUT
+          else
+            echo "name=${{ matrix.preset_prefix }}-release" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Install Ninja (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -31,19 +41,30 @@ jobs:
       - name: Install Ninja (Windows)
         if: runner.os == 'Windows'
         run: |
-          choco install ninja
-          choco install llvm
+          choco install ninja -y
+          choco install llvm -y
       
       - name: Configure CMake
-        run: cmake --preset ${{ matrix.preset_prefix }}-${{ matrix.build_type == 'Debug' && 'debug' || 'release' }}
+        run: cmake --preset ${{ steps.preset.outputs.name }}
       
       - name: Build
-        run: cmake --build build/${{ matrix.preset_prefix }}-${{ matrix.build_type == 'Debug' && 'debug' || 'release' }}
+        run: cmake --build build/${{ steps.preset.outputs.name }}
       
       - name: Test executable (Linux)
         if: runner.os == 'Linux'
-        run: ./build/${{ matrix.preset_prefix }}-${{ matrix.build_type == 'Debug' && 'debug' || 'release' }}/runtime/procrastinate
+        run: |
+          timeout 30s ./build/${{ steps.preset.outputs.name }}/runtime/procrastinate
+          if [ $? -ne 0 ]; then
+            echo "Executable failed or timed out"
+            exit 1
+          fi
       
       - name: Test executable (Windows)
         if: runner.os == 'Windows'
-        run: .\build\${{ matrix.preset_prefix }}-${{ matrix.build_type == 'Debug' && 'debug' || 'release' }}\runtime\procrastinate.exe
+        shell: pwsh
+        run: |
+          $proc = Start-Process -FilePath ".\build\${{ steps.preset.outputs.name }}\runtime\procrastinate.exe" -PassThru -Wait
+          if ($proc.ExitCode -ne 0) {
+            Write-Error "Executable failed with exit code $($proc.ExitCode)"
+            exit 1
+          }
