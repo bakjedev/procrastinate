@@ -1,0 +1,13 @@
+{
+	"clangd.arguments": [
+		"--clang-tidy"
+	],
+	"[cpp]": {
+		"editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+	},
+	"C_Cpp.intelliSenseEngine": "disabled",
+	"cmake.copyCompileCommands": "${workspaceFolder}/compile_commands.json",
+	"cmake.configureOnOpen": true,
+	"cmake.buildDirectory": "${workspaceFolder}/build/${presetName}",
+	"cmake.useCMakePresets": "always",
+}

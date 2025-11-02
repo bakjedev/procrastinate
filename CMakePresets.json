@@ -1,0 +1,68 @@
+{
+	"version": 3,
+	"configurePresets": [
+		{
+			"name": "base",
+			"hidden": true,
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/${presetName}",
+			"cacheVariables": {
+				"CMAKE_C_COMPILER": "clang",
+				"CMAKE_CXX_COMPILER": "clang++",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+			}
+		},
+		{
+			"name": "windows",
+			"hidden": true,
+			"inherits": "base"
+		},
+		{
+			"name": "linux",
+			"hidden": true,
+			"inherits": "base"
+		},
+		{
+			"name": "release",
+			"hidden": true,
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release"
+			}
+		},
+		{
+			"name": "debug",
+			"hidden": true,
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug"
+			}
+		},
+		{
+			"name": "windows-debug",
+			"displayName": "Windows Debug",
+			"description": "Debug build for Windows",
+			"inherits": [
+				"windows",
+				"debug"
+			]
+		},
+		{
+			"name": "windows-release",
+			"displayName": "Windows Release",
+			"description": "Release build for Windows",
+			"inherits": [
+				"windows",
+				"release"
+			]
+		}
+	],
+	"buildPresets": [
+		{
+			"name": "windows-debug",
+			"configurePreset": "windows-debug"
+		},
+		{
+			"name": "windows-release",
+			"configurePreset": "windows-release"
+		}
+	]
+}

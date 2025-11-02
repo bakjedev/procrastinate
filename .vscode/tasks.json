@@ -1,0 +1,68 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build Windows Debug",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"${workspaceFolder}/build/windows-debug"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"dependsOn": [
+				"Configure Windows Debug"
+			]
+		},
+		{
+			"label": "Build Windows Release",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"${workspaceFolder}/build/windows-release"
+			],
+			"group": "build",
+			"problemMatcher": [
+				"$gcc"
+			],
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"dependsOn": [
+				"Configure Windows Release"
+			]
+		},
+		{
+			"label": "Configure Windows Debug",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--preset",
+				"windows-debug"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "Configure Windows Release",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--preset",
+				"windows-release"
+			],
+			"problemMatcher": []
+		}
+	]
+}
