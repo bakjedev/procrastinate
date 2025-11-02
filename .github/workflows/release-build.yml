@@ -1,0 +1,49 @@
+name: Release Build
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        build_type: [Debug, Release]
+        include:
+          - os: ubuntu-latest
+            preset_prefix: linux
+          - os: windows-latest
+            preset_prefix: windows
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install Ninja (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build clang
+      
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install ninja
+          choco install llvm
+      
+      - name: Configure CMake
+        run: cmake --preset ${{ matrix.preset_prefix }}-${{ matrix.build_type == 'Debug' && 'debug' || 'release' }}
+      
+      - name: Build
+        run: cmake --build build/${{ matrix.preset_prefix }}-${{ matrix.build_type == 'Debug' && 'debug' || 'release' }}
+      
+      - name: Test executable (Linux)
+        if: runner.os == 'Linux'
+        run: ./build/${{ matrix.preset_prefix }}-${{ matrix.build_type == 'Debug' && 'debug' || 'release' }}/runtime/procrastinate
+      
+      - name: Test executable (Windows)
+        if: runner.os == 'Windows'
+        run: .\build\${{ matrix.preset_prefix }}-${{ matrix.build_type == 'Debug' && 'debug' || 'release' }}\runtime\procrastinate.exe
