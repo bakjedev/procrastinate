@@ -55,22 +55,3 @@ jobs:
       
       - name: Build
         run: cmake --build build/${{ steps.preset.outputs.name }}
-      
-      # Executable test is optional and will timeout if program doesn't exit
-      # Remove or modify this step if your program has a game loop or waits for input
-      - name: Test executable (Linux)
-        if: runner.os == 'Linux'
-        continue-on-error: true
-        run: |
-          timeout 10s ./build/${{ steps.preset.outputs.name }}/runtime/procrastinate || true
-      
-      - name: Test executable (Windows)
-        if: runner.os == 'Windows'
-        continue-on-error: true
-        shell: pwsh
-        run: |
-          $proc = Start-Process -FilePath ".\build\${{ steps.preset.outputs.name }}\runtime\procrastinate.exe" -PassThru
-          Start-Sleep -Seconds 10
-          if (!$proc.HasExited) {
-            Stop-Process -Id $proc.Id -Force
-          }
