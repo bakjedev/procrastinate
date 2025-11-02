@@ -1,16 +1,32 @@
 #pragma once
-#include <SDL3/SDL.h>
-
 #include <vector>
+
+enum class EventType : uint8_t {
+  Quit,
+  KeyDown,
+  KeyUp,
+  MouseButtonDown,
+  MouseButtonUp,
+};
+
+struct Event {
+  EventType type;
+
+  union EventData {
+    struct InputData {
+      uint32_t scancode;
+    } input;
+  } data;
+};
 
 class EventManager {
  public:
   void poll();
 
-  [[nodiscard]] const std::vector<SDL_Event>& getEvents() const;
+  [[nodiscard]] const std::vector<Event>& getEvents() const;
 
  private:
-  std::vector<SDL_Event> m_events;
+  std::vector<Event> m_events;
 
   void clear();
 };

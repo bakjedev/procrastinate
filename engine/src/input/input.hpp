@@ -1,8 +1,9 @@
 #pragma once
 #include <bitset>
 
-#include "core/events.hpp"
 #include "input_enums.hpp"
+
+class EventManager;
 
 class Input {
  public:

@@ -11,7 +11,8 @@
 Engine::Engine() {
   Util::print("HELLO \n");
   m_eventManager = std::make_unique<EventManager>();
-  m_window = std::make_unique<Window>(1920, 1080, false);
+  m_window = std::make_unique<Window>(
+      WindowInfo{.width = 1920, .height = 1080, .fullscreen = false});
   m_input = std::make_unique<Input>();
 }
 

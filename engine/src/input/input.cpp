@@ -1,24 +1,22 @@
 #include "input.hpp"
 
-#include <cstddef>
+#include "core/events.hpp"
 
-#include "SDL3/SDL_events.h"
-#include "input_enums.hpp"
 
 void Input::update(const EventManager& eventManager) {
   for (const auto& event : eventManager.getEvents()) {
     switch (event.type) {
-      case SDL_EVENT_KEY_DOWN:
-        m_keysDown.set(event.key.scancode);
+      case EventType::KeyDown:
+        m_keysDown.set(event.data.input.scancode);
         break;
-      case SDL_EVENT_KEY_UP:
-        m_keysDown.reset(event.key.scancode);
+      case EventType::KeyUp:
+        m_keysDown.reset(event.data.input.scancode);
         break;
-      case SDL_EVENT_MOUSE_BUTTON_DOWN:
-        m_mouseButtonsDown.set(event.button.button);
+      case EventType::MouseButtonDown:
+        m_mouseButtonsDown.set(event.data.input.scancode);
         break;
-      case SDL_EVENT_MOUSE_BUTTON_UP:
-        m_mouseButtonsDown.reset(event.button.button);
+      case EventType::MouseButtonUp:
+        m_mouseButtonsDown.reset(event.data.input.scancode);
         break;
       default:
         break;

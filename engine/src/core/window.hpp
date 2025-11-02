@@ -1,20 +1,16 @@
-#include <SDL3/SDL_video.h>
+#include <SDL3/SDL.h>
 
-#include <cstdint>
+class EventManager;
 
-#include "events.hpp"
-
-struct Width {
-  uint32_t value;
-};
-
-struct Height {
-  uint32_t value;
+struct WindowInfo {
+  uint32_t width;
+  uint32_t height;
+  bool fullscreen;
 };
 
 class Window {
  public:
-  Window(uint32_t width, uint32_t height, bool fullscreen = false);
+  Window(const WindowInfo& info);
   ~Window();
 
   [[nodiscard]] SDL_Window* get() const;

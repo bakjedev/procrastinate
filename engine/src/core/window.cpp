@@ -1,10 +1,13 @@
 #include "window.hpp"
 
 #include <stdexcept>
-#include <string>
 
-Window::Window(uint32_t width, uint32_t height, bool fullscreen)
-    : m_width(width), m_height(height), m_fullscreen(fullscreen) {
+#include "events.hpp"
+
+Window::Window(const WindowInfo& info)
+    : m_width(info.width),
+      m_height(info.height),
+      m_fullscreen(info.fullscreen) {
   if (!SDL_Init(SDL_INIT_VIDEO)) {
     throw std::runtime_error(std::string("Failed to initialize SDL: ") +
                              SDL_GetError());
@@ -38,7 +41,7 @@ bool Window::shouldQuit() const { return m_quit; }
 
 void Window::update(const EventManager& event_manager) {
   for (const auto& event : event_manager.getEvents()) {
-    if (event.type == SDL_EVENT_QUIT) {
+    if (event.type == EventType::Quit) {
       m_quit = true;
     }
   }
