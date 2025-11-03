@@ -22,10 +22,14 @@ int main() {
       Util::println("RELEASED");
     }
     if (input.mouseButtonPressed(MouseButton::Right)) {
-      Util::println("PRESSED");
+      Util::println("PRESSED {} {}", input.getMouseX(), input.getMouseY());
     }
     if (input.mouseButtonDown(MouseButton::Middle)) {
       Util::println("DOWN");
+    }
+
+    if (input.getMouseScroll() != 0.0F) {
+      Util::println("TESTING {}", input.getMouseScroll());
     }
   }
   return 0;

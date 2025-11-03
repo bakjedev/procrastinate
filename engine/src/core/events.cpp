@@ -31,6 +31,17 @@ void EventManager::poll() {
         event.type = EventType::MouseButtonUp;
         event.data.input.scancode = sdlEvent.button.button;
         break;
+      case SDL_EVENT_MOUSE_MOTION:
+        event.type = EventType::MouseMotion;
+        event.data.motion.x = sdlEvent.motion.x;
+        event.data.motion.y = sdlEvent.motion.y;
+        event.data.motion.dx = sdlEvent.motion.xrel;
+        event.data.motion.dy = sdlEvent.motion.yrel;
+        break;
+      case SDL_EVENT_MOUSE_WHEEL:
+        event.type = EventType::MouseWheel;
+        event.data.wheel.scroll = sdlEvent.wheel.y;
+        break;
       default:
         valid = false;
         break;

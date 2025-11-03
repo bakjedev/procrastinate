@@ -2,21 +2,43 @@
 
 #include "core/events.hpp"
 
-
 void Input::update(const EventManager& eventManager) {
+  m_mouseScroll = 0.0F;
+
   for (const auto& event : eventManager.getEvents()) {
     switch (event.type) {
       case EventType::KeyDown:
-        m_keysDown.set(event.data.input.scancode);
+        if (event.data.input.scancode <
+            static_cast<uint32_t>(KeyboardKey::Count)) {
+          m_keysDown.set(event.data.input.scancode);
+        }
         break;
       case EventType::KeyUp:
-        m_keysDown.reset(event.data.input.scancode);
+        if (event.data.input.scancode <
+            static_cast<uint32_t>(KeyboardKey::Count)) {
+          m_keysDown.reset(event.data.input.scancode);
+        }
         break;
       case EventType::MouseButtonDown:
-        m_mouseButtonsDown.set(event.data.input.scancode);
+        if (event.data.input.scancode <
+            static_cast<uint32_t>(MouseButton::Count)) {
+          m_mouseButtonsDown.set(event.data.input.scancode);
+        }
         break;
       case EventType::MouseButtonUp:
-        m_mouseButtonsDown.reset(event.data.input.scancode);
+        if (event.data.input.scancode <
+            static_cast<uint32_t>(MouseButton::Count)) {
+          m_mouseButtonsDown.reset(event.data.input.scancode);
+        }
+        break;
+      case EventType::MouseMotion:
+        m_mouseX = event.data.motion.x;
+        m_mouseY = event.data.motion.y;
+        m_mouseDeltaX = event.data.motion.dx;
+        m_mouseDeltaY = event.data.motion.dy;
+        break;
+      case EventType::MouseWheel:
+        m_mouseScroll = event.data.wheel.scroll;
         break;
       default:
         break;
