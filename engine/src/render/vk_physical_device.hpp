@@ -22,9 +22,18 @@ class VulkanPhysicalDevice {
   ~VulkanPhysicalDevice();
 
   [[nodiscard]] VkPhysicalDevice get() const { return m_physicalDevice; }
+
+  // features
   [[nodiscard]] const VkPhysicalDeviceFeatures& features() const {
     return m_features;
   }
+  [[nodiscard]] const VkPhysicalDeviceVulkan12Features& features12() const {
+    return m_features12;
+  }
+  [[nodiscard]] const VkPhysicalDeviceVulkan13Features& features13() const {
+    return m_features13;
+  }
+
   [[nodiscard]] std::string name() const { return {m_properties.deviceName}; }
 
   [[nodiscard]] const QueueFamilyIndices& queueFamilies() const {
@@ -35,6 +44,8 @@ class VulkanPhysicalDevice {
   VkPhysicalDevice m_physicalDevice{};
   VkPhysicalDeviceProperties m_properties{};
   VkPhysicalDeviceFeatures m_features{};
+  VkPhysicalDeviceVulkan12Features m_features12{};
+  VkPhysicalDeviceVulkan13Features m_features13{};
 
   QueueFamilyIndices m_queueFamilyIndices{};
 

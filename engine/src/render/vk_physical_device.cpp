@@ -28,6 +28,21 @@ VulkanPhysicalDevice::VulkanPhysicalDevice(VkInstance instance,
       m_properties = properties;
       m_features = features;
 
+      // query gpu for features
+      m_features13.sType =
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+      m_features13.pNext = nullptr;
+
+      m_features12.sType =
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+      m_features12.pNext = &m_features13;
+
+      VkPhysicalDeviceFeatures2 features2{};
+      features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+      features2.pNext = &m_features12;
+
+      vkGetPhysicalDeviceFeatures2(m_physicalDevice, &features2);
+
       if (!findQueueFamilies(surface)) {
         throw std::runtime_error("Failed to find Vulkan queue families");
       }

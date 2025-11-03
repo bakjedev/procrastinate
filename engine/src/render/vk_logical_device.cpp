@@ -9,7 +9,9 @@
 
 VulkanLogicalDevice::VulkanLogicalDevice(
     VkPhysicalDevice physicalDevice, const VkPhysicalDeviceFeatures& features,
-    const QueueFamilyIndices& queueFamilyIndices) {
+    const QueueFamilyIndices& queueFamilyIndices,
+    const VkPhysicalDeviceVulkan12Features& features12,
+    const VkPhysicalDeviceVulkan13Features& features13) {
   const std::set uniqueQueueFamilies = {
       queueFamilyIndices.graphics.value(), queueFamilyIndices.compute.value(),
       queueFamilyIndices.transfer.value(), queueFamilyIndices.present.value()};
@@ -28,9 +30,27 @@ VulkanLogicalDevice::VulkanLogicalDevice(
 
   std::vector deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
+  // enable features that were queried
+  VkPhysicalDeviceVulkan13Features enabled13Features{};
+  enabled13Features.sType =
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+  enabled13Features.pNext = nullptr;
+  enabled13Features.dynamicRendering = features13.dynamicRendering;
+  enabled13Features.synchronization2 = features13.synchronization2;
+
+  VkPhysicalDeviceVulkan12Features enabled12Features{};
+  enabled12Features.sType =
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+  enabled12Features.pNext = &enabled13Features;
+  enabled12Features.descriptorIndexing = features12.descriptorIndexing;
+  enabled12Features.descriptorBindingPartiallyBound =
+      features12.descriptorBindingPartiallyBound;
+  enabled12Features.runtimeDescriptorArray = features12.runtimeDescriptorArray;
+  enabled12Features.bufferDeviceAddress = features12.bufferDeviceAddress;
+
   const VkDeviceCreateInfo deviceCreateInfo{
       .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-      .pNext = nullptr,
+      .pNext = &enabled12Features,
       .flags = 0,
       .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
       .pQueueCreateInfos = queueCreateInfos.data(),

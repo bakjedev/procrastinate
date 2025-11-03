@@ -23,7 +23,7 @@ VulkanInstance::VulkanInstance() {
       .applicationVersion = 1,
       .pEngineName = "hell",
       .engineVersion = 1,
-      .apiVersion = VK_API_VERSION_1_2};
+      .apiVersion = VK_API_VERSION_1_3};
 
   const VkInstanceCreateInfo instanceCreateInfo{
       .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,

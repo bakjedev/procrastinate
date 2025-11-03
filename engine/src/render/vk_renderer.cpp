@@ -17,7 +17,8 @@ VulkanRenderer::VulkanRenderer(SDL_Window* window) {
 
   m_logicalDevice = std::make_unique<VulkanLogicalDevice>(
       m_physicalDevice->get(), m_physicalDevice->features(),
-      m_physicalDevice->queueFamilies());
+      m_physicalDevice->queueFamilies(), m_physicalDevice->features12(),
+      m_physicalDevice->features13());
 
   m_allocator = std::make_unique<VulkanAllocator>(
       m_physicalDevice->get(), m_logicalDevice->get(), m_instance->get());
