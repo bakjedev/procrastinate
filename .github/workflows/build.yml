@@ -52,10 +52,13 @@ jobs:
           echo "GETTING VULKAN FROM $DownloadURL"
 
           Invoke-WebRequest -Uri $DownloadURL -OutFile $Installer
-          Start-Process -FilePath $Installer -ArgumentList "/S" -Wait
-          
+          # Start-Process -FilePath $Installer -ArgumentList "/S" -Wait
+          Start-Process -FilePath .\$Installer -ArgumentList "--root D:\VulkanSDK --accept-licenses --default-answer --confirm-command install" -Wait
+
+
           # Set environment variable for this session
-          echo "VULKAN_SDK=C:\VulkanSDK\$VulkanVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          # echo "VULKAN_SDK=C:\VulkanSDK\$VulkanVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "VULKAN_SDK=D:\VulkanSDK" >> $env:GITHUB_ENV
       
       - name: Configure CMake
         run: cmake --preset ${{ steps.preset.outputs.name }}
