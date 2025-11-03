@@ -5,6 +5,7 @@
 
 #include "events.hpp"
 #include "input/input.hpp"
+#include "render/vk_renderer.hpp"
 #include "util/util.hpp"
 #include "window.hpp"
 
@@ -14,6 +15,7 @@ Engine::Engine() {
   m_window = std::make_unique<Window>(
       WindowInfo{.width = 1920, .height = 1080, .fullscreen = false});
   m_input = std::make_unique<Input>();
+  m_renderer = std::make_unique<VulkanRenderer>(m_window->get());
 }
 
 Engine::~Engine() { Util::print("BYE \n"); }
@@ -31,4 +33,9 @@ Window& Engine::getWindow() const {
 Input& Engine::getInput() const {
   assert(m_input && "No input!");
   return *m_input;
+}
+
+VulkanRenderer& Engine::getRenderer() const {
+  assert(m_renderer && "No renderer!");
+  return *m_renderer;
 }

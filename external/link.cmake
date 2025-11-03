@@ -1,1 +1,6 @@
 target_link_libraries(engine PUBLIC SDL3::SDL3)
+
+target_link_libraries(engine PUBLIC Vulkan::Vulkan)
+
+target_link_libraries(engine PUBLIC vma)
+target_include_directories(engine PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

@@ -1,0 +1,27 @@
+#pragma once
+#include "util/util.hpp"
+#include "vma/vma_usage.h"
+
+class VulkanAllocator {
+ public:
+  VulkanAllocator(VkPhysicalDevice physicalDevice, VkDevice device,
+                  VkInstance instance) {
+    VmaAllocatorCreateInfo info = {};
+    info.physicalDevice = physicalDevice;
+    info.device = device;
+    info.instance = instance;
+    info.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+
+    VK_CHECK(vmaCreateAllocator(&info, &m_allocator));
+    Util::println("Created vulkan allocator");
+  }
+  ~VulkanAllocator() {
+    vmaDestroyAllocator(m_allocator);
+    Util::println("Destroyed vulkan allocator");
+  }
+
+  VmaAllocator get() const { return m_allocator; }
+
+ private:
+  VmaAllocator m_allocator;
+};

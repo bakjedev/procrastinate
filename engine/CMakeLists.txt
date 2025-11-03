@@ -5,6 +5,15 @@ target_sources(engine PRIVATE
 	src/core/events.cpp
 	src/core/window.cpp
 	src/input/input.cpp
+	src/render/vk_renderer.cpp
+	src/render/vk_command_pool.cpp
+	src/render/vk_frame.cpp
+	src/render/vk_instance.cpp
+	src/render/vk_logical_device.cpp
+	src/render/vk_physical_device.cpp
+	src/render/vk_surface.cpp
+	src/render/vk_swap_chain.cpp
+	src/render/vk_buffer.cpp
 )
 
 target_compile_options(engine PRIVATE

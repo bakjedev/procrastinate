@@ -1,7 +1,4 @@
 {
-	"clangd.arguments": [
-		"--clang-tidy"
-	],
 	"[cpp]": {
 		"editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
 	},
