@@ -39,11 +39,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build clang
           
-          # Install Vulkan SDK
-          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
-          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
-          sudo apt-get update
-          sudo apt-get install -y vulkan-sdk
+          # Install Vulkan development files from Ubuntu repos
+          # This includes headers and loader library - sufficient for building
+          sudo apt-get install -y libvulkan-dev vulkan-headers
       
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
