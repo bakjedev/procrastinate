@@ -5,8 +5,8 @@
 VulkanSwapChain::VulkanSwapChain(VkDevice device,
                                  VkPhysicalDevice physicalDevice,
                                  VkSurfaceKHR surface)
-    : m_device(device) {
-  create(physicalDevice, surface);
+    : m_physicalDevice(physicalDevice), m_surface(surface), m_device(device) {
+  create();
 }
 
 VulkanSwapChain::~VulkanSwapChain() { destroy(); }
@@ -34,12 +34,11 @@ VkResult VulkanSwapChain::present(const uint32_t imageIndex,
   return vkQueuePresentKHR(presentQueue, &presentInfo);
 }
 
-void VulkanSwapChain::create(VkPhysicalDevice physicalDevice,
-                             VkSurfaceKHR surface) {
-  chooseSurfaceFormat(physicalDevice, surface);
-  choosePresentMode(physicalDevice, surface);
+void VulkanSwapChain::create() {
+  chooseSurfaceFormat();
+  choosePresentMode();
 
-  const auto capabilities = getCapabilities(physicalDevice, surface);
+  const auto capabilities = getCapabilities();
 
   // check for invalid surface extent
   if (capabilities.currentExtent.width == UINT32_MAX ||
@@ -56,7 +55,7 @@ void VulkanSwapChain::create(VkPhysicalDevice physicalDevice,
 
   VkSwapchainCreateInfoKHR createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-  createInfo.surface = surface;
+  createInfo.surface = m_surface;
   createInfo.minImageCount = minImageCount;
   createInfo.imageFormat = m_surfaceFormat.format;
   createInfo.imageColorSpace = m_surfaceFormat.colorSpace;
@@ -86,11 +85,10 @@ void VulkanSwapChain::destroy() {
   Util::println("Destroyed vulkan swap chain");
 }
 
-void VulkanSwapChain::recreate(VkPhysicalDevice physicalDevice,
-                               VkSurfaceKHR surface) {
+void VulkanSwapChain::recreate() {
   vkDeviceWaitIdle(m_device);
   destroy();
-  create(physicalDevice, surface);
+  create();
 }
 
 void VulkanSwapChain::getImages() {
@@ -124,25 +122,23 @@ void VulkanSwapChain::createImageViews() {
   }
 }
 
-VkSurfaceCapabilitiesKHR VulkanSwapChain::getCapabilities(
-    VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) {
+VkSurfaceCapabilitiesKHR VulkanSwapChain::getCapabilities() {
   VkSurfaceCapabilitiesKHR capabilities;
-  VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface,
-                                                     &capabilities));
+  VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physicalDevice,
+                                                     m_surface, &capabilities));
   return capabilities;
 }
 
-void VulkanSwapChain::chooseSurfaceFormat(VkPhysicalDevice physicalDevice,
-                                          VkSurfaceKHR surface) {
+void VulkanSwapChain::chooseSurfaceFormat() {
   uint32_t surfaceFormatCount = 0;
-  VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface,
+  VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface,
                                                 &surfaceFormatCount, nullptr));
   if (surfaceFormatCount == 0) {
     throw std::runtime_error("Failed to find Vulkan surface formats");
   }
   std::vector<VkSurfaceFormatKHR> surfaceFormats(surfaceFormatCount);
   VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(
-      physicalDevice, surface, &surfaceFormatCount, surfaceFormats.data()));
+      m_physicalDevice, m_surface, &surfaceFormatCount, surfaceFormats.data()));
 
   for (const auto& surfaceFormat : surfaceFormats) {
     if (surfaceFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
@@ -156,17 +152,16 @@ void VulkanSwapChain::chooseSurfaceFormat(VkPhysicalDevice physicalDevice,
   m_surfaceFormat = surfaceFormats[0];
 }
 
-void VulkanSwapChain::choosePresentMode(VkPhysicalDevice physicalDevice,
-                                        VkSurfaceKHR surface) {
+void VulkanSwapChain::choosePresentMode() {
   uint32_t presentModeCount = 0;
   VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(
-      physicalDevice, surface, &presentModeCount, nullptr));
+      m_physicalDevice, m_surface, &presentModeCount, nullptr));
   if (presentModeCount == 0) {
     throw std::runtime_error("Failed to find Vulkan present modes");
   }
   std::vector<VkPresentModeKHR> presentModes(presentModeCount);
   VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(
-      physicalDevice, surface, &presentModeCount, presentModes.data()));
+      m_physicalDevice, m_surface, &presentModeCount, presentModes.data()));
 
   for (const auto& presentMode : presentModes) {
     if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)  // prefer mailbox

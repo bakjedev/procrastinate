@@ -3,15 +3,15 @@
 
 class VulkanBuffer {
  public:
-  VulkanBuffer(VmaAllocator allocator, unsigned int bufferSize,
+  VulkanBuffer(VmaAllocator allocator, uint32_t bufferSize,
                VkBufferUsageFlags bufferUsage, VmaMemoryUsage memoryUsage,
                VmaAllocationCreateFlags memoryFlags = 0U);
   ~VulkanBuffer();
-  void create(unsigned int bufferSize, VkBufferUsageFlags bufferUsage,
+  void create(uint32_t bufferSize, VkBufferUsageFlags bufferUsage,
               VmaMemoryUsage memoryUsage,
               VmaAllocationCreateFlags memoryFlags = 0U);
-  void map(void* srcData);
-  void mapRange(void* srcData, unsigned int rangeSize);
+  void map(const void* srcData);
+  void mapRange(const void* srcData, uint32_t rangeSize);
   void destroy();
 
   VkBuffer get() const { return m_buffer; }

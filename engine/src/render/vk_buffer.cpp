@@ -4,8 +4,7 @@
 
 #include "util/util.hpp"
 
-
-VulkanBuffer::VulkanBuffer(VmaAllocator allocator, unsigned int bufferSize,
+VulkanBuffer::VulkanBuffer(VmaAllocator allocator, uint32_t bufferSize,
                            VkBufferUsageFlags bufferUsage,
                            VmaMemoryUsage memoryUsage,
                            VmaAllocationCreateFlags memoryFlags)
@@ -15,8 +14,7 @@ VulkanBuffer::VulkanBuffer(VmaAllocator allocator, unsigned int bufferSize,
 
 VulkanBuffer::~VulkanBuffer() { destroy(); }
 
-void VulkanBuffer::create(unsigned int bufferSize,
-                          VkBufferUsageFlags bufferUsage,
+void VulkanBuffer::create(uint32_t bufferSize, VkBufferUsageFlags bufferUsage,
                           VmaMemoryUsage memoryUsage,
                           VmaAllocationCreateFlags memoryFlags) {
   VkBufferCreateInfo bufferInfo = {};
@@ -32,14 +30,14 @@ void VulkanBuffer::create(unsigned int bufferSize,
   m_size = bufferSize;
 }
 
-void VulkanBuffer::map(void* srcData) {
+void VulkanBuffer::map(const void* srcData) {
   void* data;
   vmaMapMemory(m_allocator, m_allocation, &data);
   memcpy(data, srcData, m_size);
   vmaUnmapMemory(m_allocator, m_allocation);
 }
 
-void VulkanBuffer::mapRange(void* srcData, unsigned int rangeSize) {
+void VulkanBuffer::mapRange(const void* srcData, uint32_t rangeSize) {
   void* data;
   vmaMapMemory(m_allocator, m_allocation, &data);
   memcpy(data, srcData, rangeSize);

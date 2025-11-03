@@ -3,7 +3,6 @@
 
 #include <vector>
 
-
 class VulkanSwapChain {
  public:
   VulkanSwapChain(VkDevice device, VkPhysicalDevice physicalDevice,
@@ -21,10 +20,14 @@ class VulkanSwapChain {
   VkResult present(uint32_t imageIndex, VkQueue presentQueue,
                    VkSemaphore waitSemaphore) const;
 
-  void recreate(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
+  void recreate();
 
  private:
   VkSwapchainKHR m_swapChain{};
+
+  VkPhysicalDevice m_physicalDevice;
+  VkSurfaceKHR m_surface;
+  VkDevice m_device;  // for deconstructing
 
   VkSurfaceFormatKHR m_surfaceFormat{};
   VkPresentModeKHR m_presentMode{};
@@ -34,17 +37,13 @@ class VulkanSwapChain {
   uint32_t m_imageCount{};
   uint32_t m_imageIndex{};
 
-  VkDevice m_device;  // for deconstructing
-
-  void create(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
+  void create();
   void destroy();
 
   void getImages();
   void createImageViews();
 
-  static VkSurfaceCapabilitiesKHR getCapabilities(
-      VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
-  void chooseSurfaceFormat(VkPhysicalDevice physicalDevice,
-                           VkSurfaceKHR surface);
-  void choosePresentMode(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
+  VkSurfaceCapabilitiesKHR getCapabilities();
+  void chooseSurfaceFormat();
+  void choosePresentMode();
 };
