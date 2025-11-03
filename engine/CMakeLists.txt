@@ -14,6 +14,7 @@ target_sources(engine PRIVATE
 	src/render/vk_surface.cpp
 	src/render/vk_swap_chain.cpp
 	src/render/vk_buffer.cpp
+	src/render/vk_image.cpp
 )
 
 target_compile_options(engine PRIVATE
