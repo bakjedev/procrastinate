@@ -1,6 +1,9 @@
 #include "vk_buffer.hpp"
 
+#include <cstring>
+
 #include "util/util.hpp"
+
 
 VulkanBuffer::VulkanBuffer(VmaAllocator allocator, unsigned int bufferSize,
                            VkBufferUsageFlags bufferUsage,
