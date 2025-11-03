@@ -37,11 +37,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build clang
-          
-          # Install Vulkan development files from Ubuntu repos
-          # This includes headers and loader library - sufficient for building
-          sudo apt-get install -y libvulkan-dev vulkan-headers
+          sudo apt-get install -y ninja-build clang libvulkan-dev
       
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
