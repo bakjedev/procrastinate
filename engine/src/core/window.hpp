@@ -6,6 +6,7 @@ struct WindowInfo {
   uint32_t width;
   uint32_t height;
   bool fullscreen;
+  const char* title;
 };
 
 class Window {

@@ -12,8 +12,8 @@
 Engine::Engine() {
   Util::print("HELLO \n");
   m_eventManager = std::make_unique<EventManager>();
-  m_window = std::make_unique<Window>(
-      WindowInfo{.width = 1920, .height = 1080, .fullscreen = false});
+  m_window = std::make_unique<Window>(WindowInfo{
+      .width = 1920, .height = 1080, .fullscreen = false, .title = "meowl"});
   m_input = std::make_unique<Input>();
   m_renderer = std::make_unique<VulkanRenderer>(m_window->get());
 }

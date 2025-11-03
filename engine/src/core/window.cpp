@@ -22,7 +22,7 @@ Window::Window(const WindowInfo& info)
     flags |= SDL_WINDOW_FULLSCREEN;
   }
 
-  m_window = SDL_CreateWindow("title", static_cast<int>(m_width),
+  m_window = SDL_CreateWindow(info.title, static_cast<int>(m_width),
                               static_cast<int>(m_height), flags);
   if (m_window == nullptr) {
     throw std::runtime_error(std::string("Failed to create window: ") +
