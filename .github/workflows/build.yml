@@ -49,7 +49,8 @@ jobs:
           $VulkanVersion = "1.3.290.0"
           $Installer = "VulkanSDK-$VulkanVersion-Installer.exe"
           $DownloadURL = "https://sdk.lunarg.com/sdk/download/$VulkanVersion/windows/$Installer"
-          
+          echo "GETTING VULKAN FROM $DownloadURL"
+
           Invoke-WebRequest -Uri $DownloadURL -OutFile $Installer
           Start-Process -FilePath $Installer -ArgumentList "/S" -Wait
           
