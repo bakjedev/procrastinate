@@ -1,10 +1,29 @@
 #include "core/engine.hpp"
 #include "input/input.hpp"
 #include "input/input_enums.hpp"
+#include "resource/resource.hpp"
 #include "util/util.hpp"
 
+struct TestResource {
+  int number = 44;
+};
+
+struct TestResourceLoader {
+  TestResource operator()(int value) const { return TestResource{value}; }
+};
+
 struct RuntimeApplication {
-  void init() { Util::print("forty five {}\n", 45); }
+  void init() {
+    ResourcePool<TestResource> pool;
+
+    auto test = pool.load("test", TestResourceLoader{}, 22);
+
+    Util::println("test {}", test->number);
+
+    auto testTWO = pool.load("test", TestResourceLoader{}, 16);
+
+    Util::println("testTWO {}", testTWO->number);
+  }
 
   void update(float) {
     auto& input = engine.getInput();
