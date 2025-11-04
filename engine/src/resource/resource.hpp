@@ -107,6 +107,8 @@ class ResourcePool {
       if (!metadata.key.empty()) {
         m_keyToIndex.erase(metadata.key);
       }
+      // currently don't deconstruct resource cuz might be heavy. maybe later i
+      // periodically remove them. get destroyed anyway when replaced
     }
   }
 
