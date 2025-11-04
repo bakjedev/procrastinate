@@ -42,11 +42,14 @@ class ResourcePool {
 
       metadata = &m_metadata[index];
       metadata->generation++;
+      // should probably do something when we have 4 billion plus generations
+      // (if that ever happens)
     } else {
       index = m_resources.size();
       m_resources.emplace_back(std::nullopt);
 
-      metadata = &m_metadata.emplace_back();
+      m_metadata.emplace_back();
+      metadata = &m_metadata.back();
       metadata->generation = 1;
     }
 
@@ -101,7 +104,6 @@ class ResourcePool {
 
     if (metadata.refCount == 0) {
       m_freeList.push_back(handle.index);
-      // metadata.generation = 0;
       if (!metadata.key.empty()) {
         m_keyToIndex.erase(metadata.key);
       }
@@ -135,6 +137,11 @@ class ResourcePool {
     }
 
     return handle;
+  }
+
+  template <typename Loader, typename... Args>
+  ResourceHandle<T> loadFile(const std::string& key, Loader&& loader) {
+    return load(key, std::forward<Loader>(loader), key);
   }
 };
 
