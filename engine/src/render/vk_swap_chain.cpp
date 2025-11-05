@@ -1,6 +1,6 @@
 #include "render/vk_swap_chain.hpp"
 
-#include "util/util.hpp"
+#include "util/vk_check.hpp"
 
 VulkanSwapChain::VulkanSwapChain(VkDevice device,
                                  VkPhysicalDevice physicalDevice,

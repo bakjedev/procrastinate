@@ -4,7 +4,7 @@
 
 #include <memory>
 
-#include "util/util.hpp"
+#include "util/print.hpp"
 #include "vk_allocator.hpp"
 
 VulkanRenderer::VulkanRenderer(SDL_Window* window) {

@@ -3,7 +3,7 @@
 #include <render/vk_instance.hpp>
 #include <vector>
 
-#include "util/util.hpp"
+#include "util/vk_check.hpp"
 
 VulkanInstance::VulkanInstance() {
   uint32_t sdlInstanceExtensionCount = 0;

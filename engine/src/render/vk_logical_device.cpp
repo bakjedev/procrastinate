@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "render/vk_physical_device.hpp"
-#include "util/util.hpp"
+#include "util/vk_check.hpp"
 
 VulkanLogicalDevice::VulkanLogicalDevice(
     VkPhysicalDevice physicalDevice, const VkPhysicalDeviceFeatures& features,

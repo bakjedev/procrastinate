@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-#include "util/util.hpp"
+#include "util/vk_check.hpp"
 
 VulkanBuffer::VulkanBuffer(VmaAllocator allocator, uint32_t bufferSize,
                            VkBufferUsageFlags bufferUsage,

@@ -1,7 +1,7 @@
 #include "render/vk_frame.hpp"
 
 #include "render/vk_command_pool.hpp"
-#include "util/util.hpp"
+#include "util/vk_check.hpp"
 
 VulkanFrame::VulkanFrame(VulkanCommandPool* graphicsPool,
                          VulkanCommandPool* transferPool,

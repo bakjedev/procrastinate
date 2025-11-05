@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include "util/util.hpp"
+#include "util/vk_check.hpp"
 
 VulkanPhysicalDevice::VulkanPhysicalDevice(VkInstance instance,
                                            VkSurfaceKHR surface) {

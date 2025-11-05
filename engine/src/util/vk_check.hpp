@@ -1,8 +1,10 @@
 #pragma once
+
 #include <vulkan/vulkan.h>
 
-#include <format>
-#include <iostream>
+#include <string>
+
+#include "print.hpp"
 
 #define VK_CHECK(f)                                              \
   do {                                                           \
@@ -15,18 +17,6 @@
   } while (0)
 
 namespace Util {
-
-// basically std::print from c++23
-template <class... Args>
-void print(std::format_string<Args...> fmt, Args&&... args) {
-  std::cout << std::format(fmt, std::forward<Args>(args)...);
-}
-
-template <class... Args>
-void println(std::format_string<Args...> fmt, Args&&... args) {
-  std::cout << std::format(fmt, std::forward<Args>(args)...) << '\n';
-}
-
 inline std::string errorString(VkResult errorCode) {
   switch (errorCode) {
 #define STR(r) \
@@ -61,5 +51,4 @@ inline std::string errorString(VkResult errorCode) {
       return "UNKNOWN_ERROR";
   }
 }
-
 }  // namespace Util

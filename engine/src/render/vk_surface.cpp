@@ -2,7 +2,7 @@
 
 #include <SDL3/SDL_vulkan.h>
 
-#include "util/util.hpp"
+#include "util/print.hpp"
 
 VulkanSurface::VulkanSurface(SDL_Window* window, VkInstance instance)
     : m_instance(instance) {

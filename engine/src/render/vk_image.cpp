@@ -1,6 +1,6 @@
 #include "vk_image.hpp"
 
-#include "util/util.hpp"
+#include "util/vk_check.hpp"
 
 VulkanImage::VulkanImage(VmaAllocator allocator, uint32_t width,
                          uint32_t height, VkFormat format,

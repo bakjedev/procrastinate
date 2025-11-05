@@ -1,6 +1,6 @@
 #include "render/vk_command_pool.hpp"
 
-#include "util/util.hpp"
+#include "util/vk_check.hpp"
 
 VulkanCommandPool::VulkanCommandPool(VkDevice device,
                                      const int queueFamilyIndex,

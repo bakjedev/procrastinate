@@ -1,5 +1,5 @@
 #pragma once
-#include "util/util.hpp"
+#include "util/vk_check.hpp"
 #include "vma/vma_usage.h"
 
 class VulkanAllocator {
