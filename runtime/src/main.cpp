@@ -42,20 +42,7 @@ struct Data {
 };
 
 struct RuntimeApplication {
-  void init() {
-    ResourceStorage<Data> storage;
-
-    auto loader = [](uint32_t number) { return Data{number}; };
-
-    {
-      auto resourceA = storage.create("A", loader, 3);
-
-      Util::println("We created resource A with {}", resourceA->number);
-    }
-    auto resourceB = storage.create("A", loader, 6);
-
-    Util::println("We created resource B with {}", resourceB->number);
-  }
+  void init() {}
 
   void update(float) {
     auto& input = engine.getInput();
