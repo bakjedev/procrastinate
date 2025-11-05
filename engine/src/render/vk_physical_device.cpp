@@ -107,7 +107,7 @@ bool VulkanPhysicalDevice::findQueueFamilies(VkSurfaceKHR surface) {
   // fallback for transfer queue.
   if (!m_queueFamilyIndices.transfer.has_value() &&
       m_queueFamilyIndices.graphics.has_value()) {
-    m_queueFamilyIndices.transfer = m_queueFamilyIndices.graphics.value();
+    m_queueFamilyIndices.transfer = m_queueFamilyIndices.graphics;
   }
 
   return m_queueFamilyIndices.isComplete();

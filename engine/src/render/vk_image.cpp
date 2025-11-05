@@ -91,8 +91,8 @@ void VulkanImage::transitionLayout(VkCommandBuffer cmd, VkImageLayout oldLayout,
   barrier.subresourceRange.baseArrayLayer = 0;
   barrier.subresourceRange.layerCount = 1;
 
-  VkPipelineStageFlags sourceStage;
-  VkPipelineStageFlags destinationStage;
+  VkPipelineStageFlags sourceStage = 0U;
+  VkPipelineStageFlags destinationStage = 0U;
 
   if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
       newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {

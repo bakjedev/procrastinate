@@ -14,7 +14,7 @@ VulkanCommandPool::~VulkanCommandPool() { destroy(); }
 
 VkCommandBuffer VulkanCommandPool::allocate(
     const VkCommandBufferLevel level) const {
-  VkCommandBuffer buffer;
+  VkCommandBuffer buffer = VK_NULL_HANDLE;
   VkCommandBufferAllocateInfo allocateInfo{};
   allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocateInfo.commandPool = m_commandPool;

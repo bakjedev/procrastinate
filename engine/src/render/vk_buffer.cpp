@@ -31,14 +31,14 @@ void VulkanBuffer::create(uint32_t bufferSize, VkBufferUsageFlags bufferUsage,
 }
 
 void VulkanBuffer::map(const void* srcData) {
-  void* data;
+  void* data = nullptr;
   vmaMapMemory(m_allocator, m_allocation, &data);
   memcpy(data, srcData, m_size);
   vmaUnmapMemory(m_allocator, m_allocation);
 }
 
 void VulkanBuffer::mapRange(const void* srcData, uint32_t rangeSize) {
-  void* data;
+  void* data = nullptr;
   vmaMapMemory(m_allocator, m_allocation, &data);
   memcpy(data, srcData, rangeSize);
   vmaUnmapMemory(m_allocator, m_allocation);

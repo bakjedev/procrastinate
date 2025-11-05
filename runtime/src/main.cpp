@@ -6,8 +6,8 @@
 struct RuntimeApplication {
   void init() {}
 
-  void update(float) {
-    auto& input = engine.getInput();
+  void update(float) const {
+    auto& input = engine->getInput();
 
     if (input.mouseButtonReleased(MouseButton::Left)) {
       Util::println("RELEASED");
@@ -27,13 +27,13 @@ struct RuntimeApplication {
   void render() {}
   void shutdown() {}
 
-  Engine& engine;
+  Engine* engine = nullptr;
 };
 
 int main() {
   Engine engine;
 
-  RuntimeApplication app{engine};
+  RuntimeApplication app{&engine};
 
   engine.run(app);
 

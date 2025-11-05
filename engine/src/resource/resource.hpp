@@ -197,7 +197,7 @@ class ResourceStorage {
     // load before touching metadata because might throw exception
     T resource = loader(std::forward<Args>(args)...);
 
-    uint32_t index;
+    uint32_t index = 0;
 
     if (!m_free.empty()) {
       index = m_free.back();
