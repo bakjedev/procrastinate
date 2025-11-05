@@ -47,29 +47,14 @@ struct RuntimeApplication {
 
     auto loader = [](uint32_t number) { return Data{number}; };
 
-    auto handleA = storage.create("A", loader, 3);
+    {
+      auto resourceA = storage.create("A", loader, 3);
 
-    // storage.destroy(handleA);
-
-    auto handleB = storage.create("A", loader, 6);
-
-    // storage.destroy(handleA);
-    storage.destroy(handleB);
-
-    auto dataA = storage.get(handleA);
-    auto dataB = storage.get(handleB);
-
-    if (dataA) {
-      Util::println("A {}", dataA->number);
-    } else {
-      Util::println("A fake");
+      Util::println("We created resource A with {}", resourceA->number);
     }
+    auto resourceB = storage.create("A", loader, 6);
 
-    if (dataB) {
-      Util::println("B {}", dataB->number);
-    } else {
-      Util::println("B fake");
-    }
+    Util::println("We created resource B with {}", resourceB->number);
   }
 
   void update(float) {
