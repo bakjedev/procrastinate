@@ -108,6 +108,12 @@ class ResourceRef {
   ResourceStorage<T>* m_storage;
 };
 
+// concept for valid loaders. needs () operator that takes the right args and
+// returns the right type
+template <typename Loader, typename T, typename... Args>
+concept LoaderFor = std::invocable<Loader, Args...> &&
+                    std::same_as<std::invoke_result_t<Loader, Args...>, T>;
+
 template <typename T>
 class ResourceStorage {
  private:
@@ -174,6 +180,7 @@ class ResourceStorage {
 
  public:
   template <typename Loader, typename... Args>
+    requires LoaderFor<Loader, T, Args...>
   Ref create(const std::string& key, Loader&& loader, Args&&... args) {
     auto it = m_keyToHandle.find(key);
     if (it != m_keyToHandle.end()) {
