@@ -194,6 +194,9 @@ class ResourceStorage {
       }
     }
 
+    // load before touching metadata because might throw exception
+    T resource = loader(std::forward<Args>(args)...);
+
     uint32_t index;
 
     if (!m_free.empty()) {
@@ -202,13 +205,13 @@ class ResourceStorage {
 
       m_metadata[index].refCount = 1;
 
-      m_resources[index] = loader(std::forward<Args>(args)...);
+      m_resources[index] = std::move(resource);
     } else {
       index = m_resources.size();
 
       m_metadata.emplace_back(1, 1);
 
-      m_resources.push_back(loader(std::forward<Args>(args)...));
+      m_resources.push_back(std::move(resource));
     }
 
     Handle handle{index, m_metadata[index].generation};
