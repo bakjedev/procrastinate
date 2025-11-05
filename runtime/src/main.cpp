@@ -4,25 +4,72 @@
 #include "resource/resource.hpp"
 #include "util/util.hpp"
 
-struct TestResource {
-  int number = 44;
-};
+struct Data {
+  uint32_t number;
+  Data() : number(1) { Util::println("Default constructor: {}", number); }
 
-struct TestResourceLoader {
-  TestResource operator()(int value) const { return TestResource{value}; }
+  Data(uint32_t n) : number(n) {
+    Util::println("Parameterized constructor: {}", number);
+  }
+
+  Data(const Data& other) : number(other.number) {
+    Util::println("Copy constructor: {}", number);
+  }
+
+  Data(Data&& other) noexcept : number(std::move(other.number)) {
+    Util::println("Move constructor: {}", number);
+    other.number = 0;
+  }
+
+  Data& operator=(const Data& other) {
+    if (this != &other) {
+      number = other.number;
+      Util::println("Copy assignment: {}", number);
+    }
+    return *this;
+  }
+
+  Data& operator=(Data&& other) noexcept {
+    if (this != &other) {
+      number = std::move(other.number);
+      Util::println("Move assignment: {}", number);
+      other.number = 0;
+    }
+    return *this;
+  }
+
+  ~Data() { Util::println("Destructor: {}", number); }
 };
 
 struct RuntimeApplication {
   void init() {
-    ResourcePool<TestResource> pool;
+    ResourceStorage<Data> storage;
 
-    auto test = pool.load("test", TestResourceLoader{}, 22);
+    auto loader = [](uint32_t number) { return Data{number}; };
 
-    Util::println("test {}", test->number);
+    auto handleA = storage.create("A", loader, 3);
 
-    auto testTWO = pool.load("test", TestResourceLoader{}, 16);
+    // storage.destroy(handleA);
 
-    Util::println("testTWO {}", testTWO->number);
+    auto handleB = storage.create("A", loader, 6);
+
+    // storage.destroy(handleA);
+    storage.destroy(handleB);
+
+    auto dataA = storage.get(handleA);
+    auto dataB = storage.get(handleB);
+
+    if (dataA) {
+      Util::println("A {}", dataA->number);
+    } else {
+      Util::println("A fake");
+    }
+
+    if (dataB) {
+      Util::println("B {}", dataB->number);
+    } else {
+      Util::println("B fake");
+    }
   }
 
   void update(float) {
