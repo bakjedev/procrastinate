@@ -19,6 +19,10 @@ class VulkanImage {
   void transitionLayout(VkCommandBuffer cmd, VkImageLayout oldLayout,
                         VkImageLayout newLayout);
 
+  static void transitionImageLayout(VkImage image, VkCommandBuffer cmd,
+                                    VkImageLayout oldLayout,
+                                    VkImageLayout newLayout);
+
  private:
   VkImage m_image = VK_NULL_HANDLE;
   VkImageView m_imageView = VK_NULL_HANDLE;
