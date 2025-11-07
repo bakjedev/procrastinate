@@ -42,7 +42,7 @@ enum class KeyboardKey : uint8_t {
   Digit9 = 38,
   Digit0 = 39,
 
-  ReturnKey = 40,
+  Return = 40,
   Escape = 41,
   Backspace = 42,
   Tab = 43,
@@ -82,7 +82,7 @@ enum class KeyboardKey : uint8_t {
 
   Home = 74,
   PageUp = 75,
-  DeleteKey = 76,
+  Delete = 76,
   End = 77,
   PageDown = 78,
   Right = 79,
