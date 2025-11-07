@@ -154,12 +154,12 @@ enum class KeyboardKey : uint8_t {
 };
 
 enum class MouseButton : uint8_t {
-  Left = 1,
-  Middle = 2,
-  Right = 3,
-  X1 = 4,
-  X2 = 5,
-  Count = 6
+  Left = 0,
+  Middle = 1,
+  Right = 2,
+  X1 = 3,
+  X2 = 4,
+  Count = 5
 };
 
 enum class GamepadButton : uint8_t {

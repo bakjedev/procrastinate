@@ -26,14 +26,14 @@ void Input::update(const EventManager& eventManager) {
       case EventType::MouseButtonDown: {
         const auto& input = std::get<InputData>(event.data);
         if (input.scancode < static_cast<uint32_t>(MouseButton::Count)) {
-          m_mouseButtonsDown.set(input.scancode);
+          m_mouseButtonsDown.set(input.scancode - 1);
         }
         break;
       }
       case EventType::MouseButtonUp: {
         const auto& input = std::get<InputData>(event.data);
         if (input.scancode < static_cast<uint32_t>(MouseButton::Count)) {
-          m_mouseButtonsDown.reset(input.scancode);
+          m_mouseButtonsDown.reset(input.scancode - 1);
         }
         break;
       }
