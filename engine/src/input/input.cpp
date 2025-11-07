@@ -4,6 +4,8 @@
 
 void Input::update(const EventManager& eventManager) {
   m_mouseScroll = 0.0F;
+  m_mouseDeltaX = 0.0F;
+  m_mouseDeltaY = 0.0F;
 
   for (const auto& event : eventManager.getEvents()) {
     switch (event.type) {
