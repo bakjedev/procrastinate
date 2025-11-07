@@ -26,23 +26,24 @@ VulkanRenderer::VulkanRenderer(SDL_Window* window) {
   m_swapChain = std::make_unique<VulkanSwapChain>(
       m_logicalDevice->get(), m_physicalDevice->get(), m_surface->get());
 
-  const CommandPoolInfo graphicsPoolInfo{
-      .queueFamilyIndex = m_physicalDevice->queueFamilies().graphics.value(),
-      .flags = 0};
-  m_graphicsPool = std::make_unique<VulkanCommandPool>(graphicsPoolInfo,
-                                                       m_logicalDevice->get());
+  const uint32_t graphicsQueueFamily =
+      m_physicalDevice->queueFamilies().graphics.value();
+  const uint32_t transferQueueFamily =
+      m_physicalDevice->queueFamilies().transfer.value();
+  const uint32_t computeQueueFamily =
+      m_physicalDevice->queueFamilies().compute.value();
 
-  const CommandPoolInfo transferPoolInfo{
-      .queueFamilyIndex = m_physicalDevice->queueFamilies().transfer.value(),
-      .flags = 0};
-  m_transferPool = std::make_unique<VulkanCommandPool>(transferPoolInfo,
-                                                       m_logicalDevice->get());
+  m_graphicsPool = std::make_unique<VulkanCommandPool>(
+      CommandPoolInfo{.queueFamilyIndex = graphicsQueueFamily},
+      m_logicalDevice->get());
 
-  const CommandPoolInfo computePoolInfo{
-      .queueFamilyIndex = m_physicalDevice->queueFamilies().compute.value(),
-      .flags = 0};
-  m_computePool = std::make_unique<VulkanCommandPool>(computePoolInfo,
-                                                      m_logicalDevice->get());
+  m_transferPool = std::make_unique<VulkanCommandPool>(
+      CommandPoolInfo{.queueFamilyIndex = transferQueueFamily},
+      m_logicalDevice->get());
+
+  m_computePool = std::make_unique<VulkanCommandPool>(
+      CommandPoolInfo{.queueFamilyIndex = computeQueueFamily},
+      m_logicalDevice->get());
 
   const auto frameCount = m_swapChain->imageCount();
   m_frames.reserve(frameCount);

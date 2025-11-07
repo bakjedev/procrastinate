@@ -42,4 +42,4 @@ class Engine {
   std::unique_ptr<VulkanRenderer> m_renderer;
 };
 
-#include "engine.inl"
+#include "engine.inl"  // IWYU pragma: keep

@@ -15,14 +15,16 @@ class VulkanAllocator {
     VK_CHECK(vmaCreateAllocator(&info, &m_allocator));
     Util::println("Created vulkan allocator");
   }
-  VulkanAllocator(const VulkanAllocator &) = delete;
-  VulkanAllocator(VulkanAllocator &&) = default;
-  VulkanAllocator &operator=(const VulkanAllocator &) = delete;
-  VulkanAllocator &operator=(VulkanAllocator &&) = default;
+
   ~VulkanAllocator() {
     vmaDestroyAllocator(m_allocator);
     Util::println("Destroyed vulkan allocator");
   }
+
+  VulkanAllocator(const VulkanAllocator &) = delete;
+  VulkanAllocator(VulkanAllocator &&) = delete;
+  VulkanAllocator &operator=(const VulkanAllocator &) = delete;
+  VulkanAllocator &operator=(VulkanAllocator &&) = delete;
 
   [[nodiscard]] VmaAllocator get() const { return m_allocator; }
 
