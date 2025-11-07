@@ -1,10 +1,18 @@
 #pragma once
 #include <vulkan/vulkan.h>
 
+struct CommandPoolInfo {
+  uint32_t queueFamilyIndex{};
+  VkCommandPoolCreateFlags flags{};
+};
+
 class VulkanCommandPool {
  public:
-  explicit VulkanCommandPool(VkDevice device, int queueFamilyIndex,
-                             VkCommandPoolCreateFlags flags);
+  explicit VulkanCommandPool(const CommandPoolInfo& info, VkDevice device);
+  VulkanCommandPool(const VulkanCommandPool&) = delete;
+  VulkanCommandPool(VulkanCommandPool&&) = delete;
+  VulkanCommandPool& operator=(const VulkanCommandPool&) = delete;
+  VulkanCommandPool& operator=(VulkanCommandPool&&) = delete;
   ~VulkanCommandPool();
 
   [[nodiscard]] VkCommandPool get() const { return m_commandPool; }
@@ -17,6 +25,6 @@ class VulkanCommandPool {
   VkCommandPool m_commandPool{};
   VkDevice m_device{};  // for deconstructing, allocating and resetting
 
-  void create(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags = 0U);
+  void create(const CommandPoolInfo& info);
   void destroy() const;
 };

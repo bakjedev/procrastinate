@@ -5,11 +5,15 @@ struct QueueFamilyIndices;
 
 class VulkanLogicalDevice {
  public:
-  explicit VulkanLogicalDevice(
-      VkPhysicalDevice physicalDevice, const VkPhysicalDeviceFeatures& features,
-      const QueueFamilyIndices& queueFamilyIndices,
-      const VkPhysicalDeviceVulkan12Features& features12,
-      const VkPhysicalDeviceVulkan13Features& features13);
+  VulkanLogicalDevice(VkPhysicalDevice physicalDevice,
+                      const VkPhysicalDeviceFeatures& features,
+                      const QueueFamilyIndices& queueFamilyIndices,
+                      const VkPhysicalDeviceVulkan12Features& features12,
+                      const VkPhysicalDeviceVulkan13Features& features13);
+  VulkanLogicalDevice(const VulkanLogicalDevice&) = delete;
+  VulkanLogicalDevice(VulkanLogicalDevice&&) = delete;
+  VulkanLogicalDevice& operator=(const VulkanLogicalDevice&) = delete;
+  VulkanLogicalDevice& operator=(VulkanLogicalDevice&&) = delete;
   ~VulkanLogicalDevice();
 
   [[nodiscard]] VkDevice get() const { return m_logicalDevice; }

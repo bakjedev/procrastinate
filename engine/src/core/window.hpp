@@ -12,7 +12,11 @@ struct WindowInfo {
 
 class Window {
  public:
-  Window(const WindowInfo& info);
+  explicit Window(const WindowInfo& info);
+  Window(const Window&) = delete;
+  Window(Window&&) = default;
+  Window& operator=(const Window&) = delete;
+  Window& operator=(Window&&) = default;
   ~Window();
 
   [[nodiscard]] SDL_Window* get() const;

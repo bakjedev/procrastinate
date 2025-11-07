@@ -1,11 +1,21 @@
 #pragma once
 #include <vma/vma_usage.h>
 
+struct ImageInfo {
+  uint32_t width;
+  uint32_t height;
+  VkFormat format;
+  VkImageUsageFlags usage;
+  VkImageAspectFlags aspectFlags;
+};
+
 class VulkanImage {
  public:
-  VulkanImage(VmaAllocator allocator, uint32_t width, uint32_t height,
-              VkFormat format, VkImageUsageFlags usage,
-              VkImageAspectFlags aspectFlags);
+  VulkanImage(const ImageInfo& info, VmaAllocator allocator);
+  VulkanImage(const VulkanImage&) = delete;
+  VulkanImage(VulkanImage&&) = delete;
+  VulkanImage& operator=(const VulkanImage&) = delete;
+  VulkanImage& operator=(VulkanImage&&) = delete;
   ~VulkanImage();
 
   [[nodiscard]] VkImage get() const { return m_image; }
@@ -28,8 +38,6 @@ class VulkanImage {
   VkImageView m_imageView = VK_NULL_HANDLE;
   VmaAllocation m_allocation = VK_NULL_HANDLE;
 
-  VkImageAspectFlags m_aspectFlags;
-
   VkFormat m_format;
   uint32_t m_width;
   uint32_t m_height;
@@ -37,8 +45,7 @@ class VulkanImage {
   VmaAllocator m_allocator;
   VkDevice m_device;
 
-  void create(uint32_t width, uint32_t height, VkFormat format,
-              VkImageUsageFlags usage);
-  void createView();
+  void create(const ImageInfo& info);
+  void createView(VkImageAspectFlags aspectFlags);
   void destroy();
 };

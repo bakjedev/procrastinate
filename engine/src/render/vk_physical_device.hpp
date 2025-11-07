@@ -19,6 +19,10 @@ struct QueueFamilyIndices {
 class VulkanPhysicalDevice {
  public:
   explicit VulkanPhysicalDevice(VkInstance instance, VkSurfaceKHR surface);
+  VulkanPhysicalDevice(const VulkanPhysicalDevice&) = delete;
+  VulkanPhysicalDevice(VulkanPhysicalDevice&&) = delete;
+  VulkanPhysicalDevice& operator=(const VulkanPhysicalDevice&) = delete;
+  VulkanPhysicalDevice& operator=(VulkanPhysicalDevice&&) = delete;
   ~VulkanPhysicalDevice();
 
   [[nodiscard]] VkPhysicalDevice get() const { return m_physicalDevice; }
@@ -34,7 +38,9 @@ class VulkanPhysicalDevice {
     return m_features13;
   }
 
-  [[nodiscard]] std::string name() const { return {m_properties.deviceName}; }
+  [[nodiscard]] std::string name() const {
+    return static_cast<const char*>(m_properties.deviceName);
+  }
 
   [[nodiscard]] const QueueFamilyIndices& queueFamilies() const {
     return m_queueFamilyIndices;

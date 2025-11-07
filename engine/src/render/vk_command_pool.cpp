@@ -2,12 +2,10 @@
 
 #include "util/vk_check.hpp"
 
-VulkanCommandPool::VulkanCommandPool(VkDevice device,
-                                     const int queueFamilyIndex,
-                                     const VkCommandPoolCreateFlags flags)
+VulkanCommandPool::VulkanCommandPool(const CommandPoolInfo& info,
+                                     VkDevice device)
     : m_device(device) {
-  create(queueFamilyIndex,
-         VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | flags);
+  create(info);
 }
 
 VulkanCommandPool::~VulkanCommandPool() { destroy(); }
@@ -33,16 +31,15 @@ void VulkanCommandPool::reset() const {
   VK_CHECK(vkResetCommandPool(m_device, m_commandPool, 0));
 }
 
-void VulkanCommandPool::create(const uint32_t queueFamilyIndex,
-                               const VkCommandPoolCreateFlags flags) {
+void VulkanCommandPool::create(const CommandPoolInfo& info) {
   VkCommandPoolCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  createInfo.queueFamilyIndex = queueFamilyIndex;
-  createInfo.flags = flags;
+  createInfo.queueFamilyIndex = info.queueFamilyIndex;
+  createInfo.flags = info.flags;
 
   VK_CHECK(vkCreateCommandPool(m_device, &createInfo, nullptr, &m_commandPool));
   Util::println("Created command pool with queue family index {}",
-                queueFamilyIndex);
+                info.queueFamilyIndex);
 }
 
 void VulkanCommandPool::destroy() const {

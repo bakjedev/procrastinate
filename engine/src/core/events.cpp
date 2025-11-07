@@ -1,54 +1,54 @@
 #include "events.hpp"
 
+#include <optional>
+
 #include "SDL3/SDL_events.h"
 
 void EventManager::poll() {
   clear();
-  m_events.reserve(64);
+  m_events.reserve(expectedEvents);
 
   SDL_Event sdlEvent;
   while (SDL_PollEvent(&sdlEvent)) {
-    Event event;
-    bool valid = true;
+    std::optional<Event> event{};
 
     switch (sdlEvent.type) {
       case SDL_EVENT_QUIT:
-        event.type = EventType::Quit;
+        event = Event{.type = EventType::Quit, .data = std::monostate{}};
         break;
       case SDL_EVENT_KEY_DOWN:
-        event.type = EventType::KeyDown;
-        event.data.input.scancode = sdlEvent.key.key;
+        event = Event{.type = EventType::KeyDown,
+                      .data = InputData{.scancode = sdlEvent.key.key}};
         break;
       case SDL_EVENT_KEY_UP:
-        event.type = EventType::KeyUp;
-        event.data.input.scancode = sdlEvent.key.key;
+        event = Event{.type = EventType::KeyUp,
+                      .data = InputData{.scancode = sdlEvent.key.key}};
         break;
       case SDL_EVENT_MOUSE_BUTTON_DOWN:
-        event.type = EventType::MouseButtonDown;
-        event.data.input.scancode = sdlEvent.button.button;
+        event = Event{.type = EventType::MouseButtonDown,
+                      .data = InputData{.scancode = sdlEvent.button.button}};
         break;
       case SDL_EVENT_MOUSE_BUTTON_UP:
-        event.type = EventType::MouseButtonUp;
-        event.data.input.scancode = sdlEvent.button.button;
+        event = Event{.type = EventType::MouseButtonUp,
+                      .data = InputData{.scancode = sdlEvent.button.button}};
         break;
       case SDL_EVENT_MOUSE_MOTION:
-        event.type = EventType::MouseMotion;
-        event.data.motion.x = sdlEvent.motion.x;
-        event.data.motion.y = sdlEvent.motion.y;
-        event.data.motion.dx = sdlEvent.motion.xrel;
-        event.data.motion.dy = sdlEvent.motion.yrel;
+        event = Event{.type = EventType::MouseMotion,
+                      .data = MotionData{.x = sdlEvent.motion.x,
+                                         .y = sdlEvent.motion.y,
+                                         .dx = sdlEvent.motion.xrel,
+                                         .dy = sdlEvent.motion.yrel}};
         break;
       case SDL_EVENT_MOUSE_WHEEL:
-        event.type = EventType::MouseWheel;
-        event.data.wheel.scroll = sdlEvent.wheel.y;
+        event = Event{.type = EventType::MouseWheel,
+                      .data = WheelData{.scroll = sdlEvent.wheel.y}};
         break;
       default:
-        valid = false;
         break;
     }
 
-    if (valid) {
-      m_events.push_back(event);
+    if (event) {
+      m_events.push_back(*event);
     }
   }
 }

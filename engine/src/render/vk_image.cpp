@@ -2,41 +2,36 @@
 
 #include "util/vk_check.hpp"
 
-VulkanImage::VulkanImage(VmaAllocator allocator, uint32_t width,
-                         uint32_t height, VkFormat format,
-                         VkImageUsageFlags usage,
-                         VkImageAspectFlags aspectFlags)
-    : m_aspectFlags(aspectFlags),
-      m_format(format),
-      m_width(width),
-      m_height(height),
+VulkanImage::VulkanImage(const ImageInfo& info, VmaAllocator allocator)
+    : m_format(info.format),
+      m_width(info.width),
+      m_height(info.height),
       m_allocator(allocator) {
   VmaAllocatorInfo allocatorInfo;
   vmaGetAllocatorInfo(m_allocator, &allocatorInfo);
   m_device = allocatorInfo.device;
 
-  create(width, height, format, usage);
-  createView();
-  Util::println("Created vulkan image ({}x{}, format {})", width, height,
-                static_cast<int>(format));
+  create(info);
+  createView(info.aspectFlags);
+  Util::println("Created vulkan image ({}x{}, format {})", info.width,
+                info.height, static_cast<int>(info.format));
 }
 
 VulkanImage::~VulkanImage() { destroy(); }
 
-void VulkanImage::create(uint32_t width, uint32_t height, VkFormat format,
-                         VkImageUsageFlags usage) {
+void VulkanImage::create(const ImageInfo& info) {
   VkImageCreateInfo imageInfo{};
   imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   imageInfo.imageType = VK_IMAGE_TYPE_2D;
-  imageInfo.extent.width = width;
-  imageInfo.extent.height = height;
+  imageInfo.extent.width = info.width;
+  imageInfo.extent.height = info.height;
   imageInfo.extent.depth = 1;
   imageInfo.mipLevels = 1;
   imageInfo.arrayLayers = 1;
-  imageInfo.format = format;
+  imageInfo.format = info.format;
   imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
   imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  imageInfo.usage = usage;
+  imageInfo.usage = info.usage;
   imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
   imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -48,13 +43,13 @@ void VulkanImage::create(uint32_t width, uint32_t height, VkFormat format,
                           &m_allocation, nullptr));
 }
 
-void VulkanImage::createView() {
+void VulkanImage::createView(VkImageAspectFlags aspectFlags) {
   VkImageViewCreateInfo viewInfo{};
   viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
   viewInfo.image = m_image;
   viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
   viewInfo.format = m_format;
-  viewInfo.subresourceRange.aspectMask = m_aspectFlags;
+  viewInfo.subresourceRange.aspectMask = aspectFlags;
   viewInfo.subresourceRange.baseMipLevel = 0;
   viewInfo.subresourceRange.levelCount = 1;
   viewInfo.subresourceRange.baseArrayLayer = 0;

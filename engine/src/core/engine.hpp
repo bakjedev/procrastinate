@@ -21,6 +21,10 @@ concept Application = requires(T app, float deltaTime) {
 class Engine {
  public:
   Engine();
+  Engine(const Engine&) = delete;
+  Engine(Engine&&) = default;
+  Engine& operator=(const Engine&) = delete;
+  Engine& operator=(Engine&&) = default;
   ~Engine();
 
   template <Application App>

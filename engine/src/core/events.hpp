@@ -1,8 +1,10 @@
 #pragma once
 #include <cstdint>
+#include <variant>
 #include <vector>
 
 enum class EventType : uint8_t {
+  None,
   Quit,
   KeyDown,
   KeyUp,
@@ -12,25 +14,24 @@ enum class EventType : uint8_t {
   MouseWheel
 };
 
+struct InputData {
+  uint32_t scancode;
+};
+
+struct MotionData {
+  float x;
+  float y;
+  float dx;
+  float dy;
+};
+
+struct WheelData {
+  float scroll;
+};
+
 struct Event {
-  EventType type;
-
-  union EventData {
-    struct InputData {
-      uint32_t scancode;
-    } input;
-
-    struct MotionData {
-      float x;
-      float y;
-      float dx;
-      float dy;
-    } motion;
-
-    struct WheelData {
-      float scroll;
-    } wheel;
-  } data;
+  EventType type = EventType::None;
+  std::variant<std::monostate, InputData, MotionData, WheelData> data;
 };
 
 class EventManager {
@@ -41,6 +42,8 @@ class EventManager {
 
  private:
   std::vector<Event> m_events;
+
+  static constexpr size_t expectedEvents = 64;
 
   void clear();
 };

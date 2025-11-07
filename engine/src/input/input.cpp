@@ -7,39 +7,47 @@ void Input::update(const EventManager& eventManager) {
 
   for (const auto& event : eventManager.getEvents()) {
     switch (event.type) {
-      case EventType::KeyDown:
-        if (event.data.input.scancode <
-            static_cast<uint32_t>(KeyboardKey::Count)) {
-          m_keysDown.set(event.data.input.scancode);
+      case EventType::KeyDown: {
+        const auto& input = std::get<InputData>(event.data);
+        if (input.scancode < static_cast<uint32_t>(KeyboardKey::Count)) {
+          m_keysDown.set(input.scancode);
         }
         break;
-      case EventType::KeyUp:
-        if (event.data.input.scancode <
-            static_cast<uint32_t>(KeyboardKey::Count)) {
-          m_keysDown.reset(event.data.input.scancode);
+      }
+      case EventType::KeyUp: {
+        const auto& input = std::get<InputData>(event.data);
+        if (input.scancode < static_cast<uint32_t>(KeyboardKey::Count)) {
+          m_keysDown.reset(input.scancode);
         }
         break;
-      case EventType::MouseButtonDown:
-        if (event.data.input.scancode <
-            static_cast<uint32_t>(MouseButton::Count)) {
-          m_mouseButtonsDown.set(event.data.input.scancode);
+      }
+      case EventType::MouseButtonDown: {
+        const auto& input = std::get<InputData>(event.data);
+        if (input.scancode < static_cast<uint32_t>(MouseButton::Count)) {
+          m_mouseButtonsDown.set(input.scancode);
         }
         break;
-      case EventType::MouseButtonUp:
-        if (event.data.input.scancode <
-            static_cast<uint32_t>(MouseButton::Count)) {
-          m_mouseButtonsDown.reset(event.data.input.scancode);
+      }
+      case EventType::MouseButtonUp: {
+        const auto& input = std::get<InputData>(event.data);
+        if (input.scancode < static_cast<uint32_t>(MouseButton::Count)) {
+          m_mouseButtonsDown.reset(input.scancode);
         }
         break;
-      case EventType::MouseMotion:
-        m_mouseX = event.data.motion.x;
-        m_mouseY = event.data.motion.y;
-        m_mouseDeltaX = event.data.motion.dx;
-        m_mouseDeltaY = event.data.motion.dy;
+      }
+      case EventType::MouseMotion: {
+        const auto& motion = std::get<MotionData>(event.data);
+        m_mouseX = motion.x;
+        m_mouseY = motion.y;
+        m_mouseDeltaX = motion.dx;
+        m_mouseDeltaY = motion.dy;
         break;
-      case EventType::MouseWheel:
-        m_mouseScroll = event.data.wheel.scroll;
+      }
+      case EventType::MouseWheel: {
+        const auto& wheel = std::get<WheelData>(event.data);
+        m_mouseScroll = wheel.scroll;
         break;
+      }
       default:
         break;
     }

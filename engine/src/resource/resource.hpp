@@ -16,8 +16,11 @@ struct ResourceHandle {
 template <typename T>
 struct ResourceHandleHash {
   std::size_t operator()(const ResourceHandle<T>& handle) const {
-    return std::hash<uint64_t>{}((static_cast<uint64_t>(handle.index) << 32) |
-                                 handle.generation);
+    constexpr std::size_t generationBits = 32;
+
+    return std::hash<uint64_t>{}(
+        (static_cast<uint64_t>(handle.index) << generationBits) |
+        handle.generation);
   }
 };
 
@@ -125,8 +128,6 @@ class ResourceStorage {
   struct Metadata {
     uint32_t generation;
     uint32_t refCount;
-
-    Metadata(uint32_t g, uint32_t r) : generation(g), refCount(r) {}
   };
 
   std::vector<T> m_resources;
@@ -139,17 +140,21 @@ class ResourceStorage {
 
   void destroy(const Handle& handle) {
     uint32_t index = handle.index;
-    if (index >= m_metadata.size()) return;
+    if (index >= m_metadata.size()) {
+      return;
+    }
 
     auto& metadata = m_metadata[handle.index];
 
-    if (metadata.generation != handle.generation) return;
+    if (metadata.generation != handle.generation) {
+      return;
+    }
 
     if (--metadata.refCount == 0) {
-      auto it = m_handleToKey.find(handle);
-      if (it != m_handleToKey.end()) {
-        m_keyToHandle.erase(it->second);
-        m_handleToKey.erase(it);
+      auto iter = m_handleToKey.find(handle);
+      if (iter != m_handleToKey.end()) {
+        m_keyToHandle.erase(iter->second);
+        m_handleToKey.erase(iter);
       }
 
       m_free.push_back(handle.index);
@@ -161,7 +166,9 @@ class ResourceStorage {
   }
 
   void acquire(const Handle& handle) {
-    if (valid(handle)) ++m_metadata[handle.index].refCount;
+    if (valid(handle)) {
+      ++m_metadata[handle.index].refCount;
+    }
   }
 
   const T* get(const Handle& handle) const {
@@ -181,15 +188,15 @@ class ResourceStorage {
  public:
   template <typename Loader, typename... Args>
     requires LoaderFor<Loader, T, Args...>
-  Ref create(const std::string& key, Loader&& loader, Args&&... args) {
-    auto it = m_keyToHandle.find(key);
-    if (it != m_keyToHandle.end()) {
-      const Handle& cached = it->second;
+  Ref create(const std::string& key, const Loader& loader, Args&&... args) {
+    auto iter = m_keyToHandle.find(key);
+    if (iter != m_keyToHandle.end()) {
+      const Handle& cached = iter->second;
       if (valid(cached)) {
         ++m_metadata[cached.index].refCount;
         return Ref{cached, this};
       } else {
-        m_keyToHandle.erase(it);
+        m_keyToHandle.erase(iter);
         m_handleToKey.erase(cached);
       }
     }
@@ -209,7 +216,7 @@ class ResourceStorage {
     } else {
       index = m_resources.size();
 
-      m_metadata.emplace_back(1, 1);
+      m_metadata.push_back(Metadata{.generation = 1, .refCount = 1});
 
       m_resources.push_back(std::move(resource));
     }
@@ -221,14 +228,14 @@ class ResourceStorage {
   }
 
   Ref get(const std::string& key) {
-    auto it = m_keyToHandle.find(key);
-    if (it != m_keyToHandle.end()) {
-      const Handle& cached = it->second;
+    auto iter = m_keyToHandle.find(key);
+    if (iter != m_keyToHandle.end()) {
+      const Handle& cached = iter->second;
       if (valid(cached)) {
         ++m_metadata[cached.index].refCount;
         return Ref{cached, this};
       } else {
-        m_keyToHandle.erase(it);
+        m_keyToHandle.erase(iter);
         m_handleToKey.erase(cached);
       }
     }

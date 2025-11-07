@@ -4,30 +4,25 @@
 
 #include "util/vk_check.hpp"
 
-VulkanBuffer::VulkanBuffer(VmaAllocator allocator, uint32_t bufferSize,
-                           VkBufferUsageFlags bufferUsage,
-                           VmaMemoryUsage memoryUsage,
-                           VmaAllocationCreateFlags memoryFlags)
+VulkanBuffer::VulkanBuffer(const BufferInfo& info, VmaAllocator allocator)
     : m_allocator(allocator) {
-  create(bufferSize, bufferUsage, memoryUsage, memoryFlags);
+  create(info);
 }
 
 VulkanBuffer::~VulkanBuffer() { destroy(); }
 
-void VulkanBuffer::create(uint32_t bufferSize, VkBufferUsageFlags bufferUsage,
-                          VmaMemoryUsage memoryUsage,
-                          VmaAllocationCreateFlags memoryFlags) {
-  VkBufferCreateInfo bufferInfo = {};
-  bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  bufferInfo.pNext = nullptr;
-  bufferInfo.size = bufferSize;
-  bufferInfo.usage = bufferUsage;
+void VulkanBuffer::create(const BufferInfo& info) {
+  VkBufferCreateInfo bufferCreateInfo = {};
+  bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  bufferCreateInfo.pNext = nullptr;
+  bufferCreateInfo.size = info.size;
+  bufferCreateInfo.usage = info.usage;
   VmaAllocationCreateInfo vmaallocInfo = {};
-  vmaallocInfo.usage = memoryUsage;
-  vmaallocInfo.flags = memoryFlags;
-  VK_CHECK(vmaCreateBuffer(m_allocator, &bufferInfo, &vmaallocInfo, &m_buffer,
-                           &m_allocation, nullptr));
-  m_size = bufferSize;
+  vmaallocInfo.usage = info.memoryUsage;
+  vmaallocInfo.flags = info.memoryFlags;
+  VK_CHECK(vmaCreateBuffer(m_allocator, &bufferCreateInfo, &vmaallocInfo,
+                           &m_buffer, &m_allocation, nullptr));
+  m_size = info.size;
 }
 
 void VulkanBuffer::map(const void* srcData) {

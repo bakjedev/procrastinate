@@ -6,7 +6,7 @@
 struct RuntimeApplication {
   void init() {}
 
-  void update(float) const {
+  void update(float /*unused*/) const {
     auto& input = engine->getInput();
 
     if (input.mouseButtonReleased(MouseButton::Left)) {
@@ -23,7 +23,7 @@ struct RuntimeApplication {
     }
   }
 
-  void fixedUpdate(float) {}
+  void fixedUpdate(float /*unused*/) {}
   void render() {}
   void shutdown() {}
 

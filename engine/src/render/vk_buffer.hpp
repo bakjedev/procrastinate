@@ -1,22 +1,30 @@
 #pragma once
 #include <vma/vma_usage.h>
 
+struct BufferInfo {
+  uint32_t size{};
+  VkBufferUsageFlags usage{};
+  VmaMemoryUsage memoryUsage{};
+  VmaAllocationCreateFlags memoryFlags{};
+};
+
 class VulkanBuffer {
  public:
-  VulkanBuffer(VmaAllocator allocator, uint32_t bufferSize,
-               VkBufferUsageFlags bufferUsage, VmaMemoryUsage memoryUsage,
-               VmaAllocationCreateFlags memoryFlags = 0U);
+  explicit VulkanBuffer(const BufferInfo& info, VmaAllocator allocator);
+  VulkanBuffer(const VulkanBuffer&) = delete;
+  VulkanBuffer(VulkanBuffer&&) = delete;
+  VulkanBuffer& operator=(const VulkanBuffer&) = delete;
+  VulkanBuffer& operator=(VulkanBuffer&&) = delete;
   ~VulkanBuffer();
-  void create(uint32_t bufferSize, VkBufferUsageFlags bufferUsage,
-              VmaMemoryUsage memoryUsage,
-              VmaAllocationCreateFlags memoryFlags = 0U);
+
+  void create(const BufferInfo& info);
   void map(const void* srcData);
   void mapRange(const void* srcData, uint32_t rangeSize);
   void destroy();
 
-  VkBuffer get() const { return m_buffer; }
-  VmaAllocation allocation() const { return m_allocation; }
-  uint32_t size() const { return m_size; }
+  [[nodiscard]] VkBuffer get() const { return m_buffer; }
+  [[nodiscard]] VmaAllocation allocation() const { return m_allocation; }
+  [[nodiscard]] uint32_t size() const { return m_size; }
 
  private:
   VkBuffer m_buffer = VK_NULL_HANDLE;

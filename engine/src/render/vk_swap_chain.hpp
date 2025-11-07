@@ -7,6 +7,10 @@ class VulkanSwapChain {
  public:
   VulkanSwapChain(VkDevice device, VkPhysicalDevice physicalDevice,
                   VkSurfaceKHR surface);
+  VulkanSwapChain(const VulkanSwapChain&) = delete;
+  VulkanSwapChain(VulkanSwapChain&&) = delete;
+  VulkanSwapChain& operator=(const VulkanSwapChain&) = delete;
+  VulkanSwapChain& operator=(VulkanSwapChain&&) = delete;
   ~VulkanSwapChain();
 
   [[nodiscard]] VkSwapchainKHR get() const { return m_swapChain; }

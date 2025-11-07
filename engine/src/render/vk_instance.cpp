@@ -1,7 +1,6 @@
 #include <SDL3/SDL_vulkan.h>
 
 #include <render/vk_instance.hpp>
-#include <vector>
 
 #include "util/vk_check.hpp"
 
@@ -12,9 +11,6 @@ VulkanInstance::VulkanInstance() {
   if (sdlInstanceExtensions == nullptr) {
     throw std::runtime_error("Failed to get SDL Vulkan extensions");
   }
-
-  std::vector extensions(sdlInstanceExtensions,
-                         sdlInstanceExtensions + sdlInstanceExtensionCount);
 
   const VkApplicationInfo applicationInfo{
       .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -32,8 +28,8 @@ VulkanInstance::VulkanInstance() {
       .pApplicationInfo = &applicationInfo,
       .enabledLayerCount = 0,
       .ppEnabledLayerNames = nullptr,
-      .enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
-      .ppEnabledExtensionNames = extensions.data(),
+      .enabledExtensionCount = sdlInstanceExtensionCount,
+      .ppEnabledExtensionNames = sdlInstanceExtensions,
   };
 
   VK_CHECK(vkCreateInstance(&instanceCreateInfo, nullptr, &m_instance));

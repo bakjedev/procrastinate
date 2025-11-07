@@ -8,7 +8,7 @@ struct Data {
   uint32_t number;
   Data() : number(1) { Util::println("Default constructor: {}", number); }
 
-  Data(uint32_t n) : number(n) {
+  explicit Data(uint32_t n) : number(n) {
     Util::println("Parameterized constructor: {}", number);
   }
 

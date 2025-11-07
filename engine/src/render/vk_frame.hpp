@@ -7,23 +7,27 @@ class VulkanFrame {
  public:
   VulkanFrame(VulkanCommandPool* graphicsPool, VulkanCommandPool* transferPool,
               VulkanCommandPool* computePool, VkDevice device);
+  VulkanFrame(const VulkanFrame&) = delete;
+  VulkanFrame(VulkanFrame&&) = delete;
+  VulkanFrame& operator=(const VulkanFrame&) = delete;
+  VulkanFrame& operator=(VulkanFrame&&) = delete;
   ~VulkanFrame();
 
-  VkCommandBuffer graphics() const { return m_graphicsCmd; }
-  VkCommandBuffer transfer() const { return m_transferCmd; }
-  VkCommandBuffer compute() const { return m_computeCmd; }
+  [[nodiscard]] VkCommandBuffer graphics() const { return m_graphicsCmd; }
+  [[nodiscard]] VkCommandBuffer transfer() const { return m_transferCmd; }
+  [[nodiscard]] VkCommandBuffer compute() const { return m_computeCmd; }
 
-  VkSemaphore imageAvailable() const { return m_imageAvailable; }
-  VkSemaphore renderFinished() const { return m_renderFinished; }
-  VkFence inFlight() const { return m_inFlight; }
+  [[nodiscard]] VkSemaphore imageAvailable() const { return m_imageAvailable; }
+  [[nodiscard]] VkSemaphore renderFinished() const { return m_renderFinished; }
+  [[nodiscard]] VkFence inFlight() const { return m_inFlight; }
 
  private:
-  VkCommandBuffer m_graphicsCmd;
-  VkCommandBuffer m_transferCmd;
-  VkCommandBuffer m_computeCmd;
-  VkSemaphore m_imageAvailable;
-  VkSemaphore m_renderFinished;
-  VkFence m_inFlight;
+  VkCommandBuffer m_graphicsCmd{};
+  VkCommandBuffer m_transferCmd{};
+  VkCommandBuffer m_computeCmd{};
+  VkSemaphore m_imageAvailable{};
+  VkSemaphore m_renderFinished{};
+  VkFence m_inFlight{};
 
   VkDevice m_device;  // for deconstructing
 };

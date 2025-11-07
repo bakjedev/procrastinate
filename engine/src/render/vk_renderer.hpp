@@ -14,7 +14,11 @@ struct SDL_Window;
 
 class VulkanRenderer {
  public:
-  VulkanRenderer(SDL_Window* window);
+  explicit VulkanRenderer(SDL_Window *window);
+  VulkanRenderer(const VulkanRenderer &) = delete;
+  VulkanRenderer(VulkanRenderer &&) = delete;
+  VulkanRenderer &operator=(const VulkanRenderer &) = delete;
+  VulkanRenderer &operator=(VulkanRenderer &&) = delete;
   ~VulkanRenderer();
 
  private:
@@ -29,5 +33,4 @@ class VulkanRenderer {
   std::unique_ptr<VulkanCommandPool> m_computePool;
 
   std::vector<std::unique_ptr<VulkanFrame>> m_frames;
-  uint32_t m_frameCount;
 };

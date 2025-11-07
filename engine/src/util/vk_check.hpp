@@ -6,15 +6,7 @@
 
 #include "print.hpp"
 
-#define VK_CHECK(f)                                              \
-  do {                                                           \
-    VkResult res = (f);                                          \
-    if (res != VK_SUCCESS) {                                     \
-      Util::println("Fatal: VkResult is {} in {} at line {}",    \
-                    Util::errorString(res), __FILE__, __LINE__); \
-      std::abort();                                              \
-    }                                                            \
-  } while (0)
+#define VK_CHECK(f) Util::vkCheck((f), __FILE__, __LINE__)
 
 namespace Util {
 inline std::string errorString(VkResult errorCode) {
@@ -51,4 +43,13 @@ inline std::string errorString(VkResult errorCode) {
       return "UNKNOWN_ERROR";
   }
 }
+
+inline void vkCheck(VkResult result, const char* file, int line) {
+  if (result != VK_SUCCESS) {
+    Util::println("Fatal: VkResult is {} in {} at line {}",
+                  Util::errorString(result), file, line);
+    std::abort();
+  }
+}
+
 }  // namespace Util
