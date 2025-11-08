@@ -24,6 +24,13 @@ class ResourceManager {
                                   std::forward<Args>(args)...);
   }
 
+  template <typename T, typename Loader, typename... Args>
+  ResourceRef<T> createFromFile(const std::string& key, Loader&& loader,
+                                Args&&... args) {
+    return getStorage<T>().create(key, std::forward<Loader>(loader), key,
+                                  std::forward<Args>(args)...);
+  }
+
  private:
   std::tuple<ResourceStorage<ShaderResource>> m_storages;
 };

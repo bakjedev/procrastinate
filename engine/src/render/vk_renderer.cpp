@@ -59,15 +59,13 @@ VulkanRenderer::VulkanRenderer(SDL_Window* window,
         m_logicalDevice->get()));
   }
 
-  const auto vertCode = resourceManager.create<ShaderResource>(
-      "testShaderVert", ShaderResourceLoader{},
-      "../assets/shaders/test.vert.spv");
+  const auto vertCode = resourceManager.createFromFile<ShaderResource>(
+      "../assets/shaders/test.vert.spv", ShaderResourceLoader{});
   m_vertexShader =
       std::make_unique<VulkanShader>(m_logicalDevice->get(), vertCode->code);
 
-  const auto fragCode = resourceManager.create<ShaderResource>(
-      "testShaderFrag", ShaderResourceLoader{},
-      "../assets/shaders/test.frag.spv");
+  const auto fragCode = resourceManager.createFromFile<ShaderResource>(
+      "../assets/shaders/test.frag.spv", ShaderResourceLoader{});
   m_fragmentShader =
       std::make_unique<VulkanShader>(m_logicalDevice->get(), fragCode->code);
 
