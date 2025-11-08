@@ -1,8 +1,5 @@
 find_program(GLSLC_EXECUTABLE
 	NAMES glslc
-	HINTS
-		$ENV{VULKAN_SDK}/bin
-		$ENV{VULKAN_SDK}/Bin
 )
 
 if(NOT GLSLC_EXECUTABLE)

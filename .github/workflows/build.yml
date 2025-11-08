@@ -36,9 +36,10 @@ jobs:
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-noble.list https://packages.lunarg.com/vulkan/lunarg-vulkan-noble.list
           sudo apt-get update
-          sudo apt-get install -y ninja-build clang libvulkan-dev
-      
+          sudo apt-get install -y ninja-build clang vulkan-sdk shaderc
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
         run: |
@@ -59,6 +60,7 @@ jobs:
           # Set environment variable for this session
           # echo "VULKAN_SDK=C:\VulkanSDK\$VulkanVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           echo "VULKAN_SDK=D:\VulkanSDK" >> $env:GITHUB_ENV
+          echo "D:\VulkanSDK\Bin" >> $env:GITHUB_PATH
       
       - name: Configure CMake
         run: cmake --preset ${{ steps.preset.outputs.name }}
