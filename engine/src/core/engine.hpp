@@ -8,10 +8,11 @@ class EventManager;
 class Window;
 class Input;
 class VulkanRenderer;
+class Engine;
 
 template <typename T>
-concept Application = requires(T app, float deltaTime) {
-  { app.init() } -> std::same_as<void>;
+concept Application = requires(T app, float deltaTime, Engine& engine) {
+  { app.init(engine) } -> std::same_as<void>;
   { app.update(deltaTime) } -> std::same_as<void>;
   { app.fixedUpdate(deltaTime) } -> std::same_as<void>;
   { app.render() } -> std::same_as<void>;

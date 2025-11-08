@@ -4,7 +4,7 @@
 #include "util/print.hpp"
 
 struct RuntimeApplication {
-  void init() {}
+  void init(Engine& eng) { engine = &eng; }
 
   void update(float /*unused*/) const {
     auto& input = engine->getInput();
@@ -33,7 +33,7 @@ struct RuntimeApplication {
 int main() {
   Engine engine;
 
-  RuntimeApplication app{&engine};
+  RuntimeApplication app{};
 
   engine.run(app);
 
