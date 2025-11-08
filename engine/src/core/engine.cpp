@@ -6,6 +6,7 @@
 #include "events.hpp"
 #include "input/input.hpp"
 #include "render/vk_renderer.hpp"
+#include "resource/resource_manager.hpp"
 #include "util/print.hpp"
 #include "window.hpp"
 
@@ -20,7 +21,9 @@ Engine::Engine() {
                                                  .title = "meowl"},
                                       *m_eventManager);
   m_input = std::make_unique<Input>(*m_eventManager);
-  m_renderer = std::make_unique<VulkanRenderer>(m_window->get());
+  m_resourceManager = std::make_unique<ResourceManager>();
+  m_renderer =
+      std::make_unique<VulkanRenderer>(m_window->get(), *m_resourceManager);
   Util::println("Engine initialized");
 }
 
@@ -39,6 +42,11 @@ Window& Engine::getWindow() const {
 Input& Engine::getInput() const {
   assert(m_input && "No input!");
   return *m_input;
+}
+
+ResourceManager& Engine::getResourceManager() const {
+  assert(m_resourceManager && "No resource manager!");
+  return *m_resourceManager;
 }
 
 VulkanRenderer& Engine::getRenderer() const {

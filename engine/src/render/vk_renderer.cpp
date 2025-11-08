@@ -4,13 +4,15 @@
 
 #include <memory>
 
-#include "files/files.hpp"
 #include "render/vk_image.hpp"
+#include "resource/resource_manager.hpp"
+#include "resource/types/shader_resource.hpp"
 #include "util/print.hpp"
 #include "vk_allocator.hpp"
 #include "vk_pipeline.hpp"
 
-VulkanRenderer::VulkanRenderer(SDL_Window* window) {
+VulkanRenderer::VulkanRenderer(SDL_Window* window,
+                               ResourceManager& resourceManager) {
   m_instance = std::make_unique<VulkanInstance>();
 
   m_surface = std::make_unique<VulkanSurface>(window, m_instance->get());
@@ -57,15 +59,17 @@ VulkanRenderer::VulkanRenderer(SDL_Window* window) {
         m_logicalDevice->get()));
   }
 
-  const auto vertCode =
-      Files::readBinaryFile("../assets/shaders/test.vert.spv");
+  const auto vertCode = resourceManager.create<ShaderResource>(
+      "testShaderVert", ShaderResourceLoader{},
+      "../assets/shaders/test.vert.spv");
   m_vertexShader =
-      std::make_unique<VulkanShader>(m_logicalDevice->get(), vertCode.value());
+      std::make_unique<VulkanShader>(m_logicalDevice->get(), vertCode->code);
 
-  const auto fragCode =
-      Files::readBinaryFile("../assets/shaders/test.frag.spv");
+  const auto fragCode = resourceManager.create<ShaderResource>(
+      "testShaderFrag", ShaderResourceLoader{},
+      "../assets/shaders/test.frag.spv");
   m_fragmentShader =
-      std::make_unique<VulkanShader>(m_logicalDevice->get(), fragCode.value());
+      std::make_unique<VulkanShader>(m_logicalDevice->get(), fragCode->code);
 
   VkPipelineShaderStageCreateInfo vertStage{};
   vertStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;

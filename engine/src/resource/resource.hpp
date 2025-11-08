@@ -99,7 +99,9 @@ class ResourceRef {
     return *ptr;
   }
 
-  bool valid() const { return m_storage && m_storage->valid(m_handle); }
+  [[nodiscard]] bool valid() const {
+    return m_storage && m_storage->valid(m_handle);
+  }
 
  private:
   friend class ResourceStorage<T>;
@@ -188,7 +190,7 @@ class ResourceStorage {
  public:
   template <typename Loader, typename... Args>
     requires LoaderFor<Loader, T, Args...>
-  Ref create(const std::string& key, const Loader& loader, Args&&... args) {
+  Ref create(const std::string& key, Loader&& loader, Args&&... args) {
     auto iter = m_keyToHandle.find(key);
     if (iter != m_keyToHandle.end()) {
       const Handle& cached = iter->second;
@@ -202,7 +204,7 @@ class ResourceStorage {
     }
 
     // load before touching metadata because might throw exception
-    T resource = loader(std::forward<Args>(args)...);
+    T resource = std::forward<Loader>(loader)(std::forward<Args>(args)...);
 
     uint32_t index = 0;
 

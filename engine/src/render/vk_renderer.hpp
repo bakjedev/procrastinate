@@ -14,9 +14,11 @@
 
 struct SDL_Window;
 
+class ResourceManager;
+
 class VulkanRenderer {
  public:
-  explicit VulkanRenderer(SDL_Window *window);
+  explicit VulkanRenderer(SDL_Window *window, ResourceManager &resourceManager);
   VulkanRenderer(const VulkanRenderer &) = delete;
   VulkanRenderer(VulkanRenderer &&) = delete;
   VulkanRenderer &operator=(const VulkanRenderer &) = delete;

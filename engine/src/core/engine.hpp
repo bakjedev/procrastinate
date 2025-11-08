@@ -7,6 +7,7 @@
 class EventManager;
 class Window;
 class Input;
+class ResourceManager;
 class VulkanRenderer;
 class Engine;
 
@@ -34,12 +35,14 @@ class Engine {
   [[nodiscard]] EventManager& getEventManager() const;
   [[nodiscard]] Window& getWindow() const;
   [[nodiscard]] Input& getInput() const;
+  [[nodiscard]] ResourceManager& getResourceManager() const;
   [[nodiscard]] VulkanRenderer& getRenderer() const;
 
  private:
   std::unique_ptr<EventManager> m_eventManager;
   std::unique_ptr<Window> m_window;
   std::unique_ptr<Input> m_input;
+  std::unique_ptr<ResourceManager> m_resourceManager;
   std::unique_ptr<VulkanRenderer> m_renderer;
 };
 
