@@ -1,3 +1,5 @@
+include(../external/shaders.cmake)
+
 add_library(engine STATIC)
 
 target_sources(engine PRIVATE
@@ -15,6 +17,8 @@ target_sources(engine PRIVATE
 	src/render/vk_swap_chain.cpp
 	src/render/vk_buffer.cpp
 	src/render/vk_image.cpp
+	src/render/vk_shader.cpp
+	src/render/vk_descriptor.cpp
 )
 
 target_compile_options(engine PRIVATE
@@ -25,3 +29,8 @@ target_compile_options(engine PRIVATE
 )
 
 target_include_directories(engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+compile_shaders(
+	${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders
+	${CMAKE_BINARY_DIR}/assets/shaders
+)

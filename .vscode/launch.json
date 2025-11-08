@@ -8,7 +8,7 @@
 			"program": "${workspaceFolder}/build/windows-debug/runtime/procrastinate.exe",
 			"args": [],
 			"stopAtEntry": false,
-			"cwd": "${workspaceFolder}",
+			"cwd": "${workspaceFolder}/build/windows-debug/runtime",
 			"environment": [],
 			"console": "integratedTerminal",
 			"preLaunchTask": "Build Windows Debug"
@@ -20,7 +20,7 @@
 			"program": "${workspaceFolder}/build/windows-release/runtime/procrastinate.exe",
 			"args": [],
 			"stopAtEntry": false,
-			"cwd": "${workspaceFolder}",
+			"cwd": "${workspaceFolder}/build/windows-release/runtime",
 			"environment": [],
 			"console": "integratedTerminal",
 			"preLaunchTask": "Build Windows Release"
@@ -32,7 +32,7 @@
 			"program": "${workspaceFolder}/build/linux-debug/runtime/procrastinate",
 			"args": [],
 			"stopAtEntry": false,
-			"cwd": "${workspaceFolder}",
+			"cwd": "${workspaceFolder}/build/linux-debug/runtime",
 			"environment": [],
 			"MIMode": "gdb",
 			"setupCommands": [
@@ -51,7 +51,7 @@
 			"program": "${workspaceFolder}/build/linux-release/runtime/procrastinate",
 			"args": [],
 			"stopAtEntry": false,
-			"cwd": "${workspaceFolder}",
+			"cwd": "${workspaceFolder}/build/linux-release/runtime",
 			"environment": [],
 			"MIMode": "gdb",
 			"preLaunchTask": "Build Linux Release"
