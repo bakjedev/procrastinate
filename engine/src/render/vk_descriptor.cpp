@@ -1,4 +1,4 @@
-#include "descriptor.hpp"
+#include "vk_descriptor.hpp"
 
 #include "util/print.hpp"
 #include "util/vk_check.hpp"
