@@ -27,8 +27,8 @@ void Engine::run(App& app) {
     lastTime = currentTime;
 
     m_eventManager->poll();
-    m_window->update(*m_eventManager);
-    m_input->update(*m_eventManager);
+    m_window->update();
+    m_input->update();
 
     app.update(deltaTime);
 

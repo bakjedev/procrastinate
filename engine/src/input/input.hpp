@@ -7,7 +7,8 @@ class EventManager;
 
 class Input {
  public:
-  void update(const EventManager& eventManager);
+  explicit Input(EventManager& eventManager);
+  void update();
 
   [[nodiscard]] bool keyDown(KeyboardKey key) const;
   [[nodiscard]] bool keyPressed(KeyboardKey key) const;
@@ -39,4 +40,6 @@ class Input {
   float m_mouseDeltaX{0.0F};
   float m_mouseDeltaY{0.0F};
   float m_mouseScroll{0.0F};
+
+  EventManager* m_eventManager;
 };

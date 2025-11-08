@@ -2,12 +2,14 @@
 
 #include <stdexcept>
 
+#include "core/events.hpp"
 #include "events.hpp"
 
-Window::Window(const WindowInfo& info)
+Window::Window(const WindowInfo& info, EventManager& eventManager)
     : m_width(info.width),
       m_height(info.height),
-      m_fullscreen(info.fullscreen) {
+      m_fullscreen(info.fullscreen),
+      m_eventManager(&eventManager) {
   if (!SDL_Init(SDL_INIT_VIDEO)) {
     throw std::runtime_error(std::string("Failed to initialize SDL: ") +
                              SDL_GetError());
@@ -39,8 +41,8 @@ SDL_Window* Window::get() const { return m_window; }
 
 bool Window::shouldQuit() const { return m_quit; }
 
-void Window::update(const EventManager& event_manager) {
-  for (const auto& event : event_manager.getEvents()) {
+void Window::update() {
+  for (const auto& event : m_eventManager->getEvents()) {
     if (event.type == EventType::Quit) {
       m_quit = true;
     }

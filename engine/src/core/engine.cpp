@@ -14,9 +14,12 @@ Engine::Engine() {
   constexpr uint32_t height = 1080;
 
   m_eventManager = std::make_unique<EventManager>();
-  m_window = std::make_unique<Window>(WindowInfo{
-      .width = width, .height = height, .fullscreen = false, .title = "meowl"});
-  m_input = std::make_unique<Input>();
+  m_window = std::make_unique<Window>(WindowInfo{.width = width,
+                                                 .height = height,
+                                                 .fullscreen = false,
+                                                 .title = "meowl"},
+                                      *m_eventManager);
+  m_input = std::make_unique<Input>(*m_eventManager);
   m_renderer = std::make_unique<VulkanRenderer>(m_window->get());
   Util::println("Engine initialized");
 }

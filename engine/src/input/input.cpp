@@ -2,12 +2,14 @@
 
 #include "core/events.hpp"
 
-void Input::update(const EventManager& eventManager) {
+Input::Input(EventManager& eventManager) : m_eventManager(&eventManager) {}
+
+void Input::update() {
   m_mouseScroll = 0.0F;
   m_mouseDeltaX = 0.0F;
   m_mouseDeltaY = 0.0F;
 
-  for (const auto& event : eventManager.getEvents()) {
+  for (const auto& event : m_eventManager->getEvents()) {
     switch (event.type) {
       case EventType::KeyDown: {
         const auto& input = std::get<InputData>(event.data);

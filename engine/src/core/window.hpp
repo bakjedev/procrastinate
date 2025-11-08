@@ -12,23 +12,25 @@ struct WindowInfo {
 
 class Window {
  public:
-  explicit Window(const WindowInfo& info);
+  Window(const WindowInfo& info, EventManager& eventManager);
   Window(const Window&) = delete;
-  Window(Window&&) = default;
+  Window(Window&&) = delete;
   Window& operator=(const Window&) = delete;
-  Window& operator=(Window&&) = default;
+  Window& operator=(Window&&) = delete;
   ~Window();
 
   [[nodiscard]] SDL_Window* get() const;
   [[nodiscard]] bool shouldQuit() const;
 
-  void update(const EventManager& event_manager);
+  void update();
 
  private:
   bool m_quit = false;
   uint32_t m_width = 0;
   uint32_t m_height = 0;
   bool m_fullscreen = false;
+
+  EventManager* m_eventManager;
 
   SDL_Window* m_window = nullptr;
 };
