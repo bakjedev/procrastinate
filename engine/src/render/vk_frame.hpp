@@ -19,7 +19,7 @@ class VulkanFrame {
 
   [[nodiscard]] VkSemaphore imageAvailable() const { return m_imageAvailable; }
   [[nodiscard]] VkSemaphore renderFinished() const { return m_renderFinished; }
-  [[nodiscard]] VkFence inFlight() const { return m_inFlight; }
+  [[nodiscard]] const VkFence& inFlight() const { return m_inFlight; }
 
  private:
   VkCommandBuffer m_graphicsCmd{};

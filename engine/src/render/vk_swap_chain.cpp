@@ -46,6 +46,8 @@ void VulkanSwapChain::create() {
     throw std::runtime_error("Failed to get Vulkan surface extent");
   }
 
+  m_extent = capabilities.currentExtent;
+
   // calculate the amount of image the swap chain will have
   uint32_t minImageCount = capabilities.minImageCount + 1;
   if (capabilities.maxImageCount > 0 &&

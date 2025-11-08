@@ -8,6 +8,7 @@
 
 #include "events.hpp"
 #include "input/input.hpp"
+#include "render/vk_renderer.hpp"
 #include "window.hpp"
 
 template <Application App>
@@ -39,6 +40,7 @@ void Engine::run(App& app) {
     }
 
     app.render();
+    m_renderer->run();
   }
 
   app.shutdown();

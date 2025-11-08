@@ -13,6 +13,8 @@ class VulkanShader {
   VulkanShader &operator=(VulkanShader &&) = delete;
   ~VulkanShader();
 
+  [[nodiscard]] VkShaderModule get() const { return m_shaderModule; }
+
  private:
   VkShaderModule m_shaderModule = VK_NULL_HANDLE;
 

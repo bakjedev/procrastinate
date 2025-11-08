@@ -19,6 +19,7 @@ target_sources(engine PRIVATE
 	src/render/vk_image.cpp
 	src/render/vk_shader.cpp
 	src/render/vk_descriptor.cpp
+	src/render/vk_pipeline.cpp
 )
 
 target_compile_options(engine PRIVATE

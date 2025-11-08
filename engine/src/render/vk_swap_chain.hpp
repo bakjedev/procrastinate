@@ -19,6 +19,13 @@ class VulkanSwapChain {
     return m_images.at(imageIndex);
   }
   [[nodiscard]] const std::vector<VkImage>& images() const { return m_images; }
+  [[nodiscard]] const std::vector<VkImageView>& imageViews() const {
+    return m_imageViews;
+  }
+
+  [[nodiscard]] const VkExtent2D& extent() const { return m_extent; }
+
+  [[nodiscard]] VkFormat format() const { return m_surfaceFormat.format; }
 
   VkResult acquireNextImage(VkSemaphore signalSemaphore, uint32_t& imageIndex);
   VkResult present(uint32_t imageIndex, VkQueue presentQueue,
@@ -35,6 +42,8 @@ class VulkanSwapChain {
 
   VkSurfaceFormatKHR m_surfaceFormat{};
   VkPresentModeKHR m_presentMode{};
+
+  VkExtent2D m_extent{};
 
   std::vector<VkImage> m_images;
   std::vector<VkImageView> m_imageViews;
