@@ -44,9 +44,19 @@ std::vector<vk::DescriptorSet> VulkanDescriptorPool::allocate(
 
 VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(
     vk::Device device,
-    const std::vector<vk::DescriptorSetLayoutBinding> &bindings)
+    const std::vector<vk::DescriptorSetLayoutBinding> &bindings,
+    const std::vector<vk::DescriptorBindingFlags> &bindingFlags,
+    vk::DescriptorSetLayoutCreateFlags flags)
     : m_device(device) {
+  vk::DescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo;
+  if (!bindingFlags.empty()) {
+    bindingFlagsInfo.bindingCount = static_cast<uint32_t>(bindingFlags.size());
+    bindingFlagsInfo.pBindingFlags = bindingFlags.data();
+  }
+
   vk::DescriptorSetLayoutCreateInfo createInfo{
+      .pNext = !bindingFlags.empty() ? &bindingFlagsInfo : nullptr,
+      .flags = flags,
       .bindingCount = static_cast<uint32_t>(bindings.size()),
       .pBindings = bindings.data()};
 

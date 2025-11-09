@@ -1,4 +1,4 @@
-#include "render/vk_renderer.hpp"
+#include "vk_renderer.hpp"
 
 #include <SDL3/SDL.h>
 
@@ -152,7 +152,7 @@ void VulkanRenderer::run() {
       .maxDepth = 1.0F};
   cmd.setViewport(0, 1, &viewport);
 
-  vk::Rect2D scissor{.offset = {0, 0},
+  vk::Rect2D scissor{.offset = {.x = 0, .y = 0},
                      .extent = {.width = m_swapChain->extent().width,
                                 .height = m_swapChain->extent().height}};
   cmd.setScissor(0, 1, &scissor);

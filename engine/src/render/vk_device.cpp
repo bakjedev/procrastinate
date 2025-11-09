@@ -78,8 +78,18 @@ void VulkanDevice::createDevice() {
   vk::PhysicalDeviceVulkan12Features enabled12Features{
       .pNext = &enabled13Features,
       .descriptorIndexing = m_features12.descriptorIndexing,
+      .descriptorBindingUniformBufferUpdateAfterBind =
+          m_features12.descriptorBindingUniformBufferUpdateAfterBind,
+      .descriptorBindingSampledImageUpdateAfterBind =
+          m_features12.descriptorBindingSampledImageUpdateAfterBind,
+      .descriptorBindingStorageImageUpdateAfterBind =
+          m_features12.descriptorBindingStorageImageUpdateAfterBind,
+      .descriptorBindingStorageBufferUpdateAfterBind =
+          m_features12.descriptorBindingStorageBufferUpdateAfterBind,
       .descriptorBindingPartiallyBound =
           m_features12.descriptorBindingPartiallyBound,
+      .descriptorBindingVariableDescriptorCount =
+          m_features12.descriptorBindingVariableDescriptorCount,
       .runtimeDescriptorArray = m_features12.runtimeDescriptorArray,
       .bufferDeviceAddress = m_features12.bufferDeviceAddress};
 

@@ -30,13 +30,17 @@ class VulkanDescriptorSetLayout {
  public:
   VulkanDescriptorSetLayout(
       vk::Device device,
-      const std::vector<vk::DescriptorSetLayoutBinding> &bindings);
+      const std::vector<vk::DescriptorSetLayoutBinding> &bindings,
+      const std::vector<vk::DescriptorBindingFlags> &bindingFlags = {},
+      vk::DescriptorSetLayoutCreateFlags flags = {});
   VulkanDescriptorSetLayout(const VulkanDescriptorSetLayout &) = delete;
   VulkanDescriptorSetLayout(VulkanDescriptorSetLayout &&) = delete;
   VulkanDescriptorSetLayout &operator=(const VulkanDescriptorSetLayout &) =
       delete;
   VulkanDescriptorSetLayout &operator=(VulkanDescriptorSetLayout &&) = delete;
   ~VulkanDescriptorSetLayout();
+
+  [[nodiscard]] vk::DescriptorSetLayout get() const { return m_layout; }
 
  private:
   vk::Device m_device;
