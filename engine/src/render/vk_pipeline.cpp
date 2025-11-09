@@ -53,10 +53,11 @@ void VulkanPipeline::createGraphicsPipeline(const PipelineInfo &info) {
       .primitiveRestartEnable = VK_FALSE,
   };
 
-  vk::PipelineViewportStateCreateInfo viewport{.viewportCount = 1,
-                                               .pViewports = nullptr,
-                                               .scissorCount = 1,
-                                               .pScissors = nullptr};
+  vk::PipelineViewportStateCreateInfo viewport{
+      .viewportCount = 1,
+      .pViewports = nullptr,
+      .scissorCount = 1,
+      .pScissors = nullptr};  // will be set dynamically
 
   vk::PipelineRasterizationStateCreateInfo rasterizer{
       .depthClampEnable = VK_FALSE,
@@ -65,19 +66,11 @@ void VulkanPipeline::createGraphicsPipeline(const PipelineInfo &info) {
       .cullMode = info.cullMode,
       .frontFace = info.frontFace,
       .depthBiasEnable = VK_FALSE,
-      .depthBiasConstantFactor = 0.0F,
-      .depthBiasClamp = 0.0F,
-      .depthBiasSlopeFactor = 0.0F,
       .lineWidth = info.lineWidth,
   };
 
   vk::PipelineMultisampleStateCreateInfo multisampling{
       .rasterizationSamples = info.samples,
-      .sampleShadingEnable = VK_FALSE,
-      .minSampleShading = 1.0F,
-      .pSampleMask = nullptr,
-      .alphaToCoverageEnable = VK_FALSE,
-      .alphaToOneEnable = VK_FALSE,
   };
 
   vk::PipelineDepthStencilStateCreateInfo depthStencil{
@@ -86,10 +79,6 @@ void VulkanPipeline::createGraphicsPipeline(const PipelineInfo &info) {
       .depthCompareOp = info.depthCompareOp,
       .depthBoundsTestEnable = VK_FALSE,
       .stencilTestEnable = VK_FALSE,
-      .front = {},
-      .back = {},
-      .minDepthBounds = 0.0F,
-      .maxDepthBounds = 0.0F,
   };
 
   std::vector<vk::PipelineColorBlendAttachmentState> colorBlendAttachments;
@@ -135,7 +124,6 @@ void VulkanPipeline::createGraphicsPipeline(const PipelineInfo &info) {
       .pStages = info.shaderStages.data(),
       .pVertexInputState = &vertexInput,
       .pInputAssemblyState = &inputAssembly,
-      .pTessellationState = nullptr,
       .pViewportState = &viewport,
       .pRasterizationState = &rasterizer,
       .pMultisampleState = &multisampling,
@@ -143,10 +131,6 @@ void VulkanPipeline::createGraphicsPipeline(const PipelineInfo &info) {
       .pColorBlendState = &colorBlending,
       .pDynamicState = &dynamicState,
       .layout = info.layout,
-      .renderPass = nullptr,
-      .subpass = 0,
-      .basePipelineHandle = nullptr,
-      .basePipelineIndex = 0,
   };
 
   auto result = m_device.createGraphicsPipelines(nullptr, createInfo);
