@@ -184,6 +184,9 @@ void VulkanRenderer::run() {
                              .pSignalSemaphoreInfos = &signalSemaphore};
 
   result = m_device->graphicsQueue().submit2(1, &submitInfo, frame->inFlight());
+  if (result != vk::Result::eSuccess) {
+    throw std::runtime_error("submit2 failed: " + vk::to_string(result));
+  }
 
   m_swapChain->present(imageIndex, m_device->presentQueue(),
                        frame->renderFinished());
