@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Vulkan REQUIRED)
 
+add_compile_definitions(VULKAN_HPP_NO_CONSTRUCTORS)
+
 add_subdirectory(external)
 add_subdirectory(engine)
 add_subdirectory(runtime)

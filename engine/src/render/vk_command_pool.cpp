@@ -1,48 +1,43 @@
 #include "render/vk_command_pool.hpp"
 
-#include "util/vk_check.hpp"
+#include "util/print.hpp"
 
 VulkanCommandPool::VulkanCommandPool(const CommandPoolInfo& info,
-                                     VkDevice device)
+                                     vk::Device device)
     : m_device(device) {
   create(info);
 }
 
 VulkanCommandPool::~VulkanCommandPool() { destroy(); }
 
-VkCommandBuffer VulkanCommandPool::allocate(
-    const VkCommandBufferLevel level) const {
-  VkCommandBuffer buffer = VK_NULL_HANDLE;
-  VkCommandBufferAllocateInfo allocateInfo{};
-  allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocateInfo.commandPool = m_commandPool;
-  allocateInfo.commandBufferCount = 1;
-  allocateInfo.level = level;
-  VK_CHECK(vkAllocateCommandBuffers(m_device, &allocateInfo, &buffer));
+vk::CommandBuffer VulkanCommandPool::allocate(
+    const vk::CommandBufferLevel level) const {
+  vk::CommandBufferAllocateInfo allocateInfo{
+      .commandPool = m_commandPool, .level = level, .commandBufferCount = 1};
+
+  auto buffers = m_device.allocateCommandBuffers(allocateInfo);
   Util::println("Allocated command buffer");
-  return buffer;
+  return buffers[0];
 }
 
-void VulkanCommandPool::free(VkCommandBuffer commandBuffer) const {
-  vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
+void VulkanCommandPool::free(vk::CommandBuffer commandBuffer) const {
+  m_device.freeCommandBuffers(m_commandPool, 1, &commandBuffer);
 }
 
 void VulkanCommandPool::reset() const {
-  VK_CHECK(vkResetCommandPool(m_device, m_commandPool, 0));
+  m_device.resetCommandPool(m_commandPool, vk::CommandPoolResetFlags{});
 }
 
 void VulkanCommandPool::create(const CommandPoolInfo& info) {
-  VkCommandPoolCreateInfo createInfo{};
-  createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  createInfo.queueFamilyIndex = info.queueFamilyIndex;
-  createInfo.flags = info.flags;
+  vk::CommandPoolCreateInfo createInfo{
+      .flags = info.flags, .queueFamilyIndex = info.queueFamilyIndex};
 
-  VK_CHECK(vkCreateCommandPool(m_device, &createInfo, nullptr, &m_commandPool));
+  m_commandPool = m_device.createCommandPool(createInfo);
   Util::println("Created command pool with queue family index {}",
                 info.queueFamilyIndex);
 }
 
 void VulkanCommandPool::destroy() const {
-  vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+  m_device.destroyCommandPool(m_commandPool);
   Util::println("Destroyed command pool");
 }

@@ -1,12 +1,14 @@
 #pragma once
 #include <vma/vma_usage.h>
 
+#include <vulkan/vulkan.hpp>
+
 struct ImageInfo {
   uint32_t width;
   uint32_t height;
-  VkFormat format;
-  VkImageUsageFlags usage;
-  VkImageAspectFlags aspectFlags;
+  vk::Format format;
+  vk::ImageUsageFlags usage;
+  vk::ImageAspectFlags aspectFlags;
 };
 
 class VulkanImage {
@@ -18,34 +20,34 @@ class VulkanImage {
   VulkanImage& operator=(VulkanImage&&) = delete;
   ~VulkanImage();
 
-  [[nodiscard]] VkImage get() const { return m_image; }
+  [[nodiscard]] vk::Image get() const { return m_image; }
 
-  [[nodiscard]] VkImageView view() const { return m_imageView; }
+  [[nodiscard]] vk::ImageView view() const { return m_imageView; }
   [[nodiscard]] VmaAllocation allocation() const { return m_allocation; }
-  [[nodiscard]] VkFormat format() const { return m_format; }
+  [[nodiscard]] vk::Format format() const { return m_format; }
   [[nodiscard]] uint32_t width() const { return m_width; }
   [[nodiscard]] uint32_t height() const { return m_height; }
 
-  void transitionLayout(VkCommandBuffer cmd, VkImageLayout oldLayout,
-                        VkImageLayout newLayout);
+  void transitionLayout(vk::CommandBuffer cmd, vk::ImageLayout oldLayout,
+                        vk::ImageLayout newLayout);
 
-  static void transitionImageLayout(VkImage image, VkCommandBuffer cmd,
-                                    VkImageLayout oldLayout,
-                                    VkImageLayout newLayout);
+  static void transitionImageLayout(vk::Image image, vk::CommandBuffer cmd,
+                                    vk::ImageLayout oldLayout,
+                                    vk::ImageLayout newLayout);
 
  private:
-  VkImage m_image = VK_NULL_HANDLE;
-  VkImageView m_imageView = VK_NULL_HANDLE;
+  vk::Image m_image;
+  vk::ImageView m_imageView;
   VmaAllocation m_allocation = VK_NULL_HANDLE;
 
-  VkFormat m_format;
+  vk::Format m_format;
   uint32_t m_width;
   uint32_t m_height;
 
   VmaAllocator m_allocator;
-  VkDevice m_device;
+  vk::Device m_device;
 
   void create(const ImageInfo& info);
-  void createView(VkImageAspectFlags aspectFlags);
+  void createView(vk::ImageAspectFlags aspectFlags);
   void destroy();
 };

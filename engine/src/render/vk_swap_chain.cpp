@@ -1,37 +1,36 @@
 #include "render/vk_swap_chain.hpp"
 
-#include "util/vk_check.hpp"
+#include "util/print.hpp"
 
-VulkanSwapChain::VulkanSwapChain(VkDevice device,
-                                 VkPhysicalDevice physicalDevice,
-                                 VkSurfaceKHR surface)
+VulkanSwapChain::VulkanSwapChain(vk::Device device,
+                                 vk::PhysicalDevice physicalDevice,
+                                 vk::SurfaceKHR surface)
     : m_physicalDevice(physicalDevice), m_surface(surface), m_device(device) {
   create();
 }
 
 VulkanSwapChain::~VulkanSwapChain() { destroy(); }
 
-VkResult VulkanSwapChain::acquireNextImage(VkSemaphore signalSemaphore,
-                                           uint32_t& imageIndex) {
-  const auto result =
-      vkAcquireNextImageKHR(m_device, m_swapChain, UINT64_MAX, signalSemaphore,
-                            VK_NULL_HANDLE, &m_imageIndex);
+vk::Result VulkanSwapChain::acquireNextImage(vk::Semaphore signalSemaphore,
+                                             uint32_t& imageIndex) {
+  const auto result = m_device.acquireNextImageKHR(
+      m_swapChain, UINT64_MAX, signalSemaphore, nullptr, &m_imageIndex);
   imageIndex = m_imageIndex;
   return result;
 }
 
-VkResult VulkanSwapChain::present(const uint32_t imageIndex,
-                                  VkQueue presentQueue,
-                                  VkSemaphore waitSemaphore) const {
-  VkPresentInfoKHR presentInfo{};
-  presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+vk::Result VulkanSwapChain::present(const uint32_t imageIndex,
+                                    vk::Queue presentQueue,
+                                    vk::Semaphore waitSemaphore) const {
+  vk::PresentInfoKHR presentInfo{};
+  presentInfo.sType = vk::StructureType::ePresentInfoKHR;
   presentInfo.waitSemaphoreCount = 1;
   presentInfo.pWaitSemaphores = &waitSemaphore;
   presentInfo.swapchainCount = 1;
   presentInfo.pSwapchains = &m_swapChain;
   presentInfo.pImageIndices = &imageIndex;
 
-  return vkQueuePresentKHR(presentQueue, &presentInfo);
+  return presentQueue.presentKHR(presentInfo);
 }
 
 void VulkanSwapChain::create() {
@@ -55,22 +54,22 @@ void VulkanSwapChain::create() {
     minImageCount = capabilities.maxImageCount;
   }
 
-  VkSwapchainCreateInfoKHR createInfo{};
-  createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+  vk::SwapchainCreateInfoKHR createInfo{};
+  createInfo.sType = vk::StructureType::eSwapchainCreateInfoKHR;
   createInfo.surface = m_surface;
   createInfo.minImageCount = minImageCount;
   createInfo.imageFormat = m_surfaceFormat.format;
   createInfo.imageColorSpace = m_surfaceFormat.colorSpace;
   createInfo.imageExtent = capabilities.currentExtent;
   createInfo.imageArrayLayers = 1;
-  createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-  createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-  createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-  createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+  createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+  createInfo.imageSharingMode = vk::SharingMode::eExclusive;
+  createInfo.preTransform = vk::SurfaceTransformFlagBitsKHR::eIdentity;
+  createInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
   createInfo.presentMode = m_presentMode;
   createInfo.clipped = VK_TRUE;
 
-  VK_CHECK(vkCreateSwapchainKHR(m_device, &createInfo, nullptr, &m_swapChain));
+  m_swapChain = m_device.createSwapchainKHR(createInfo);
 
   getImages();
   createImageViews();
@@ -80,10 +79,10 @@ void VulkanSwapChain::create() {
 }
 
 void VulkanSwapChain::destroy() {
-  for (auto* const view : m_imageViews) {
-    vkDestroyImageView(m_device, view, nullptr);
+  for (const auto& view : m_imageViews) {
+    m_device.destroyImageView(view);
   }
-  vkDestroySwapchainKHR(m_device, m_swapChain, nullptr);
+  m_device.destroySwapchainKHR(m_swapChain);
   Util::println("Destroyed vulkan swap chain");
 }
 
@@ -94,58 +93,48 @@ void VulkanSwapChain::recreate() {
 }
 
 void VulkanSwapChain::getImages() {
-  VK_CHECK(
-      vkGetSwapchainImagesKHR(m_device, m_swapChain, &m_imageCount, nullptr));
-  m_images.resize(m_imageCount);
-  VK_CHECK(vkGetSwapchainImagesKHR(m_device, m_swapChain, &m_imageCount,
-                                   m_images.data()));
+  m_images = m_device.getSwapchainImagesKHR(m_swapChain);
+  m_imageCount = static_cast<uint32_t>(m_images.size());
 }
 
 void VulkanSwapChain::createImageViews() {
   m_imageViews.resize(m_imageCount);
   for (size_t i = 0; i < m_imageCount; ++i) {
-    VkImageViewCreateInfo viewCreateInfo{};
-    viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    vk::ImageViewCreateInfo viewCreateInfo{};
+    viewCreateInfo.sType = vk::StructureType::eImageViewCreateInfo;
     viewCreateInfo.image = m_images[i];
-    viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewCreateInfo.viewType = vk::ImageViewType::e2D;
     viewCreateInfo.format = m_surfaceFormat.format;
-    viewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-    viewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-    viewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-    viewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-    viewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewCreateInfo.components.r = vk::ComponentSwizzle::eIdentity;
+    viewCreateInfo.components.g = vk::ComponentSwizzle::eIdentity;
+    viewCreateInfo.components.b = vk::ComponentSwizzle::eIdentity;
+    viewCreateInfo.components.a = vk::ComponentSwizzle::eIdentity;
+    viewCreateInfo.subresourceRange.aspectMask =
+        vk::ImageAspectFlagBits::eColor;
     viewCreateInfo.subresourceRange.baseMipLevel = 0;
     viewCreateInfo.subresourceRange.levelCount = 1;
     viewCreateInfo.subresourceRange.baseArrayLayer = 0;
     viewCreateInfo.subresourceRange.layerCount = 1;
 
-    VK_CHECK(vkCreateImageView(m_device, &viewCreateInfo, nullptr,
-                               &m_imageViews[i]));
+    m_imageViews[i] = m_device.createImageView(viewCreateInfo);
   }
 }
 
-VkSurfaceCapabilitiesKHR VulkanSwapChain::getCapabilities() {
-  VkSurfaceCapabilitiesKHR capabilities;
-  VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physicalDevice,
-                                                     m_surface, &capabilities));
-  return capabilities;
+vk::SurfaceCapabilitiesKHR VulkanSwapChain::getCapabilities() {
+  return m_physicalDevice.getSurfaceCapabilitiesKHR(m_surface);
 }
 
 void VulkanSwapChain::chooseSurfaceFormat() {
-  uint32_t surfaceFormatCount = 0;
-  VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface,
-                                                &surfaceFormatCount, nullptr));
-  if (surfaceFormatCount == 0) {
+  auto surfaceFormats = m_physicalDevice.getSurfaceFormatsKHR(m_surface);
+
+  if (surfaceFormats.empty()) {
     throw std::runtime_error("Failed to find Vulkan surface formats");
   }
-  std::vector<VkSurfaceFormatKHR> surfaceFormats(surfaceFormatCount);
-  VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(
-      m_physicalDevice, m_surface, &surfaceFormatCount, surfaceFormats.data()));
 
   for (const auto& surfaceFormat : surfaceFormats) {
-    if (surfaceFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
+    if (surfaceFormat.format == vk::Format::eB8G8R8A8Srgb &&
         surfaceFormat.colorSpace ==
-            VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)  // prefer SRGB Non linear
+            vk::ColorSpaceKHR::eSrgbNonlinear)  // prefer SRGB Non linear
     {
       m_surfaceFormat = surfaceFormat;
       return;
@@ -155,22 +144,18 @@ void VulkanSwapChain::chooseSurfaceFormat() {
 }
 
 void VulkanSwapChain::choosePresentMode() {
-  uint32_t presentModeCount = 0;
-  VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(
-      m_physicalDevice, m_surface, &presentModeCount, nullptr));
-  if (presentModeCount == 0) {
-    throw std::runtime_error("Failed to find Vulkan present modes");
+  auto presentModes = m_physicalDevice.getSurfacePresentModesKHR(m_surface);
+
+  if (presentModes.empty()) {
+    throw std::runtime_error("Failed to find present modes");
   }
-  std::vector<VkPresentModeKHR> presentModes(presentModeCount);
-  VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(
-      m_physicalDevice, m_surface, &presentModeCount, presentModes.data()));
 
   for (const auto& presentMode : presentModes) {
-    if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)  // prefer mailbox
+    if (presentMode == vk::PresentModeKHR::eMailbox)  // prefer mailbox
     {
       m_presentMode = presentMode;
       return;
     }
   }
-  m_presentMode = VK_PRESENT_MODE_FIFO_KHR;
+  m_presentMode = vk::PresentModeKHR::eFifo;
 }

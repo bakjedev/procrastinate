@@ -1,8 +1,8 @@
+#include "vk_instance.hpp"
+
 #include <SDL3/SDL_vulkan.h>
 
-#include <render/vk_instance.hpp>
-
-#include "util/vk_check.hpp"
+#include "util/print.hpp"
 
 VulkanInstance::VulkanInstance() {
   uint32_t sdlInstanceExtensionCount = 0;
@@ -12,27 +12,22 @@ VulkanInstance::VulkanInstance() {
     throw std::runtime_error("Failed to get SDL Vulkan extensions");
   }
 
-  const VkApplicationInfo applicationInfo{
-      .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-      .pNext = nullptr,
+  const vk::ApplicationInfo applicationInfo{
+      .sType = vk::StructureType::eApplicationInfo,
       .pApplicationName = "game",
       .applicationVersion = 1,
       .pEngineName = "hell",
       .engineVersion = 1,
       .apiVersion = VK_API_VERSION_1_3};
 
-  const VkInstanceCreateInfo instanceCreateInfo{
-      .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = 0,
+  const vk::InstanceCreateInfo instanceCreateInfo{
+      .sType = vk::StructureType::eInstanceCreateInfo,
       .pApplicationInfo = &applicationInfo,
-      .enabledLayerCount = 0,
-      .ppEnabledLayerNames = nullptr,
       .enabledExtensionCount = sdlInstanceExtensionCount,
       .ppEnabledExtensionNames = sdlInstanceExtensions,
   };
 
-  VK_CHECK(vkCreateInstance(&instanceCreateInfo, nullptr, &m_instance));
+  m_instance = vk::createInstance(instanceCreateInfo);
   Util::println("Created vulkan instance");
 }
 

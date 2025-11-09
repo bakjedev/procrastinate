@@ -12,16 +12,18 @@ VulkanBuffer::VulkanBuffer(const BufferInfo& info, VmaAllocator allocator)
 VulkanBuffer::~VulkanBuffer() { destroy(); }
 
 void VulkanBuffer::create(const BufferInfo& info) {
-  VkBufferCreateInfo bufferCreateInfo = {};
-  bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  bufferCreateInfo.pNext = nullptr;
-  bufferCreateInfo.size = info.size;
-  bufferCreateInfo.usage = info.usage;
+  vk::BufferCreateInfo bufferCreateInfo{.size = info.size, .usage = info.usage};
+
   VmaAllocationCreateInfo vmaallocInfo = {};
   vmaallocInfo.usage = info.memoryUsage;
   vmaallocInfo.flags = info.memoryFlags;
-  VK_CHECK(vmaCreateBuffer(m_allocator, &bufferCreateInfo, &vmaallocInfo,
-                           &m_buffer, &m_allocation, nullptr));
+
+  auto rawBufferInfo = static_cast<VkBufferCreateInfo>(bufferCreateInfo);
+
+  VkBuffer tempBuffer = VK_NULL_HANDLE;
+  VK_CHECK(vmaCreateBuffer(m_allocator, &rawBufferInfo, &vmaallocInfo,
+                           &tempBuffer, &m_allocation, nullptr));
+  m_buffer = tempBuffer;
   m_size = info.size;
 }
 
@@ -41,6 +43,6 @@ void VulkanBuffer::mapRange(const void* srcData, uint32_t rangeSize) {
 
 void VulkanBuffer::destroy() {
   vmaDestroyBuffer(m_allocator, m_buffer, m_allocation);
-  m_buffer = VK_NULL_HANDLE;
+  m_buffer = nullptr;
   m_allocation = VK_NULL_HANDLE;
 }

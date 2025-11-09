@@ -1,11 +1,13 @@
 #pragma once
+#include <vulkan/vulkan.hpp>
+
 #include "util/vk_check.hpp"
 #include "vma/vma_usage.h"
 
 class VulkanAllocator {
  public:
-  VulkanAllocator(VkPhysicalDevice physicalDevice, VkDevice device,
-                  VkInstance instance) {
+  VulkanAllocator(vk::PhysicalDevice physicalDevice, vk::Device device,
+                  vk::Instance instance) {
     VmaAllocatorCreateInfo info = {};
     info.physicalDevice = physicalDevice;
     info.device = device;

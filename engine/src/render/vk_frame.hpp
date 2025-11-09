@@ -1,33 +1,37 @@
 #pragma once
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 
 class VulkanCommandPool;
 
 class VulkanFrame {
  public:
   VulkanFrame(VulkanCommandPool* graphicsPool, VulkanCommandPool* transferPool,
-              VulkanCommandPool* computePool, VkDevice device);
+              VulkanCommandPool* computePool, vk::Device device);
   VulkanFrame(const VulkanFrame&) = delete;
   VulkanFrame(VulkanFrame&&) = delete;
   VulkanFrame& operator=(const VulkanFrame&) = delete;
   VulkanFrame& operator=(VulkanFrame&&) = delete;
   ~VulkanFrame();
 
-  [[nodiscard]] VkCommandBuffer graphics() const { return m_graphicsCmd; }
-  [[nodiscard]] VkCommandBuffer transfer() const { return m_transferCmd; }
-  [[nodiscard]] VkCommandBuffer compute() const { return m_computeCmd; }
-
-  [[nodiscard]] VkSemaphore imageAvailable() const { return m_imageAvailable; }
-  [[nodiscard]] VkSemaphore renderFinished() const { return m_renderFinished; }
-  [[nodiscard]] const VkFence& inFlight() const { return m_inFlight; }
+  [[nodiscard]] vk::CommandBuffer graphicsCmd() const { return m_graphicsCmd; }
+  [[nodiscard]] vk::CommandBuffer transferCmd() const { return m_transferCmd; }
+  [[nodiscard]] vk::CommandBuffer computeCmd() const { return m_computeCmd; }
+  [[nodiscard]] vk::Semaphore imageAvailable() const {
+    return m_imageAvailable;
+  }
+  [[nodiscard]] vk::Semaphore renderFinished() const {
+    return m_renderFinished;
+  }
+  [[nodiscard]] vk::Fence inFlight() const { return m_inFlight; }
 
  private:
-  VkCommandBuffer m_graphicsCmd{};
-  VkCommandBuffer m_transferCmd{};
-  VkCommandBuffer m_computeCmd{};
-  VkSemaphore m_imageAvailable{};
-  VkSemaphore m_renderFinished{};
-  VkFence m_inFlight{};
+  vk::CommandBuffer m_graphicsCmd;
+  vk::CommandBuffer m_transferCmd;
+  vk::CommandBuffer m_computeCmd;
 
-  VkDevice m_device;  // for deconstructing
+  vk::Semaphore m_imageAvailable;
+  vk::Semaphore m_renderFinished;
+  vk::Fence m_inFlight;
+
+  vk::Device m_device;
 };

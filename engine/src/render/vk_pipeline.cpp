@@ -1,30 +1,25 @@
 #include "vk_pipeline.hpp"
 
-#include "util/vk_check.hpp"
-
-VulkanPipelineLayout::VulkanPipelineLayout(VkDevice device,
+VulkanPipelineLayout::VulkanPipelineLayout(vk::Device device,
                                            const PipelineLayoutInfo &info)
     : m_device(device) {
-  VkPipelineLayoutCreateInfo createInfo{
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = 0U,
+  vk::PipelineLayoutCreateInfo createInfo{
       .setLayoutCount = static_cast<uint32_t>(info.descriptorSets.size()),
       .pSetLayouts = info.descriptorSets.data(),
       .pushConstantRangeCount =
           static_cast<uint32_t>(info.pushConstants.size()),
       .pPushConstantRanges = info.pushConstants.data()};
 
-  vkCreatePipelineLayout(device, &createInfo, nullptr, &m_layout);
+  m_layout = device.createPipelineLayout(createInfo);
 }
 
 VulkanPipelineLayout::~VulkanPipelineLayout() {
-  if (m_layout != VK_NULL_HANDLE) {
-    vkDestroyPipelineLayout(m_device, m_layout, nullptr);
+  if (m_layout) {
+    m_device.destroyPipelineLayout(m_layout);
   }
 }
 
-VulkanPipeline::VulkanPipeline(VkDevice device, VulkanPipelineType type,
+VulkanPipeline::VulkanPipeline(vk::Device device, VulkanPipelineType type,
                                const PipelineInfo &info)
     : m_device(device) {
   switch (type) {
@@ -38,16 +33,13 @@ VulkanPipeline::VulkanPipeline(VkDevice device, VulkanPipelineType type,
 }
 
 VulkanPipeline::~VulkanPipeline() {
-  if (m_pipeline != VK_NULL_HANDLE) {
-    vkDestroyPipeline(m_device, m_pipeline, nullptr);
+  if (m_pipeline) {
+    m_device.destroyPipeline(m_pipeline);
   }
 }
 
 void VulkanPipeline::createGraphicsPipeline(const PipelineInfo &info) {
-  VkPipelineVertexInputStateCreateInfo vertexInput{
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = 0U,
+  vk::PipelineVertexInputStateCreateInfo vertexInput{
       .vertexBindingDescriptionCount =
           static_cast<uint32_t>(info.vertexBindings.size()),
       .pVertexBindingDescriptions = info.vertexBindings.data(),
@@ -56,27 +48,17 @@ void VulkanPipeline::createGraphicsPipeline(const PipelineInfo &info) {
       .pVertexAttributeDescriptions = info.vertexAttributes.data(),
   };
 
-  VkPipelineInputAssemblyStateCreateInfo inputAssembly{
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = 0U,
+  vk::PipelineInputAssemblyStateCreateInfo inputAssembly{
       .topology = info.topology,
       .primitiveRestartEnable = VK_FALSE,
   };
 
-  VkPipelineViewportStateCreateInfo viewport{
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = 0U,
-      .viewportCount = 1,
-      .pViewports = nullptr,
-      .scissorCount = 1,
-      .pScissors = nullptr};
+  vk::PipelineViewportStateCreateInfo viewport{.viewportCount = 1,
+                                               .pViewports = nullptr,
+                                               .scissorCount = 1,
+                                               .pScissors = nullptr};
 
-  VkPipelineRasterizationStateCreateInfo rasterizer{
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = 0U,
+  vk::PipelineRasterizationStateCreateInfo rasterizer{
       .depthClampEnable = VK_FALSE,
       .rasterizerDiscardEnable = VK_FALSE,
       .polygonMode = info.polygonMode,
@@ -89,10 +71,7 @@ void VulkanPipeline::createGraphicsPipeline(const PipelineInfo &info) {
       .lineWidth = info.lineWidth,
   };
 
-  VkPipelineMultisampleStateCreateInfo multisampling{
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = 0U,
+  vk::PipelineMultisampleStateCreateInfo multisampling{
       .rasterizationSamples = info.samples,
       .sampleShadingEnable = VK_FALSE,
       .minSampleShading = 1.0F,
@@ -101,10 +80,7 @@ void VulkanPipeline::createGraphicsPipeline(const PipelineInfo &info) {
       .alphaToOneEnable = VK_FALSE,
   };
 
-  VkPipelineDepthStencilStateCreateInfo depthStencil{
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = 0U,
+  vk::PipelineDepthStencilStateCreateInfo depthStencil{
       .depthTestEnable = info.depthTest ? VK_TRUE : VK_FALSE,
       .depthWriteEnable = info.depthWrite ? VK_TRUE : VK_FALSE,
       .depthCompareOp = info.depthCompareOp,
@@ -116,7 +92,7 @@ void VulkanPipeline::createGraphicsPipeline(const PipelineInfo &info) {
       .maxDepthBounds = 0.0F,
   };
 
-  std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
+  std::vector<vk::PipelineColorBlendAttachmentState> colorBlendAttachments;
   colorBlendAttachments.reserve(info.colorBlendAttachments.size());
   for (const auto &attachment : info.colorBlendAttachments) {
     colorBlendAttachments.push_back({
@@ -131,28 +107,20 @@ void VulkanPipeline::createGraphicsPipeline(const PipelineInfo &info) {
     });
   }
 
-  VkPipelineColorBlendStateCreateInfo colorBlending{
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = 0U,
+  vk::PipelineColorBlendStateCreateInfo colorBlending{
       .logicOpEnable = VK_FALSE,
-      .logicOp = VK_LOGIC_OP_COPY,
+      .logicOp = vk::LogicOp::eCopy,
       .attachmentCount = static_cast<uint32_t>(colorBlendAttachments.size()),
       .pAttachments = colorBlendAttachments.data(),
-      .blendConstants = {0.0F, 0.0F, 0.0F, 0.0F},
+      .blendConstants = std::array<float, 4>{0.0F, 0.0F, 0.0F, 0.0F},
   };
 
-  VkPipelineDynamicStateCreateInfo dynamicState{
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = 0U,
+  vk::PipelineDynamicStateCreateInfo dynamicState{
       .dynamicStateCount = static_cast<uint32_t>(info.dynamicStates.size()),
       .pDynamicStates = info.dynamicStates.data(),
   };
 
-  VkPipelineRenderingCreateInfo renderingInfo{
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-      .pNext = nullptr,
+  vk::PipelineRenderingCreateInfo renderingInfo{
       .viewMask = 0,
       .colorAttachmentCount =
           static_cast<uint32_t>(info.colorAttachmentFormats.size()),
@@ -161,10 +129,8 @@ void VulkanPipeline::createGraphicsPipeline(const PipelineInfo &info) {
       .stencilAttachmentFormat = info.stencilAttachmentFormat,
   };
 
-  VkGraphicsPipelineCreateInfo createInfo{
-      .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+  vk::GraphicsPipelineCreateInfo createInfo{
       .pNext = &renderingInfo,
-      .flags = 0U,
       .stageCount = static_cast<uint32_t>(info.shaderStages.size()),
       .pStages = info.shaderStages.data(),
       .pVertexInputState = &vertexInput,
@@ -182,6 +148,7 @@ void VulkanPipeline::createGraphicsPipeline(const PipelineInfo &info) {
       .basePipelineHandle = nullptr,
       .basePipelineIndex = 0,
   };
-  VK_CHECK(vkCreateGraphicsPipelines(m_device, nullptr, 1, &createInfo, nullptr,
-                                     &m_pipeline));
+
+  auto result = m_device.createGraphicsPipelines(nullptr, createInfo);
+  m_pipeline = result.value.front();
 }

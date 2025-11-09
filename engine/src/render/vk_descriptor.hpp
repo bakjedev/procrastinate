@@ -1,37 +1,36 @@
 #pragma once
-#include <vulkan/vulkan.h>
-
 #include <vector>
+#include <vulkan/vulkan.hpp>
 
 struct DescriptorPoolInfo {
-  uint32_t maxSets{};
-  std::vector<VkDescriptorPoolSize> poolSizes;
-  VkDescriptorPoolCreateFlags flags{};
+  vk::DescriptorPoolCreateFlags flags;
+  uint32_t maxSets;
+  std::vector<vk::DescriptorPoolSize> poolSizes;
 };
 
 class VulkanDescriptorPool {
  public:
-  VulkanDescriptorPool(VkDevice device, const DescriptorPoolInfo &info);
+  VulkanDescriptorPool(vk::Device device, const DescriptorPoolInfo &info);
   VulkanDescriptorPool(const VulkanDescriptorPool &) = delete;
   VulkanDescriptorPool(VulkanDescriptorPool &&) = delete;
   VulkanDescriptorPool &operator=(const VulkanDescriptorPool &) = delete;
   VulkanDescriptorPool &operator=(VulkanDescriptorPool &&) = delete;
   ~VulkanDescriptorPool();
 
-  VkDescriptorSet allocate(VkDescriptorSetLayout layout);
-  std::vector<VkDescriptorSet> allocate(
-      const std::vector<VkDescriptorSetLayout> &layouts);
+  vk::DescriptorSet allocate(vk::DescriptorSetLayout layout);
+  std::vector<vk::DescriptorSet> allocate(
+      const std::vector<vk::DescriptorSetLayout> &layouts);
 
  private:
-  VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
-  VkDevice m_device = VK_NULL_HANDLE;
+  vk::Device m_device;
+  vk::DescriptorPool m_descriptorPool;
 };
 
 class VulkanDescriptorSetLayout {
  public:
   VulkanDescriptorSetLayout(
-      VkDevice device,
-      const std::vector<VkDescriptorSetLayoutBinding> &bindings);
+      vk::Device device,
+      const std::vector<vk::DescriptorSetLayoutBinding> &bindings);
   VulkanDescriptorSetLayout(const VulkanDescriptorSetLayout &) = delete;
   VulkanDescriptorSetLayout(VulkanDescriptorSetLayout &&) = delete;
   VulkanDescriptorSetLayout &operator=(const VulkanDescriptorSetLayout &) =
@@ -40,7 +39,6 @@ class VulkanDescriptorSetLayout {
   ~VulkanDescriptorSetLayout();
 
  private:
-  VkDescriptorSetLayout m_layout = VK_NULL_HANDLE;
-
-  VkDevice m_device = VK_NULL_HANDLE;
+  vk::Device m_device;
+  vk::DescriptorSetLayout m_layout;
 };

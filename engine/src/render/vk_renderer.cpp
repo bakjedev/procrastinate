@@ -17,74 +17,67 @@ VulkanRenderer::VulkanRenderer(SDL_Window* window,
 
   m_surface = std::make_unique<VulkanSurface>(window, m_instance->get());
 
-  m_physicalDevice = std::make_unique<VulkanPhysicalDevice>(m_instance->get(),
-                                                            m_surface->get());
-
-  m_logicalDevice = std::make_unique<VulkanLogicalDevice>(
-      m_physicalDevice->get(), m_physicalDevice->features(),
-      m_physicalDevice->queueFamilies(), m_physicalDevice->features12(),
-      m_physicalDevice->features13());
+  m_device =
+      std::make_unique<VulkanDevice>(m_instance->get(), m_surface->get());
 
   m_allocator = std::make_unique<VulkanAllocator>(
-      m_physicalDevice->get(), m_logicalDevice->get(), m_instance->get());
+      m_device->getPhysical(), m_device->get(), m_instance->get());
 
   m_swapChain = std::make_unique<VulkanSwapChain>(
-      m_logicalDevice->get(), m_physicalDevice->get(), m_surface->get());
+      m_device->get(), m_device->getPhysical(), m_surface->get());
 
   const uint32_t graphicsQueueFamily =
-      m_physicalDevice->queueFamilies().graphics.value();
+      m_device->queueFamilies().graphics.value();
   const uint32_t transferQueueFamily =
-      m_physicalDevice->queueFamilies().transfer.value();
-  const uint32_t computeQueueFamily =
-      m_physicalDevice->queueFamilies().compute.value();
+      m_device->queueFamilies().transfer.value();
+  const uint32_t computeQueueFamily = m_device->queueFamilies().compute.value();
 
   m_graphicsPool = std::make_unique<VulkanCommandPool>(
-      CommandPoolInfo{.queueFamilyIndex = graphicsQueueFamily,
-                      .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT},
-      m_logicalDevice->get());
+      CommandPoolInfo{
+          .queueFamilyIndex = graphicsQueueFamily,
+          .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer},
+      m_device->get());
 
   m_transferPool = std::make_unique<VulkanCommandPool>(
-      CommandPoolInfo{.queueFamilyIndex = transferQueueFamily},
-      m_logicalDevice->get());
+      CommandPoolInfo{.queueFamilyIndex = transferQueueFamily, .flags = {}},
+      m_device->get());
 
   m_computePool = std::make_unique<VulkanCommandPool>(
-      CommandPoolInfo{.queueFamilyIndex = computeQueueFamily},
-      m_logicalDevice->get());
+      CommandPoolInfo{.queueFamilyIndex = computeQueueFamily, .flags = {}},
+      m_device->get());
 
   const auto frameCount = m_swapChain->imageCount();
   m_frames.reserve(frameCount);
   for (uint32_t i = 0; i < frameCount; ++i) {
     m_frames.push_back(std::make_unique<VulkanFrame>(
         m_graphicsPool.get(), m_transferPool.get(), m_computePool.get(),
-        m_logicalDevice->get()));
+        m_device->get()));
   }
 
   const auto vertCode = resourceManager.createFromFile<ShaderResource>(
       "../assets/shaders/test.vert.spv", ShaderResourceLoader{});
   m_vertexShader =
-      std::make_unique<VulkanShader>(m_logicalDevice->get(), vertCode->code);
+      std::make_unique<VulkanShader>(m_device->get(), vertCode->code);
 
   const auto fragCode = resourceManager.createFromFile<ShaderResource>(
       "../assets/shaders/test.frag.spv", ShaderResourceLoader{});
   m_fragmentShader =
-      std::make_unique<VulkanShader>(m_logicalDevice->get(), fragCode->code);
+      std::make_unique<VulkanShader>(m_device->get(), fragCode->code);
 
-  VkPipelineShaderStageCreateInfo vertStage{};
-  vertStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  vertStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
-  vertStage.module = m_vertexShader->get();
-  vertStage.pName = "main";
+  const vk::PipelineShaderStageCreateInfo vertStage{
+      .stage = vk::ShaderStageFlagBits::eVertex,
+      .module = m_vertexShader->get(),
+      .pName = "main"};
 
-  VkPipelineShaderStageCreateInfo fragStage{};
-  fragStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  fragStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-  fragStage.module = m_fragmentShader->get();
-  fragStage.pName = "main";
+  const vk::PipelineShaderStageCreateInfo fragStage{
+      .stage = vk::ShaderStageFlagBits::eFragment,
+      .module = m_fragmentShader->get(),
+      .pName = "main"};
 
   PipelineLayoutInfo pipelineLayoutInfo{};
 
-  m_pipelineLayout = std::make_unique<VulkanPipelineLayout>(
-      m_logicalDevice->get(), pipelineLayoutInfo);
+  m_pipelineLayout = std::make_unique<VulkanPipelineLayout>(m_device->get(),
+                                                            pipelineLayoutInfo);
 
   // create shaders, add them as stages here, etc.
   PipelineInfo pipelineInfo{};
@@ -94,108 +87,105 @@ VulkanRenderer::VulkanRenderer(SDL_Window* window,
   PipelineInfo::ColorBlendAttachment colorBlend{};
   pipelineInfo.colorBlendAttachments = {colorBlend};
   m_pipeline = std::make_unique<VulkanPipeline>(
-      m_logicalDevice->get(), VulkanPipelineType::Graphics, pipelineInfo);
+      m_device->get(), VulkanPipelineType::Graphics, pipelineInfo);
 
   Util::println("Created vulkan renderer");
 }
 
 VulkanRenderer::~VulkanRenderer() {
-  m_logicalDevice->waitIdle();
+  m_device->waitIdle();
   Util::println("Destroyed vulkan renderer");
 }
 
 void VulkanRenderer::run() {
   auto& frame = m_frames[m_currentFrame];
-  vkWaitForFences(m_logicalDevice->get(), 1, &frame->inFlight(), VK_TRUE,
-                  UINT64_MAX);
+
+  auto result =
+      m_device->get().waitForFences(frame->inFlight(), VK_TRUE, UINT64_MAX);
+  if (result != vk::Result::eSuccess) {
+    throw std::runtime_error("waitForFences failed: " + vk::to_string(result));
+  }
 
   uint32_t imageIndex{};
-  auto result =
-      m_swapChain->acquireNextImage(frame->imageAvailable(), imageIndex);
+  result = m_swapChain->acquireNextImage(frame->imageAvailable(), imageIndex);
 
-  if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+  if (result == vk::Result::eErrorOutOfDateKHR) {
     m_swapChain->recreate();
     return;
   }
 
-  vkResetFences(m_logicalDevice->get(), 1, &frame->inFlight());
+  m_device->get().resetFences(frame->inFlight());
 
-  auto* cmd = frame->graphics();
-  // vkResetCommandBuffer(cmd, 0);
+  auto cmd = frame->graphicsCmd();
 
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  vkBeginCommandBuffer(cmd, &beginInfo);
+  vk::CommandBufferBeginInfo beginInfo{};
+  cmd.begin(beginInfo);
 
   VulkanImage::transitionImageLayout(m_swapChain->getImage(imageIndex), cmd,
-                                     VK_IMAGE_LAYOUT_UNDEFINED,
-                                     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                                     vk::ImageLayout::eUndefined,
+                                     vk::ImageLayout::eColorAttachmentOptimal);
 
-  VkRenderingAttachmentInfo colorAttachment{};
-  colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-  colorAttachment.imageView = m_swapChain->imageViews()[imageIndex];
-  colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-  colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-  colorAttachment.clearValue.color = {{0.0F, 0.0F, 0.0F, 1.0F}};
+  vk::RenderingAttachmentInfo colorAttachment{
+      .imageView = m_swapChain->imageViews()[imageIndex],
+      .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+      .loadOp = vk::AttachmentLoadOp::eClear,
+      .storeOp = vk::AttachmentStoreOp::eStore,
+      .clearValue = vk::ClearValue{
+          .color = vk::ClearColorValue{std::array{0.0F, 0.0F, 0.0F, 1.0F}}}};
 
-  VkRenderingInfo renderInfo{};
-  renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-  renderInfo.renderArea.extent = m_swapChain->extent();
-  renderInfo.layerCount = 1;
-  renderInfo.colorAttachmentCount = 1;
-  renderInfo.pColorAttachments = &colorAttachment;
+  vk::RenderingInfo renderInfo{
+      .renderArea =
+          vk::Rect2D{.offset = {0, 0}, .extent = m_swapChain->extent()},
+      .layerCount = 1,
+      .colorAttachmentCount = 1,
+      .pColorAttachments = &colorAttachment};
 
-  vkCmdBeginRendering(cmd, &renderInfo);
-  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->get());
+  cmd.beginRendering(renderInfo);
+  cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline->get());
 
-  VkViewport viewport{};
-  viewport.width = static_cast<float>(m_swapChain->extent().width);
-  viewport.height = static_cast<float>(m_swapChain->extent().height);
-  viewport.maxDepth = 1.0F;
-  vkCmdSetViewport(cmd, 0, 1, &viewport);
+  vk::Viewport viewport{
+      .x = 0.0F,
+      .y = 0.0F,
+      .width = static_cast<float>(m_swapChain->extent().width),
+      .height = static_cast<float>(m_swapChain->extent().height),
+      .minDepth = 0.0F,
+      .maxDepth = 1.0F};
+  cmd.setViewport(0, 1, &viewport);
 
-  VkRect2D scissor{};
-  scissor.extent = {.width = m_swapChain->extent().width,
-                    .height = m_swapChain->extent().height};
-  vkCmdSetScissor(cmd, 0, 1, &scissor);
+  vk::Rect2D scissor{.offset = {0, 0},
+                     .extent = {.width = m_swapChain->extent().width,
+                                .height = m_swapChain->extent().height}};
+  cmd.setScissor(0, 1, &scissor);
 
-  vkCmdDraw(cmd, 3, 1, 0, 0);
-  vkCmdEndRendering(cmd);
+  cmd.draw(3, 1, 0, 0);
+  cmd.endRendering();
 
   VulkanImage::transitionImageLayout(m_swapChain->getImage(imageIndex), cmd,
-                                     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                     VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+                                     vk::ImageLayout::eColorAttachmentOptimal,
+                                     vk::ImageLayout::ePresentSrcKHR);
 
-  vkEndCommandBuffer(cmd);
+  cmd.end();
 
-  VkSemaphoreSubmitInfo waitSemaphore{};
-  waitSemaphore.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-  waitSemaphore.semaphore = frame->imageAvailable();
-  waitSemaphore.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+  vk::SemaphoreSubmitInfo waitSemaphore{
+      .semaphore = frame->imageAvailable(),
+      .stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput};
 
-  VkSemaphoreSubmitInfo signalSemaphore{};
-  signalSemaphore.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-  signalSemaphore.semaphore = frame->renderFinished();
-  signalSemaphore.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+  vk::SemaphoreSubmitInfo signalSemaphore{
+      .semaphore = frame->renderFinished(),
+      .stageMask = vk::PipelineStageFlagBits2::eAllCommands};
 
-  VkCommandBufferSubmitInfo cmdInfo{};
-  cmdInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
-  cmdInfo.commandBuffer = cmd;
+  vk::CommandBufferSubmitInfo cmdInfo{.commandBuffer = cmd};
 
-  VkSubmitInfo2 submitInfo{};
-  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
-  submitInfo.waitSemaphoreInfoCount = 1;
-  submitInfo.pWaitSemaphoreInfos = &waitSemaphore;
-  submitInfo.commandBufferInfoCount = 1;
-  submitInfo.pCommandBufferInfos = &cmdInfo;
-  submitInfo.signalSemaphoreInfoCount = 1;
-  submitInfo.pSignalSemaphoreInfos = &signalSemaphore;
+  vk::SubmitInfo2 submitInfo{.waitSemaphoreInfoCount = 1,
+                             .pWaitSemaphoreInfos = &waitSemaphore,
+                             .commandBufferInfoCount = 1,
+                             .pCommandBufferInfos = &cmdInfo,
+                             .signalSemaphoreInfoCount = 1,
+                             .pSignalSemaphoreInfos = &signalSemaphore};
 
-  vkQueueSubmit2(m_logicalDevice->graphicsQueue(), 1, &submitInfo,
-                 frame->inFlight());
+  result = m_device->graphicsQueue().submit2(1, &submitInfo, frame->inFlight());
 
-  m_swapChain->present(imageIndex, m_logicalDevice->presentQueue(),
+  m_swapChain->present(imageIndex, m_device->presentQueue(),
                        frame->renderFinished());
 
   m_currentFrame = (m_currentFrame + 1) % m_frames.size();

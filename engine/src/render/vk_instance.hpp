@@ -1,5 +1,5 @@
 #pragma once
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 
 class VulkanInstance {
  public:
@@ -9,8 +9,8 @@ class VulkanInstance {
   VulkanInstance &operator=(const VulkanInstance &) = delete;
   VulkanInstance &operator=(VulkanInstance &&) = delete;
   ~VulkanInstance();
-  [[nodiscard]] VkInstance get() const { return m_instance; }
+  [[nodiscard]] vk::Instance get() const { return m_instance; }
 
  private:
-  VkInstance m_instance{};
+  vk::Instance m_instance;
 };

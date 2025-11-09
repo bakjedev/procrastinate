@@ -4,12 +4,15 @@
 
 #include "util/print.hpp"
 
-VulkanSurface::VulkanSurface(SDL_Window* window, VkInstance instance)
+VulkanSurface::VulkanSurface(SDL_Window* window, vk::Instance instance)
     : m_instance(instance) {
-  if (!SDL_Vulkan_CreateSurface(window, m_instance, nullptr, &m_surface)) {
+  VkSurfaceKHR cSurface = VK_NULL_HANDLE;
+
+  if (!SDL_Vulkan_CreateSurface(window, m_instance, nullptr, &cSurface)) {
     throw std::runtime_error("Failed to create SDL Vulkan surface" +
                              std::string(SDL_GetError()));
   }
+  m_surface = cSurface;
   Util::println("Created vulkan surface");
 }
 
