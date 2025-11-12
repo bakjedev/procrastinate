@@ -234,23 +234,23 @@ void VulkanRenderer::upload() {
 
   m_vertexBuffer = std::make_unique<VulkanBuffer>(
       BufferInfo{.size = verticesSize,
-                 .usage = vk::BufferUsageFlags::BitsType::eVertexBuffer |
-                          vk::BufferUsageFlags::BitsType::eTransferDst,
+                 .usage = vk::BufferUsageFlagBits::eVertexBuffer |
+                          vk::BufferUsageFlagBits::eTransferDst,
                  .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
                  .memoryFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT},
       m_allocator->get());
 
   m_indexBuffer = std::make_unique<VulkanBuffer>(
       BufferInfo{.size = indicesSize,
-                 .usage = vk::BufferUsageFlags::BitsType::eIndexBuffer |
-                          vk::BufferUsageFlags::BitsType::eTransferDst,
+                 .usage = vk::BufferUsageFlagBits::eIndexBuffer |
+                          vk::BufferUsageFlagBits::eTransferDst,
                  .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
                  .memoryFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT},
       m_allocator->get());
 
   auto stagingVertexBuffer = VulkanBuffer(
       BufferInfo{.size = verticesSize,
-                 .usage = vk::BufferUsageFlags::BitsType::eTransferSrc,
+                 .usage = vk::BufferUsageFlagBits::eTransferSrc,
                  .memoryUsage = VMA_MEMORY_USAGE_AUTO,
                  .memoryFlags =
                      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
@@ -260,7 +260,7 @@ void VulkanRenderer::upload() {
 
   auto stagingIndexBuffer = VulkanBuffer(
       BufferInfo{.size = indicesSize,
-                 .usage = vk::BufferUsageFlags::BitsType::eTransferSrc,
+                 .usage = vk::BufferUsageFlagBits::eTransferSrc,
                  .memoryUsage = VMA_MEMORY_USAGE_AUTO,
                  .memoryFlags =
                      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
