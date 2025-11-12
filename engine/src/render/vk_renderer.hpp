@@ -22,6 +22,12 @@ struct Vertex {
   float z;
 };
 
+struct MeshData {
+  uint32_t vertexOffset;
+  uint32_t indexOffset;
+  uint32_t indexCount;
+};
+
 class VulkanRenderer {
  public:
   explicit VulkanRenderer(SDL_Window *window, ResourceManager &resourceManager);
@@ -65,6 +71,7 @@ class VulkanRenderer {
   std::vector<vk::UniqueFence> m_inFlightFences;
   uint32_t m_currentFrame = 0;
 
+  std::vector<MeshData> m_meshes;
   std::vector<Vertex> m_vertices;
   std::vector<uint32_t> m_indices;
   std::unique_ptr<VulkanBuffer> m_vertexBuffer;

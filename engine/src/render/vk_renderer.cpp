@@ -123,12 +123,34 @@ VulkanRenderer::VulkanRenderer(SDL_Window* window,
   vertices.emplace_back(-0.5F, 0.5F, 1.0F);
   vertices.emplace_back(0.5F, 0.5F, 1.0F);
   vertices.emplace_back(0.0F, -0.5F, 1.0F);
-  addVertices(vertices);
-
   auto indices = std::vector<uint32_t>();
   indices.emplace_back(0);
   indices.emplace_back(1);
   indices.emplace_back(2);
+
+  auto& meshData = m_meshes.emplace_back();
+  meshData.indexCount = indices.size();
+  meshData.indexOffset = m_indices.size();
+  meshData.vertexOffset = m_vertices.size();
+
+  addVertices(vertices);
+  addIndices(indices);
+
+  vertices.clear();
+  vertices.emplace_back(0.5F, 0.5F, 1.0F);
+  vertices.emplace_back(1.5F, 0.5F, 1.0F);
+  vertices.emplace_back(1.0F, -0.5F, 1.0F);
+  indices.clear();
+  indices.emplace_back(0);
+  indices.emplace_back(1);
+  indices.emplace_back(2);
+
+  auto& meshData2 = m_meshes.emplace_back();
+  meshData2.indexCount = indices.size();
+  meshData2.indexOffset = m_indices.size();
+  meshData2.vertexOffset = m_vertices.size();
+
+  addVertices(vertices);
   addIndices(indices);
 
   upload();
@@ -198,7 +220,14 @@ void VulkanRenderer::run() {
                                 .height = m_swapChain->extent().height}};
   cmd.setScissor(0, 1, &scissor);
 
-  cmd.drawIndexed(static_cast<uint32_t>(m_indices.size()), 1, 0, 0, 0);
+  for (const auto& mesh : m_meshes) {
+    cmd.drawIndexed(mesh.indexCount,    // Index count for this mesh
+                    1,                  // Instance count
+                    mesh.indexOffset,   // First index in index buffer
+                    mesh.vertexOffset,  // Vertex offset
+                    0                   // First instance
+    );
+  }
   cmd.endRendering();
 
   VulkanImage::transitionImageLayout(m_swapChain->getImage(imageIndex), cmd,
