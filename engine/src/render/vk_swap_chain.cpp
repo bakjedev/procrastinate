@@ -30,7 +30,11 @@ vk::Result VulkanSwapChain::present(const uint32_t imageIndex,
   presentInfo.pSwapchains = &m_swapChain;
   presentInfo.pImageIndices = &imageIndex;
 
-  return presentQueue.presentKHR(presentInfo);
+  try {
+    return presentQueue.presentKHR(presentInfo);
+  } catch (const vk::OutOfDateKHRError&) {
+    return vk::Result::eErrorOutOfDateKHR;
+  }
 }
 
 void VulkanSwapChain::create() {
