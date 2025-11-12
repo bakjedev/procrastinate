@@ -4,7 +4,7 @@
 #include <vulkan/vulkan.hpp>
 
 struct BufferInfo {
-  uint32_t size{};
+  size_t size{};
   vk::BufferUsageFlags usage;
   VmaMemoryUsage memoryUsage{};
   VmaAllocationCreateFlags memoryFlags{};
