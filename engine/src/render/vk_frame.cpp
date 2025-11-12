@@ -11,19 +11,13 @@ VulkanFrame::VulkanFrame(VulkanCommandPool* graphicsPool,
       m_computeCmd(computePool->allocate()),
       m_device(device) {
   vk::SemaphoreCreateInfo semaphoreCreateInfo{};
-  vk::FenceCreateInfo fenceCreateInfo{.flags =
-                                          vk::FenceCreateFlagBits::eSignaled};
 
-  m_imageAvailable = m_device.createSemaphore(semaphoreCreateInfo);
   m_renderFinished = m_device.createSemaphore(semaphoreCreateInfo);
-  m_inFlight = m_device.createFence(fenceCreateInfo);
 
   Util::println("Created vulkan frame");
 }
 
 VulkanFrame::~VulkanFrame() {
-  m_device.destroySemaphore(m_imageAvailable);
   m_device.destroySemaphore(m_renderFinished);
-  m_device.destroyFence(m_inFlight);
   Util::println("Destroyed vulkan frame");
 }

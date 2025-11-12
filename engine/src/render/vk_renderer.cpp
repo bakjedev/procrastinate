@@ -46,14 +46,6 @@ VulkanRenderer::VulkanRenderer(SDL_Window* window,
       CommandPoolInfo{.queueFamilyIndex = computeQueueFamily, .flags = {}},
       m_device->get());
 
-  const auto frameCount = m_swapChain->imageCount();
-  m_frames.reserve(frameCount);
-  for (uint32_t i = 0; i < frameCount; ++i) {
-    m_frames.push_back(std::make_unique<VulkanFrame>(
-        m_graphicsPool.get(), m_transferPool.get(), m_computePool.get(),
-        m_device->get()));
-  }
-
   const auto vertCode = resourceManager.createFromFile<ShaderResource>(
       "../assets/shaders/test.vert.spv", ShaderResourceLoader{});
   m_vertexShader =
@@ -89,33 +81,54 @@ VulkanRenderer::VulkanRenderer(SDL_Window* window,
   m_pipeline = std::make_unique<VulkanPipeline>(
       m_device->get(), VulkanPipelineType::Graphics, pipelineInfo);
 
+  const auto frameCount = m_swapChain->imageCount();
+  m_frames.reserve(frameCount);
+  for (uint32_t i = 0; i < frameCount; i++) {
+    m_frames.push_back(std::make_unique<VulkanFrame>(
+        m_graphicsPool.get(), m_transferPool.get(), m_computePool.get(),
+        m_device->get()));
+  }
+
+  vk::SemaphoreCreateInfo semaphoreCreateInfo{};
+  vk::FenceCreateInfo fenceCreateInfo{.flags =
+                                          vk::FenceCreateFlagBits::eSignaled};
+  m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+  m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+  for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+    m_imageAvailableSemaphores[i] =
+        m_device->get().createSemaphoreUnique(semaphoreCreateInfo);
+    m_inFlightFences[i] = m_device->get().createFenceUnique(fenceCreateInfo);
+  }
+
   Util::println("Created vulkan renderer");
 }
 
 VulkanRenderer::~VulkanRenderer() {
   m_device->waitIdle();
+
   Util::println("Destroyed vulkan renderer");
 }
 
 void VulkanRenderer::run() {
-  auto& frame = m_frames[m_currentFrame];
-
-  auto result =
-      m_device->get().waitForFences(frame->inFlight(), VK_TRUE, UINT64_MAX);
+  auto result = m_device->get().waitForFences(*m_inFlightFences[m_currentFrame],
+                                              VK_TRUE, UINT64_MAX);
   if (result != vk::Result::eSuccess) {
     throw std::runtime_error("waitForFences failed: " + vk::to_string(result));
   }
 
-  uint32_t imageIndex{};
-  result = m_swapChain->acquireNextImage(frame->imageAvailable(), imageIndex);
+  m_device->get().resetFences(*m_inFlightFences[m_currentFrame]);
 
-  if (result == vk::Result::eErrorOutOfDateKHR) {
+  uint32_t imageIndex{};
+  result = m_swapChain->acquireNextImage(
+      *m_imageAvailableSemaphores[m_currentFrame], imageIndex);
+
+  if (result == vk::Result::eErrorOutOfDateKHR ||
+      result == vk::Result::eSuboptimalKHR) {
     m_swapChain->recreate();
     return;
   }
 
-  m_device->get().resetFences(frame->inFlight());
-
+  auto& frame = m_frames[imageIndex];
   auto cmd = frame->graphicsCmd();
 
   vk::CommandBufferBeginInfo beginInfo{};
@@ -134,8 +147,8 @@ void VulkanRenderer::run() {
           .color = vk::ClearColorValue{std::array{0.0F, 0.0F, 0.0F, 1.0F}}}};
 
   vk::RenderingInfo renderInfo{
-      .renderArea =
-          vk::Rect2D{.offset = {0, 0}, .extent = m_swapChain->extent()},
+      .renderArea = vk::Rect2D{.offset = {.x = 0, .y = 0},
+                               .extent = m_swapChain->extent()},
       .layerCount = 1,
       .colorAttachmentCount = 1,
       .pColorAttachments = &colorAttachment};
@@ -167,7 +180,7 @@ void VulkanRenderer::run() {
   cmd.end();
 
   vk::SemaphoreSubmitInfo waitSemaphore{
-      .semaphore = frame->imageAvailable(),
+      .semaphore = *m_imageAvailableSemaphores[m_currentFrame],
       .stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput};
 
   vk::SemaphoreSubmitInfo signalSemaphore{
@@ -183,13 +196,20 @@ void VulkanRenderer::run() {
                              .signalSemaphoreInfoCount = 1,
                              .pSignalSemaphoreInfos = &signalSemaphore};
 
-  result = m_device->graphicsQueue().submit2(1, &submitInfo, frame->inFlight());
+  result = m_device->graphicsQueue().submit2(1, &submitInfo,
+                                             *m_inFlightFences[m_currentFrame]);
   if (result != vk::Result::eSuccess) {
     throw std::runtime_error("submit2 failed: " + vk::to_string(result));
   }
 
-  m_swapChain->present(imageIndex, m_device->presentQueue(),
-                       frame->renderFinished());
+  result = m_swapChain->present(imageIndex, m_device->presentQueue(),
+                                frame->renderFinished());
 
-  m_currentFrame = (m_currentFrame + 1) % m_frames.size();
+  if (result == vk::Result::eErrorOutOfDateKHR ||
+      result == vk::Result::eSuboptimalKHR) {
+    m_swapChain->recreate();
+    return;
+  }
+
+  m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }

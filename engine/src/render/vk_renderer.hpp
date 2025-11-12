@@ -27,19 +27,27 @@ class VulkanRenderer {
   void run();
 
  private:
+  static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+
   std::unique_ptr<VulkanInstance> m_instance;
   std::unique_ptr<VulkanSurface> m_surface;
   std::unique_ptr<VulkanDevice> m_device;
   std::unique_ptr<VulkanAllocator> m_allocator;
+
   std::unique_ptr<VulkanSwapChain> m_swapChain;
+
   std::unique_ptr<VulkanCommandPool> m_graphicsPool;
   std::unique_ptr<VulkanCommandPool> m_transferPool;
   std::unique_ptr<VulkanCommandPool> m_computePool;
+
   std::unique_ptr<VulkanShader> m_vertexShader;
   std::unique_ptr<VulkanShader> m_fragmentShader;
+
   std::unique_ptr<VulkanPipelineLayout> m_pipelineLayout;
   std::unique_ptr<VulkanPipeline> m_pipeline;
 
   std::vector<std::unique_ptr<VulkanFrame>> m_frames;
+  std::vector<vk::UniqueSemaphore> m_imageAvailableSemaphores;
+  std::vector<vk::UniqueFence> m_inFlightFences;
   uint32_t m_currentFrame = 0;
 };

@@ -16,22 +16,16 @@ class VulkanFrame {
   [[nodiscard]] vk::CommandBuffer graphicsCmd() const { return m_graphicsCmd; }
   [[nodiscard]] vk::CommandBuffer transferCmd() const { return m_transferCmd; }
   [[nodiscard]] vk::CommandBuffer computeCmd() const { return m_computeCmd; }
-  [[nodiscard]] vk::Semaphore imageAvailable() const {
-    return m_imageAvailable;
-  }
   [[nodiscard]] vk::Semaphore renderFinished() const {
     return m_renderFinished;
   }
-  [[nodiscard]] vk::Fence inFlight() const { return m_inFlight; }
 
  private:
   vk::CommandBuffer m_graphicsCmd;
   vk::CommandBuffer m_transferCmd;
   vk::CommandBuffer m_computeCmd;
 
-  vk::Semaphore m_imageAvailable;
   vk::Semaphore m_renderFinished;
-  vk::Fence m_inFlight;
 
   vk::Device m_device;
 };
