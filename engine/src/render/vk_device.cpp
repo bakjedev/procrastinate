@@ -93,15 +93,15 @@ void VulkanDevice::createDevice() {
       .runtimeDescriptorArray = m_features12.runtimeDescriptorArray,
       .bufferDeviceAddress = m_features12.bufferDeviceAddress};
 
-  const vk::DeviceCreateInfo deviceCreateInfo{
-      .pNext = &enabled12Features,
-      .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
-      .pQueueCreateInfos = queueCreateInfos.data(),
-      .enabledLayerCount = 0,
-      .ppEnabledLayerNames = nullptr,
-      .enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size()),
-      .ppEnabledExtensionNames = deviceExtensions.data(),
-      .pEnabledFeatures = &m_features};
+  vk::DeviceCreateInfo deviceCreateInfo;
+  deviceCreateInfo.pNext = &enabled12Features;
+  deviceCreateInfo.queueCreateInfoCount =
+      static_cast<uint32_t>(queueCreateInfos.size());
+  deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
+  deviceCreateInfo.enabledExtensionCount =
+      static_cast<uint32_t>(deviceExtensions.size());
+  deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
+  deviceCreateInfo.pEnabledFeatures = &m_features;
 
   m_device = m_physicalDevice.createDevice(deviceCreateInfo);
 }
@@ -129,37 +129,47 @@ bool VulkanDevice::isDeviceSuitable(
 bool VulkanDevice::findQueueFamilies(vk::SurfaceKHR surface) {
   auto queueFamilies = m_physicalDevice.getQueueFamilyProperties();
 
-  int index = 0;
-  for (const auto& queue_family : queueFamilies) {
-    if (queue_family.queueFlags & vk::QueueFlagBits::eGraphics) {
-      m_queueFamilyIndices.graphics = index;
+  for (size_t idx = 0; idx < queueFamilies.size(); idx++) {
+    const auto& queueFamily = queueFamilies[idx];
+
+    if ((queueFamily.queueFlags & vk::QueueFlagBits::eTransfer) &&
+        !(queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) &&
+        !(queueFamily.queueFlags & vk::QueueFlagBits::eCompute)) {
+      m_queueFamilyIndices.transfer = idx;
     }
 
-    auto presentSupport = m_physicalDevice.getSurfaceSupportKHR(index, surface);
-    if (presentSupport != 0U) {
-      m_queueFamilyIndices.present = index;
+    if ((queueFamily.queueFlags & vk::QueueFlagBits::eCompute) &&
+        !(queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) &&
+        !(queueFamily.queueFlags & vk::QueueFlagBits::eTransfer)) {
+      m_queueFamilyIndices.compute = idx;
     }
-
-    if (queueFamilies[index].queueFlags & vk::QueueFlagBits::eCompute) {
-      m_queueFamilyIndices.compute = index;
-    }
-
-    if ((queue_family.queueFlags & vk::QueueFlagBits::eTransfer) &&
-        !(queue_family.queueFlags & vk::QueueFlagBits::eGraphics)) {
-      m_queueFamilyIndices.transfer = index;
-    }
-
-    if (m_queueFamilyIndices.isComplete()) {
-      return true;
-    }
-
-    index++;
   }
 
-  // fallback for transfer queue.
-  if (!m_queueFamilyIndices.transfer.has_value() &&
-      m_queueFamilyIndices.graphics.has_value()) {
-    m_queueFamilyIndices.transfer = m_queueFamilyIndices.graphics;
+  for (size_t idx = 0; idx < queueFamilies.size(); idx++) {
+    const auto& queueFamily = queueFamilies[idx];
+
+    if (!m_queueFamilyIndices.graphics.has_value()) {
+      if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) {
+        m_queueFamilyIndices.graphics = idx;
+      }
+    }
+
+    if (!m_queueFamilyIndices.present.has_value()) {
+      auto presentSupport = m_physicalDevice.getSurfaceSupportKHR(idx, surface);
+      if (presentSupport != 0U) {
+        m_queueFamilyIndices.present = idx;
+      }
+    }
+
+    if (!m_queueFamilyIndices.compute.has_value() &&
+        (queueFamily.queueFlags & vk::QueueFlagBits::eCompute)) {
+      m_queueFamilyIndices.compute = idx;
+    }
+
+    if (!m_queueFamilyIndices.transfer.has_value() &&
+        (queueFamily.queueFlags & vk::QueueFlagBits::eTransfer)) {
+      m_queueFamilyIndices.transfer = idx;
+    }
   }
 
   return m_queueFamilyIndices.isComplete();

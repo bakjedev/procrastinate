@@ -47,7 +47,7 @@ jobs:
           choco install llvm -y
           
           # Install Vulkan SDK
-          $VulkanVersion = "1.3.290.0"
+          $VulkanVersion = "1.4.328.1"
           $Installer = "VulkanSDK-$VulkanVersion-Installer.exe"
           $DownloadURL = "https://sdk.lunarg.com/sdk/download/$VulkanVersion/windows/$Installer"
           echo "GETTING VULKAN FROM $DownloadURL"
