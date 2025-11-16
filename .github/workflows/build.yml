@@ -48,10 +48,9 @@ jobs:
           
           # Install Vulkan SDK
           $VulkanVersion = "1.4.328.1"
-          $Installer = "VulkanSDK-$VulkanVersion-Installer.exe"
+          $Installer = "vulkansdk-windows-X64-$VulkanVersion.exe"
           $DownloadURL = "https://sdk.lunarg.com/sdk/download/$VulkanVersion/windows/$Installer"
           echo "GETTING VULKAN FROM $DownloadURL"
-
           Invoke-WebRequest -Uri $DownloadURL -OutFile $Installer
           # Start-Process -FilePath $Installer -ArgumentList "/S" -Wait
           Start-Process -FilePath .\$Installer -ArgumentList "--root D:\VulkanSDK --accept-licenses --default-answer --confirm-command install" -Wait
