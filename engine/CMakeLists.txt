@@ -1,6 +1,14 @@
 include(../external/shaders.cmake)
 
+compile_shaders(
+	Shaders
+	${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders
+	${CMAKE_BINARY_DIR}/assets/shaders
+)
+
 add_library(engine STATIC)
+
+add_dependencies(engine Shaders)
 
 target_sources(engine PRIVATE
 	src/core/engine.cpp
@@ -29,8 +37,3 @@ target_compile_options(engine PRIVATE
 )
 
 target_include_directories(engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-
-compile_shaders(
-	${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders
-	${CMAKE_BINARY_DIR}/assets/shaders
-)
