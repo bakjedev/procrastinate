@@ -47,6 +47,7 @@ void VulkanDevice::pickPhysicalDevice(vk::Instance instance,
 
       Util::println("Picked vulkan physical device ({})",
                     properties.deviceName.data());
+      break;
     }
   }
 }
@@ -93,15 +94,17 @@ void VulkanDevice::createDevice() {
       .runtimeDescriptorArray = m_features12.runtimeDescriptorArray,
       .bufferDeviceAddress = m_features12.bufferDeviceAddress};
 
+  vk::PhysicalDeviceFeatures2 deviceFeatures2{.pNext = &enabled12Features,
+                                              .features = m_features};
+
   vk::DeviceCreateInfo deviceCreateInfo;
-  deviceCreateInfo.pNext = &enabled12Features;
+  deviceCreateInfo.pNext = &deviceFeatures2;
   deviceCreateInfo.queueCreateInfoCount =
       static_cast<uint32_t>(queueCreateInfos.size());
   deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
   deviceCreateInfo.enabledExtensionCount =
       static_cast<uint32_t>(deviceExtensions.size());
   deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
-  deviceCreateInfo.pEnabledFeatures = &m_features;
 
   m_device = m_physicalDevice.createDevice(deviceCreateInfo);
 }
