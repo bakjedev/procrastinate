@@ -1,16 +1,10 @@
+#include "shared.slangh"
+
 struct VertexInput
 {
     float3 position : POSITION;
 };
 
-// Vertex to Fragment data
-struct VertexOutput
-{
-    float4 position : SV_Position;
-    float4 color : COLOR0;
-};
-
-// Vertex Shader
 [shader("vertex")]
 VertexOutput main(VertexInput input)
 {

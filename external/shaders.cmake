@@ -34,15 +34,12 @@ function(compile_shaders TARGET_NAME SHADER_DIR OUTPUT_DIR)
 		get_filename_component(SHADER_NAME ${REL_SHADER_PATH} NAME_WLE)
 		get_filename_component(SHADER_SUBDIR ${REL_SHADER_PATH} DIRECTORY)
 
-		message("found shader with ${SHADER_FILE}, with rel path ${REL_SHADER_PATH}")
-
 		if(SHADER_SUBDIR)
 			file(MAKE_DIRECTORY "${OUTPUT_DIR}/${SHADER_SUBDIR}")
 			set(SPIRV_FILE "${OUTPUT_DIR}/${SHADER_SUBDIR}/${SHADER_NAME}.spv")
 		else()
 			set(SPIRV_FILE "${OUTPUT_DIR}/${SHADER_NAME}.spv")
 		endif()
-		message("going to compile it to ${SPIRV_FILE}")
 
 		add_custom_command(
 			OUTPUT ${SPIRV_FILE}
