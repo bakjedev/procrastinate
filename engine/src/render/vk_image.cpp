@@ -2,10 +2,8 @@
 
 #include "util/vk_check.hpp"
 
-VulkanImage::VulkanImage(const ImageInfo& info, VmaAllocator allocator)
-    : m_format(info.format),
-      m_width(info.width),
-      m_height(info.height),
+VulkanImage::VulkanImage(const ImageInfo &info, VmaAllocator allocator)
+    : m_format(info.format), m_width(info.width), m_height(info.height),
       m_allocator(allocator) {
   VmaAllocatorInfo allocatorInfo;
   vmaGetAllocatorInfo(m_allocator, &allocatorInfo);
@@ -19,7 +17,7 @@ VulkanImage::VulkanImage(const ImageInfo& info, VmaAllocator allocator)
 
 VulkanImage::~VulkanImage() { destroy(); }
 
-void VulkanImage::create(const ImageInfo& info) {
+void VulkanImage::create(const ImageInfo &info) {
   vk::ImageCreateInfo imageInfo{
       .imageType = vk::ImageType::e2D,
       .format = info.format,
@@ -123,7 +121,7 @@ void VulkanImage::transitionImageLayout(vk::Image image, vk::CommandBuffer cmd,
              newLayout == vk::ImageLayout::eColorAttachmentOptimal) {
     barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
     barrier.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite;
-    barrier.srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe;
+    barrier.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
   } else if (oldLayout == vk::ImageLayout::eColorAttachmentOptimal &&
              newLayout == vk::ImageLayout::ePresentSrcKHR) {
