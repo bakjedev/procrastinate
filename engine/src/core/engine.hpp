@@ -10,6 +10,7 @@ class Input;
 class ResourceManager;
 class VulkanRenderer;
 class Engine;
+class Scene;
 
 template <typename T>
 concept Application = requires(T app, float deltaTime, Engine& engine) {
@@ -37,6 +38,7 @@ class Engine {
   [[nodiscard]] Input& getInput() const;
   [[nodiscard]] ResourceManager& getResourceManager() const;
   [[nodiscard]] VulkanRenderer& getRenderer() const;
+  [[nodiscard]] Scene& getScene() const;
 
  private:
   std::unique_ptr<EventManager> m_eventManager;
@@ -44,6 +46,7 @@ class Engine {
   std::unique_ptr<Input> m_input;
   std::unique_ptr<ResourceManager> m_resourceManager;
   std::unique_ptr<VulkanRenderer> m_renderer;
+  std::unique_ptr<Scene> m_scene;
 };
 
 #include "engine.inl"  // IWYU pragma: keep

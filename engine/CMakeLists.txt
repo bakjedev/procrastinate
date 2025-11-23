@@ -15,6 +15,7 @@ target_sources(engine PRIVATE
 	src/core/events.cpp
 	src/core/window.cpp
 	src/input/input.cpp
+	src/ecs/scene.cpp
 	src/render/vk_renderer.cpp
 	src/render/vk_command_pool.cpp
 	src/render/vk_frame.cpp

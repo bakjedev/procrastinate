@@ -9,7 +9,7 @@ struct VertexInput
 VertexOutput main(VertexInput input)
 {
     VertexOutput output;
-    output.color = float4(input.position, 1.0);
-    output.position = output.color;
+    output.color = input.position;
+    output.position = float4(input.position, 1.0);
     return output;
 }

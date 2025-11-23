@@ -3,6 +3,7 @@
 #include <cassert>
 #include <memory>
 
+#include "ecs/scene.hpp"
 #include "events.hpp"
 #include "input/input.hpp"
 #include "render/vk_renderer.hpp"
@@ -24,6 +25,8 @@ Engine::Engine() {
   m_resourceManager = std::make_unique<ResourceManager>();
   m_renderer =
       std::make_unique<VulkanRenderer>(m_window->get(), *m_resourceManager);
+  m_scene = std::make_unique<Scene>();
+
   Util::println("Engine initialized");
 }
 
@@ -52,4 +55,9 @@ ResourceManager& Engine::getResourceManager() const {
 VulkanRenderer& Engine::getRenderer() const {
   assert(m_renderer && "No renderer!");
   return *m_renderer;
+}
+
+Scene& Engine::getScene() const {
+  assert(m_scene && "No scene!");
+  return *m_scene;
 }
