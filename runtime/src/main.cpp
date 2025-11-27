@@ -17,6 +17,13 @@ struct RuntimeApplication {
     comp->mesh = engine->getResourceManager().create<MeshResource>(
         "firstmesh", MeshResourceLoader{}, "../assets/cylinder.obj",
         engine->getRenderer());
+
+    mesh_entity2 = engine->getScene().create();
+
+    auto *comp2 = engine->getScene().addComponent<MeshComponent>(mesh_entity2);
+    comp2->mesh = engine->getResourceManager().create<MeshResource>(
+        "secondmesh", MeshResourceLoader{}, "../assets/cylinder.obj",
+        engine->getRenderer());
   }
 
   void update(float /*unused*/) const {
@@ -42,6 +49,7 @@ struct RuntimeApplication {
 
   Engine *engine = nullptr;
   uint32_t mesh_entity{};
+  uint32_t mesh_entity2{};
 };
 
 int main() {

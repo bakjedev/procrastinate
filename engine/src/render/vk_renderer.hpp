@@ -1,4 +1,5 @@
 #pragma once
+#include <glm/glm.hpp>
 #include <memory>
 
 #include "render/vk_allocator.hpp"
@@ -11,7 +12,6 @@
 #include "render/vk_surface.hpp"
 #include "render/vk_swap_chain.hpp"
 #include "vk_buffer.hpp"
-#include <glm/glm.hpp>
 
 struct SDL_Window;
 
@@ -27,14 +27,8 @@ struct Vertex {
   glm::vec3 color;
 };
 
-struct MeshData {
-  uint32_t vertexOffset;
-  uint32_t indexOffset;
-  uint32_t indexCount;
-};
-
 class VulkanRenderer {
-public:
+ public:
   explicit VulkanRenderer(SDL_Window *window, ResourceManager &resourceManager);
   VulkanRenderer(const VulkanRenderer &) = delete;
   VulkanRenderer(VulkanRenderer &&) = delete;
@@ -52,7 +46,7 @@ public:
   [[nodiscard]] uint32_t getVertexCount() const;
   [[nodiscard]] uint32_t getIndexCount() const;
 
-private:
+ private:
   std::optional<uint32_t> beginFrame();
   void endFrame(uint32_t imageIndex);
 
@@ -80,7 +74,7 @@ private:
   std::vector<vk::UniqueFence> m_inFlightFences;
   uint32_t m_currentFrame = 0;
 
-  std::vector<MeshData> m_meshes;
+  std::vector<vk::DrawIndexedIndirectCommand> m_meshes;
   std::vector<Vertex> m_vertices;
   std::vector<uint32_t> m_indices;
   std::unique_ptr<VulkanBuffer> m_vertexBuffer;

@@ -40,9 +40,9 @@ VulkanRenderer::VulkanRenderer(SDL_Window *window,
   const uint32_t computeQueueFamily = m_device->queueFamilies().compute.value();
 
   m_graphicsPool = std::make_unique<VulkanCommandPool>(
-      CommandPoolInfo{.queueFamilyIndex = graphicsQueueFamily,
-                      .flags =
-                          vk::CommandPoolCreateFlagBits::eResetCommandBuffer},
+      CommandPoolInfo{
+          .queueFamilyIndex = graphicsQueueFamily,
+          .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer},
       m_device->get());
 
   m_transferPool = std::make_unique<VulkanCommandPool>(
@@ -123,7 +123,7 @@ VulkanRenderer::VulkanRenderer(SDL_Window *window,
   for (uint32_t i = 0; i < frameCount; i++) {
     m_frames.push_back(std::make_unique<VulkanFrame>(
         m_graphicsPool.get(), m_transferPool.get(), m_computePool.get(),
-        m_device->get()));
+        m_device->get(), m_allocator.get()));
   }
 
   vk::SemaphoreCreateInfo semaphoreCreateInfo{};
@@ -136,42 +136,6 @@ VulkanRenderer::VulkanRenderer(SDL_Window *window,
         m_device->get().createSemaphoreUnique(semaphoreCreateInfo);
     m_inFlightFences[i] = m_device->get().createFenceUnique(fenceCreateInfo);
   }
-
-  auto vertices = std::vector<Vertex>();
-  vertices.emplace_back(glm::vec3(-0.5F, 0.5F, -3.0F), glm::vec3(1.0f));
-  vertices.emplace_back(glm::vec3(0.5F, 0.5F, -3.0F), glm::vec3(1.0f));
-  vertices.emplace_back(glm::vec3(0.0F, -0.5F, -3.0F), glm::vec3(1.0f));
-  auto indices = std::vector<uint32_t>();
-  indices.emplace_back(0);
-  indices.emplace_back(1);
-  indices.emplace_back(2);
-
-  auto &meshData = m_meshes.emplace_back();
-  meshData.indexCount = indices.size();
-  meshData.indexOffset = m_indices.size();
-  meshData.vertexOffset = m_vertices.size();
-
-  addVertices(vertices);
-  addIndices(indices);
-
-  vertices.clear();
-  vertices.emplace_back(glm::vec3(0.5F, 0.5F, -3.0F), glm::vec3(1.0f));
-  vertices.emplace_back(glm::vec3(1.5F, 0.5F, -3.0F), glm::vec3(1.0f));
-  vertices.emplace_back(glm::vec3(1.0F, -0.5F, -3.0F), glm::vec3(1.0f));
-  indices.clear();
-  indices.emplace_back(0);
-  indices.emplace_back(1);
-  indices.emplace_back(2);
-
-  auto &meshData2 = m_meshes.emplace_back();
-  meshData2.indexCount = indices.size();
-  meshData2.indexOffset = m_indices.size();
-  meshData2.vertexOffset = m_vertices.size();
-
-  addVertices(vertices);
-  addIndices(indices);
-
-  upload();
 
   Util::println("Created vulkan renderer");
 }
@@ -191,10 +155,43 @@ void VulkanRenderer::run() {
   }
 
   auto &frame = m_frames[imageIndex];
+
+  auto *stagingBuffer = frame->stagingBuffer();
+  auto *indirectBuffer = frame->indirectBuffer();
+
+  auto *mapped =
+      static_cast<VkDrawIndexedIndirectCommand *>(stagingBuffer->map());
+
+  uint32_t commandCount = 0;
+  for (const auto &mesh : m_meshes) {
+    mapped[commandCount++] = mesh;
+  }
+
+  stagingBuffer->unmap();
+
   auto cmd = frame->graphicsCmd();
 
   vk::CommandBufferBeginInfo beginInfo{};
   cmd.begin(beginInfo);
+
+  vk::BufferCopy copyRegion{
+      .srcOffset = 0, .dstOffset = 0, .size = stagingBuffer->size()};
+
+  cmd.copyBuffer(stagingBuffer->get(), indirectBuffer->get(), copyRegion);
+
+  vk::BufferMemoryBarrier2 bufferBarrier{
+      .srcStageMask = vk::PipelineStageFlagBits2::eCopy,
+      .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+      .dstStageMask = vk::PipelineStageFlagBits2::eDrawIndirect,
+      .dstAccessMask = vk::AccessFlagBits2::eIndirectCommandRead,
+      .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+      .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+      .buffer = indirectBuffer->get(),
+      .offset = 0,
+      .size = VK_WHOLE_SIZE};
+  vk::DependencyInfo dependencyInfo{.bufferMemoryBarrierCount = 1,
+                                    .pBufferMemoryBarriers = &bufferBarrier};
+  cmd.pipelineBarrier2(&dependencyInfo);
 
   VulkanImage::transitionImageLayout(m_swapChain->getImage(imageIndex), cmd,
                                      vk::ImageLayout::eUndefined,
@@ -208,12 +205,12 @@ void VulkanRenderer::run() {
       .clearValue = vk::ClearValue{
           .color = vk::ClearColorValue{std::array{0.0F, 0.0F, 0.0F, 1.0F}}}};
 
-  vk::RenderingInfo renderInfo{.renderArea =
-                                   vk::Rect2D{.offset = {.x = 0, .y = 0},
-                                              .extent = m_swapChain->extent()},
-                               .layerCount = 1,
-                               .colorAttachmentCount = 1,
-                               .pColorAttachments = &colorAttachment};
+  vk::RenderingInfo renderInfo{
+      .renderArea = vk::Rect2D{.offset = {.x = 0, .y = 0},
+                               .extent = m_swapChain->extent()},
+      .layerCount = 1,
+      .colorAttachmentCount = 1,
+      .pColorAttachments = &colorAttachment};
 
   cmd.beginRendering(renderInfo);
   cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline->get());
@@ -222,8 +219,8 @@ void VulkanRenderer::run() {
   glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 1.0f);
   glm::vec3 upVector = glm::vec3(0.0f, 1.0f, 0.0f);
   glm::mat4 view = glm::lookAt(cameraPos, cameraTarget, upVector);
-  float fov = glm::radians(45.0f);  // Field of view in radians
-  float aspectRatio = 16.0f / 9.0f; // Screen aspect ratio
+  float fov = glm::radians(45.0f);   // Field of view in radians
+  float aspectRatio = 16.0f / 9.0f;  // Screen aspect ratio
   float nearPlane = 0.1f;
   float farPlane = 100.0f;
   glm::mat4 projection =
@@ -256,14 +253,15 @@ void VulkanRenderer::run() {
                                 .height = m_swapChain->extent().height}};
   cmd.setScissor(0, 1, &scissor);
 
-  for (const auto &mesh : m_meshes) {
-    cmd.drawIndexed(mesh.indexCount,   // Index count for this mesh
-                    1,                 // Instance count
-                    mesh.indexOffset,  // First index in index buffer
-                    mesh.vertexOffset, // Vertex offset
-                    0                  // First instance
-    );
-  }
+  // --------------------------------------------------
+  // MAIN RENDER LOOP
+  // --------------------------------------------------
+  // for (const auto &mesh : m_meshes) {
+  //   cmd.drawIndexed(mesh.indexCount, 1, mesh.firstIndex, mesh.vertexOffset,
+  //   0);
+  // }
+  cmd.drawIndexedIndirect(frame->indirectBuffer()->get(), 0, m_meshes.size(),
+                          sizeof(vk::DrawIndexedIndirectCommand));
   cmd.endRendering();
 
   VulkanImage::transitionImageLayout(m_swapChain->getImage(imageIndex), cmd,
@@ -285,7 +283,7 @@ void VulkanRenderer::addIndices(const std::vector<uint32_t> &indices) {
 
 void VulkanRenderer::addMesh(uint32_t startVertex, uint32_t startIndex,
                              uint32_t indexCount) {
-  m_meshes.emplace_back(startVertex, startIndex, indexCount);
+  m_meshes.emplace_back(indexCount, 1, startIndex, startVertex, 0);
 }
 
 void VulkanRenderer::upload() {
@@ -326,7 +324,7 @@ void VulkanRenderer::upload() {
                      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
                      VMA_ALLOCATION_CREATE_MAPPED_BIT},
       m_allocator->get());
-  stagingVertexBuffer.map(m_vertices.data());
+  stagingVertexBuffer.write(m_vertices.data());
 
   auto stagingIndexBuffer = VulkanBuffer(
       BufferInfo{.size = indicesSize,
@@ -336,7 +334,7 @@ void VulkanRenderer::upload() {
                      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
                      VMA_ALLOCATION_CREATE_MAPPED_BIT},
       m_allocator->get());
-  stagingIndexBuffer.map(m_indices.data());
+  stagingIndexBuffer.write(m_indices.data());
 
   auto cmd = Util::beginSingleTimeCommandBuffer(*m_transferPool);
 
@@ -409,9 +407,9 @@ void VulkanRenderer::upload() {
           .offset = 0,
           .size = vk::WholeSize}}};
 
-    vk::DependencyInfo acquireDependencyInfo{.bufferMemoryBarrierCount = 2,
-                                             .pBufferMemoryBarriers =
-                                                 acquireBarriers.data()};
+    vk::DependencyInfo acquireDependencyInfo{
+        .bufferMemoryBarrierCount = 2,
+        .pBufferMemoryBarriers = acquireBarriers.data()};
 
     graphicsCmd.pipelineBarrier2(acquireDependencyInfo);
 

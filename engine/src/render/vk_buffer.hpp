@@ -20,8 +20,16 @@ class VulkanBuffer {
   ~VulkanBuffer();
 
   void create(const BufferInfo& info);
-  void map(const void* srcData);
-  void mapRange(const void* srcData, uint32_t rangeSize);
+  void write(const void* srcData);
+  void writeRange(const void* srcData, uint32_t rangeSize);
+  void writeRangeOffset(const void* srcData, uint32_t rangeSize,
+                        uint32_t offset);
+
+  void* map(void* data = nullptr);
+  void unmap();
+
+  [[nodiscard]] void* getMappedData() const { return m_mappedData; };
+
   void destroy();
 
   [[nodiscard]] vk::Buffer get() const { return m_buffer; }
@@ -32,5 +40,6 @@ class VulkanBuffer {
   vk::Buffer m_buffer;
   VmaAllocation m_allocation = VK_NULL_HANDLE;
   uint32_t m_size = 0;
+  void* m_mappedData = nullptr;
   VmaAllocator m_allocator;
 };
