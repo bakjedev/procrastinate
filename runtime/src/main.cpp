@@ -3,19 +3,24 @@
 #include "ecs/scene.hpp"
 #include "input/input.hpp"
 #include "input/input_enums.hpp"
+#include "resource/resource_manager.hpp"
+#include "resource/types/mesh_resource.hpp"
 #include "util/print.hpp"
 
 struct RuntimeApplication {
-  void init(Engine& eng) {
+  void init(Engine &eng) {
     engine = &eng;
 
     mesh_entity = engine->getScene().create();
 
-    engine->getScene().addComponent<MeshComponent>(mesh_entity);
+    auto *comp = engine->getScene().addComponent<MeshComponent>(mesh_entity);
+    comp->mesh = engine->getResourceManager().create<MeshResource>(
+        "firstmesh", MeshResourceLoader{}, "../assets/cylinder.obj",
+        engine->getRenderer());
   }
 
   void update(float /*unused*/) const {
-    auto& input = engine->getInput();
+    auto &input = engine->getInput();
 
     if (input.mouseButtonReleased(MouseButton::Left)) {
       Util::println("RELEASED");
@@ -35,7 +40,7 @@ struct RuntimeApplication {
   void render() {}
   void shutdown() const { engine->getScene().destroy(mesh_entity); }
 
-  Engine* engine = nullptr;
+  Engine *engine = nullptr;
   uint32_t mesh_entity{};
 };
 

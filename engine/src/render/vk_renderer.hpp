@@ -11,15 +11,20 @@
 #include "render/vk_surface.hpp"
 #include "render/vk_swap_chain.hpp"
 #include "vk_buffer.hpp"
+#include <glm/glm.hpp>
 
 struct SDL_Window;
 
 class ResourceManager;
 
+struct PushConstant {
+  glm::mat4 view;
+  glm::mat4 proj;
+};
+
 struct Vertex {
-  float x;
-  float y;
-  float z;
+  glm::vec3 position;
+  glm::vec3 color;
 };
 
 struct MeshData {
@@ -29,7 +34,7 @@ struct MeshData {
 };
 
 class VulkanRenderer {
- public:
+public:
   explicit VulkanRenderer(SDL_Window *window, ResourceManager &resourceManager);
   VulkanRenderer(const VulkanRenderer &) = delete;
   VulkanRenderer(VulkanRenderer &&) = delete;
@@ -41,9 +46,13 @@ class VulkanRenderer {
 
   void addVertices(const std::vector<Vertex> &vertices);
   void addIndices(const std::vector<uint32_t> &indices);
+  void addMesh(uint32_t startVertex, uint32_t startIndex, uint32_t indexCount);
   void upload();
 
- private:
+  [[nodiscard]] uint32_t getVertexCount() const;
+  [[nodiscard]] uint32_t getIndexCount() const;
+
+private:
   std::optional<uint32_t> beginFrame();
   void endFrame(uint32_t imageIndex);
 

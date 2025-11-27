@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <memory>
 
+#include "glm/ext/matrix_clip_space.hpp"
+#include "glm/ext/matrix_transform.hpp"
 #include "render/vk_image.hpp"
 #include "render/vk_instance.hpp"
 #include "resource/resource_manager.hpp"
@@ -14,9 +16,10 @@
 #include "vk_allocator.hpp"
 #include "vk_pipeline.hpp"
 #include "vma/vma_usage.h"
+#include "vulkan/vulkan.hpp"
 
-VulkanRenderer::VulkanRenderer(SDL_Window* window,
-                               ResourceManager& resourceManager) {
+VulkanRenderer::VulkanRenderer(SDL_Window *window,
+                               ResourceManager &resourceManager) {
   m_instance = std::make_unique<VulkanInstance>();
 
   m_surface = std::make_unique<VulkanSurface>(window, m_instance->get());
@@ -37,9 +40,9 @@ VulkanRenderer::VulkanRenderer(SDL_Window* window,
   const uint32_t computeQueueFamily = m_device->queueFamilies().compute.value();
 
   m_graphicsPool = std::make_unique<VulkanCommandPool>(
-      CommandPoolInfo{
-          .queueFamilyIndex = graphicsQueueFamily,
-          .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer},
+      CommandPoolInfo{.queueFamilyIndex = graphicsQueueFamily,
+                      .flags =
+                          vk::CommandPoolCreateFlagBits::eResetCommandBuffer},
       m_device->get());
 
   m_transferPool = std::make_unique<VulkanCommandPool>(
@@ -73,6 +76,13 @@ VulkanRenderer::VulkanRenderer(SDL_Window* window,
 
   PipelineLayoutInfo pipelineLayoutInfo{};
 
+  const vk::PushConstantRange pushConstantRange{
+      .stageFlags = vk::ShaderStageFlagBits::eVertex,
+      .offset = 0,
+      .size = sizeof(PushConstant)};
+
+  pipelineLayoutInfo.pushConstants.push_back(pushConstantRange);
+
   m_pipelineLayout = std::make_unique<VulkanPipelineLayout>(m_device->get(),
                                                             pipelineLayoutInfo);
 
@@ -82,6 +92,7 @@ VulkanRenderer::VulkanRenderer(SDL_Window* window,
   pipelineInfo.layout = m_pipelineLayout->get();
   PipelineInfo::ColorBlendAttachment colorBlend{};
   pipelineInfo.colorBlendAttachments = {colorBlend};
+  pipelineInfo.frontFace = vk::FrontFace::eClockwise;
 
   vk::VertexInputBindingDescription binding{};
   binding.binding = 0;
@@ -94,8 +105,15 @@ VulkanRenderer::VulkanRenderer(SDL_Window* window,
   positionAttr.format = vk::Format::eR32G32B32Sfloat;
   positionAttr.offset = 0;
 
+  vk::VertexInputAttributeDescription colorAttr{};
+  colorAttr.location = 1;
+  colorAttr.binding = 0;
+  colorAttr.format = vk::Format::eR32G32B32Sfloat;
+  colorAttr.offset = sizeof(glm::vec3);
+
   pipelineInfo.vertexBindings.push_back(binding);
   pipelineInfo.vertexAttributes.push_back(positionAttr);
+  pipelineInfo.vertexAttributes.push_back(colorAttr);
 
   m_pipeline = std::make_unique<VulkanPipeline>(
       m_device->get(), VulkanPipelineType::Graphics, pipelineInfo);
@@ -120,15 +138,15 @@ VulkanRenderer::VulkanRenderer(SDL_Window* window,
   }
 
   auto vertices = std::vector<Vertex>();
-  vertices.emplace_back(-0.5F, 0.5F, 1.0F);
-  vertices.emplace_back(0.5F, 0.5F, 1.0F);
-  vertices.emplace_back(0.0F, -0.5F, 1.0F);
+  vertices.emplace_back(glm::vec3(-0.5F, 0.5F, -3.0F), glm::vec3(1.0f));
+  vertices.emplace_back(glm::vec3(0.5F, 0.5F, -3.0F), glm::vec3(1.0f));
+  vertices.emplace_back(glm::vec3(0.0F, -0.5F, -3.0F), glm::vec3(1.0f));
   auto indices = std::vector<uint32_t>();
   indices.emplace_back(0);
   indices.emplace_back(1);
   indices.emplace_back(2);
 
-  auto& meshData = m_meshes.emplace_back();
+  auto &meshData = m_meshes.emplace_back();
   meshData.indexCount = indices.size();
   meshData.indexOffset = m_indices.size();
   meshData.vertexOffset = m_vertices.size();
@@ -137,15 +155,15 @@ VulkanRenderer::VulkanRenderer(SDL_Window* window,
   addIndices(indices);
 
   vertices.clear();
-  vertices.emplace_back(0.5F, 0.5F, 1.0F);
-  vertices.emplace_back(1.5F, 0.5F, 1.0F);
-  vertices.emplace_back(1.0F, -0.5F, 1.0F);
+  vertices.emplace_back(glm::vec3(0.5F, 0.5F, -3.0F), glm::vec3(1.0f));
+  vertices.emplace_back(glm::vec3(1.5F, 0.5F, -3.0F), glm::vec3(1.0f));
+  vertices.emplace_back(glm::vec3(1.0F, -0.5F, -3.0F), glm::vec3(1.0f));
   indices.clear();
   indices.emplace_back(0);
   indices.emplace_back(1);
   indices.emplace_back(2);
 
-  auto& meshData2 = m_meshes.emplace_back();
+  auto &meshData2 = m_meshes.emplace_back();
   meshData2.indexCount = indices.size();
   meshData2.indexOffset = m_indices.size();
   meshData2.vertexOffset = m_vertices.size();
@@ -172,7 +190,7 @@ void VulkanRenderer::run() {
     return;
   }
 
-  auto& frame = m_frames[imageIndex];
+  auto &frame = m_frames[imageIndex];
   auto cmd = frame->graphicsCmd();
 
   vk::CommandBufferBeginInfo beginInfo{};
@@ -190,16 +208,34 @@ void VulkanRenderer::run() {
       .clearValue = vk::ClearValue{
           .color = vk::ClearColorValue{std::array{0.0F, 0.0F, 0.0F, 1.0F}}}};
 
-  vk::RenderingInfo renderInfo{
-      .renderArea = vk::Rect2D{.offset = {.x = 0, .y = 0},
-                               .extent = m_swapChain->extent()},
-      .layerCount = 1,
-      .colorAttachmentCount = 1,
-      .pColorAttachments = &colorAttachment};
+  vk::RenderingInfo renderInfo{.renderArea =
+                                   vk::Rect2D{.offset = {.x = 0, .y = 0},
+                                              .extent = m_swapChain->extent()},
+                               .layerCount = 1,
+                               .colorAttachmentCount = 1,
+                               .pColorAttachments = &colorAttachment};
 
   cmd.beginRendering(renderInfo);
   cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline->get());
 
+  glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -5.0f);
+  glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 1.0f);
+  glm::vec3 upVector = glm::vec3(0.0f, 1.0f, 0.0f);
+  glm::mat4 view = glm::lookAt(cameraPos, cameraTarget, upVector);
+  float fov = glm::radians(45.0f);  // Field of view in radians
+  float aspectRatio = 16.0f / 9.0f; // Screen aspect ratio
+  float nearPlane = 0.1f;
+  float farPlane = 100.0f;
+  glm::mat4 projection =
+      glm::perspective(fov, aspectRatio, nearPlane, farPlane);
+
+  PushConstant pushConstant{
+      .view = view,
+      .proj = projection,
+  };
+
+  cmd.pushConstants(m_pipelineLayout->get(), vk::ShaderStageFlagBits::eVertex,
+                    0, sizeof(PushConstant), &pushConstant);
   vk::DeviceSize offset = 0;
   vk::Buffer vertexBuffer = m_vertexBuffer->get();
   cmd.bindVertexBuffers(0, 1, &vertexBuffer, &offset);
@@ -220,12 +256,12 @@ void VulkanRenderer::run() {
                                 .height = m_swapChain->extent().height}};
   cmd.setScissor(0, 1, &scissor);
 
-  for (const auto& mesh : m_meshes) {
-    cmd.drawIndexed(mesh.indexCount,    // Index count for this mesh
-                    1,                  // Instance count
-                    mesh.indexOffset,   // First index in index buffer
-                    mesh.vertexOffset,  // Vertex offset
-                    0                   // First instance
+  for (const auto &mesh : m_meshes) {
+    cmd.drawIndexed(mesh.indexCount,   // Index count for this mesh
+                    1,                 // Instance count
+                    mesh.indexOffset,  // First index in index buffer
+                    mesh.vertexOffset, // Vertex offset
+                    0                  // First instance
     );
   }
   cmd.endRendering();
@@ -239,12 +275,17 @@ void VulkanRenderer::run() {
   endFrame(imageIndex);
 }
 
-void VulkanRenderer::addVertices(const std::vector<Vertex>& vertices) {
+void VulkanRenderer::addVertices(const std::vector<Vertex> &vertices) {
   m_vertices.insert(m_vertices.end(), vertices.begin(), vertices.end());
 }
 
-void VulkanRenderer::addIndices(const std::vector<uint32_t>& indices) {
+void VulkanRenderer::addIndices(const std::vector<uint32_t> &indices) {
   m_indices.insert(m_indices.end(), indices.begin(), indices.end());
+}
+
+void VulkanRenderer::addMesh(uint32_t startVertex, uint32_t startIndex,
+                             uint32_t indexCount) {
+  m_meshes.emplace_back(startVertex, startIndex, indexCount);
 }
 
 void VulkanRenderer::upload() {
@@ -368,9 +409,9 @@ void VulkanRenderer::upload() {
           .offset = 0,
           .size = vk::WholeSize}}};
 
-    vk::DependencyInfo acquireDependencyInfo{
-        .bufferMemoryBarrierCount = 2,
-        .pBufferMemoryBarriers = acquireBarriers.data()};
+    vk::DependencyInfo acquireDependencyInfo{.bufferMemoryBarrierCount = 2,
+                                             .pBufferMemoryBarriers =
+                                                 acquireBarriers.data()};
 
     graphicsCmd.pipelineBarrier2(acquireDependencyInfo);
 
@@ -378,6 +419,9 @@ void VulkanRenderer::upload() {
                                      *m_graphicsPool);
   }
 }
+
+uint32_t VulkanRenderer::getVertexCount() const { return m_vertices.size(); }
+uint32_t VulkanRenderer::getIndexCount() const { return m_indices.size(); }
 
 std::optional<uint32_t> VulkanRenderer::beginFrame() {
   auto result = m_device->get().waitForFences(*m_inFlightFences[m_currentFrame],
@@ -401,7 +445,7 @@ std::optional<uint32_t> VulkanRenderer::beginFrame() {
 }
 
 void VulkanRenderer::endFrame(uint32_t imageIndex) {
-  auto& frame = m_frames[imageIndex];
+  auto &frame = m_frames[imageIndex];
   auto cmd = frame->graphicsCmd();
 
   vk::SemaphoreSubmitInfo waitSemaphore{

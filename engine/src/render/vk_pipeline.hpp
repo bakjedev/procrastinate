@@ -9,7 +9,7 @@ struct PipelineLayoutInfo {
 };
 
 class VulkanPipelineLayout {
- public:
+public:
   VulkanPipelineLayout(vk::Device device, const PipelineLayoutInfo &info);
   VulkanPipelineLayout(const VulkanPipelineLayout &) = delete;
   VulkanPipelineLayout(VulkanPipelineLayout &&) = delete;
@@ -19,7 +19,7 @@ class VulkanPipelineLayout {
 
   [[nodiscard]] vk::PipelineLayout get() const { return m_layout; }
 
- private:
+private:
   vk::PipelineLayout m_layout;
   vk::Device m_device;
 };
@@ -70,7 +70,7 @@ struct PipelineInfo {
 };
 
 class VulkanPipeline {
- public:
+public:
   VulkanPipeline(vk::Device device, VulkanPipelineType type,
                  const PipelineInfo &info);
   VulkanPipeline(const VulkanPipeline &) = delete;
@@ -81,10 +81,10 @@ class VulkanPipeline {
 
   [[nodiscard]] vk::Pipeline get() const { return m_pipeline; }
 
- private:
+private:
   void createGraphicsPipeline(const PipelineInfo &info);
   void createComputePipeline([[maybe_unused]] const PipelineInfo &info) {
-  }  // empty for now
+  } // empty for now
 
   vk::Pipeline m_pipeline;
   vk::Device m_device;
