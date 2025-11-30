@@ -29,6 +29,10 @@ class VulkanBuffer {
   void unmap();
 
   [[nodiscard]] void* getMappedData() const { return m_mappedData; };
+  template <typename T>
+  [[nodiscard]] T* getMappedDataAs() const {
+    return static_cast<T*>(m_mappedData);
+  };
 
   void destroy();
 

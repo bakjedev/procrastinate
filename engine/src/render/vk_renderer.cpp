@@ -164,8 +164,7 @@ void VulkanRenderer::run() {
   auto *stagingBuffer = frame->stagingBuffer();
   auto *indirectBuffer = frame->indirectBuffer();
 
-  auto *mapped = static_cast<VkDrawIndexedIndirectCommand *>(
-      stagingBuffer->getMappedData());
+  auto *mapped = stagingBuffer->getMappedDataAs<VkDrawIndexedIndirectCommand>();
 
   uint32_t commandCount = 0;
   for (const auto &mesh : m_meshes) {
