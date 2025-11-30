@@ -25,7 +25,7 @@ class VulkanBuffer {
   void writeRangeOffset(const void* srcData, uint32_t rangeSize,
                         uint32_t offset);
 
-  void* map(void* data = nullptr);
+  void* map();
   void unmap();
 
   [[nodiscard]] void* getMappedData() const { return m_mappedData; };

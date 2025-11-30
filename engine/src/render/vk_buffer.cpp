@@ -36,10 +36,9 @@ void VulkanBuffer::write(const void* srcData) {
     return;
   }
 
-  void* data = nullptr;
-  vmaMapMemory(m_allocator, m_allocation, &data);
+  void* data = map();
   memcpy(data, srcData, m_size);
-  vmaUnmapMemory(m_allocator, m_allocation);
+  unmap();
 }
 
 void VulkanBuffer::writeRange(const void* srcData, uint32_t rangeSize) {
@@ -48,10 +47,9 @@ void VulkanBuffer::writeRange(const void* srcData, uint32_t rangeSize) {
     return;
   }
 
-  void* data = nullptr;
-  vmaMapMemory(m_allocator, m_allocation, &data);
+  void* data = map();
   memcpy(data, srcData, rangeSize);
-  vmaUnmapMemory(m_allocator, m_allocation);
+  unmap();
 }
 
 void VulkanBuffer::writeRangeOffset(const void* srcData, uint32_t rangeSize,
@@ -61,23 +59,21 @@ void VulkanBuffer::writeRangeOffset(const void* srcData, uint32_t rangeSize,
     return;
   }
 
-  void* data = nullptr;
-  vmaMapMemory(m_allocator, m_allocation, &data);
+  void* data = map();
   memcpy(static_cast<uint8_t*>(data) + offset, srcData, rangeSize);
-  vmaUnmapMemory(m_allocator, m_allocation);
+  unmap();
 }
 
-void* VulkanBuffer::map(void* data) {
+void* VulkanBuffer::map() {
   if (m_mappedData != nullptr) {
     vmaMapMemory(m_allocator, m_allocation, &m_mappedData);
     return m_mappedData;
   }
 
-  if (data != nullptr) {
-    vmaMapMemory(m_allocator, m_allocation, &data);
-    return data;
-  }
-  return nullptr;
+  void* data = nullptr;
+  vmaMapMemory(m_allocator, m_allocation, &data);
+
+  return data;
 }
 
 void VulkanBuffer::unmap() { vmaUnmapMemory(m_allocator, m_allocation); }
