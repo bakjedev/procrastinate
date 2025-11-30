@@ -86,11 +86,11 @@ VulkanRenderer::VulkanRenderer(SDL_Window *window,
   m_pipelineLayout = std::make_unique<VulkanPipelineLayout>(m_device->get(),
                                                             pipelineLayoutInfo);
 
-  PipelineInfo pipelineInfo{};
+  GraphicsPipelineInfo pipelineInfo{};
   pipelineInfo.shaderStages = {vertStage, fragStage};
   pipelineInfo.colorAttachmentFormats = {m_swapChain->format()};
   pipelineInfo.layout = m_pipelineLayout->get();
-  PipelineInfo::ColorBlendAttachment colorBlend{};
+  GraphicsPipelineInfo::ColorBlendAttachment colorBlend{};
   pipelineInfo.colorBlendAttachments = {colorBlend};
   pipelineInfo.frontFace = vk::FrontFace::eClockwise;
 
@@ -115,8 +115,7 @@ VulkanRenderer::VulkanRenderer(SDL_Window *window,
   pipelineInfo.vertexAttributes.push_back(positionAttr);
   pipelineInfo.vertexAttributes.push_back(colorAttr);
 
-  m_pipeline = std::make_unique<VulkanPipeline>(
-      m_device->get(), VulkanPipelineType::Graphics, pipelineInfo);
+  m_pipeline = std::make_unique<VulkanPipeline>(m_device->get(), pipelineInfo);
 
   const auto frameCount = m_swapChain->imageCount();
   m_frames.reserve(frameCount);

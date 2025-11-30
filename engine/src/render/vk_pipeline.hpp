@@ -1,5 +1,6 @@
 #pragma once
 
+#include <variant>
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
@@ -9,7 +10,7 @@ struct PipelineLayoutInfo {
 };
 
 class VulkanPipelineLayout {
-public:
+ public:
   VulkanPipelineLayout(vk::Device device, const PipelineLayoutInfo &info);
   VulkanPipelineLayout(const VulkanPipelineLayout &) = delete;
   VulkanPipelineLayout(VulkanPipelineLayout &&) = delete;
@@ -19,14 +20,17 @@ public:
 
   [[nodiscard]] vk::PipelineLayout get() const { return m_layout; }
 
-private:
+ private:
   vk::PipelineLayout m_layout;
   vk::Device m_device;
 };
 
-enum class VulkanPipelineType : uint8_t { Graphics, Compute };
+struct ComputePipelineInfo {
+  vk::PipelineShaderStageCreateInfo shaderStage;
+  vk::PipelineLayout layout;
+};
 
-struct PipelineInfo {
+struct GraphicsPipelineInfo {
   std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
 
   std::vector<vk::VertexInputBindingDescription> vertexBindings;
@@ -69,10 +73,11 @@ struct PipelineInfo {
   vk::PipelineLayout layout;
 };
 
+using PipelineInfo = std::variant<GraphicsPipelineInfo, ComputePipelineInfo>;
+
 class VulkanPipeline {
-public:
-  VulkanPipeline(vk::Device device, VulkanPipelineType type,
-                 const PipelineInfo &info);
+ public:
+  VulkanPipeline(vk::Device device, const PipelineInfo &info);
   VulkanPipeline(const VulkanPipeline &) = delete;
   VulkanPipeline(VulkanPipeline &&) = delete;
   VulkanPipeline &operator=(const VulkanPipeline &) = delete;
@@ -81,10 +86,9 @@ public:
 
   [[nodiscard]] vk::Pipeline get() const { return m_pipeline; }
 
-private:
-  void createGraphicsPipeline(const PipelineInfo &info);
-  void createComputePipeline([[maybe_unused]] const PipelineInfo &info) {
-  } // empty for now
+ private:
+  void createGraphicsPipeline(const GraphicsPipelineInfo &info);
+  void createComputePipeline(const ComputePipelineInfo &info);
 
   vk::Pipeline m_pipeline;
   vk::Device m_device;

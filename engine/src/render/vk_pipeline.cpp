@@ -1,5 +1,9 @@
 #include "vk_pipeline.hpp"
 
+#include <variant>
+
+#include "vulkan/vulkan.hpp"
+
 VulkanPipelineLayout::VulkanPipelineLayout(vk::Device device,
                                            const PipelineLayoutInfo &info)
     : m_device(device) {
@@ -19,17 +23,19 @@ VulkanPipelineLayout::~VulkanPipelineLayout() {
   }
 }
 
-VulkanPipeline::VulkanPipeline(vk::Device device, VulkanPipelineType type,
-                               const PipelineInfo &info)
+VulkanPipeline::VulkanPipeline(vk::Device device, const PipelineInfo &info)
     : m_device(device) {
-  switch (type) {
-    case VulkanPipelineType::Graphics:
-      createGraphicsPipeline(info);
-      break;
-    case VulkanPipelineType::Compute:
-      createComputePipeline(info);
-      break;
-  }
+  std::visit(
+      [this](auto &&value) {
+        using T = std::decay_t<decltype(value)>;
+
+        if constexpr (std::is_same_v<T, GraphicsPipelineInfo>) {
+          createGraphicsPipeline(value);
+        } else if constexpr (std::is_same_v<T, ComputePipelineInfo>) {
+          createComputePipeline(value);
+        }
+      },
+      info);
 }
 
 VulkanPipeline::~VulkanPipeline() {
@@ -38,7 +44,7 @@ VulkanPipeline::~VulkanPipeline() {
   }
 }
 
-void VulkanPipeline::createGraphicsPipeline(const PipelineInfo &info) {
+void VulkanPipeline::createGraphicsPipeline(const GraphicsPipelineInfo &info) {
   vk::PipelineVertexInputStateCreateInfo vertexInput{
       .vertexBindingDescriptionCount =
           static_cast<uint32_t>(info.vertexBindings.size()),
@@ -134,5 +140,15 @@ void VulkanPipeline::createGraphicsPipeline(const PipelineInfo &info) {
   };
 
   auto result = m_device.createGraphicsPipelines(nullptr, createInfo);
+  m_pipeline = result.value.front();
+}
+
+void VulkanPipeline::createComputePipeline(const ComputePipelineInfo &info) {
+  vk::ComputePipelineCreateInfo createInfo{
+      .flags = {},
+      .stage = info.shaderStage,
+      .layout = info.layout,
+  };
+  auto result = m_device.createComputePipelines(nullptr, createInfo);
   m_pipeline = result.value.front();
 }
