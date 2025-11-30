@@ -124,6 +124,8 @@ VulkanRenderer::VulkanRenderer(SDL_Window *window,
     m_frames.push_back(std::make_unique<VulkanFrame>(
         m_graphicsPool.get(), m_transferPool.get(), m_computePool.get(),
         m_device->get(), m_allocator.get()));
+
+    m_frames[i]->stagingBuffer()->map();
   }
 
   vk::SemaphoreCreateInfo semaphoreCreateInfo{};
@@ -143,6 +145,10 @@ VulkanRenderer::VulkanRenderer(SDL_Window *window,
 VulkanRenderer::~VulkanRenderer() {
   m_device->waitIdle();
 
+  for (const auto &m_frame : m_frames) {
+    m_frame->stagingBuffer()->unmap();
+  }
+
   Util::println("Destroyed vulkan renderer");
 }
 
@@ -159,15 +165,13 @@ void VulkanRenderer::run() {
   auto *stagingBuffer = frame->stagingBuffer();
   auto *indirectBuffer = frame->indirectBuffer();
 
-  auto *mapped =
-      static_cast<VkDrawIndexedIndirectCommand *>(stagingBuffer->map());
+  auto *mapped = static_cast<VkDrawIndexedIndirectCommand *>(
+      stagingBuffer->getMappedData());
 
   uint32_t commandCount = 0;
   for (const auto &mesh : m_meshes) {
     mapped[commandCount++] = mesh;
   }
-
-  stagingBuffer->unmap();
 
   auto cmd = frame->graphicsCmd();
 
