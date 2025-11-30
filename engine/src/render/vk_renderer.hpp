@@ -22,6 +22,11 @@ struct PushConstant {
   glm::mat4 proj;
 };
 
+struct PushConstantCompute {
+  float input1;
+  float input2;
+};
+
 struct Vertex {
   glm::vec3 position;
   glm::vec3 color;
@@ -65,9 +70,12 @@ class VulkanRenderer {
 
   std::unique_ptr<VulkanShader> m_vertexShader;
   std::unique_ptr<VulkanShader> m_fragmentShader;
+  std::unique_ptr<VulkanShader> m_computeShader;
 
   std::unique_ptr<VulkanPipelineLayout> m_pipelineLayout;
   std::unique_ptr<VulkanPipeline> m_pipeline;
+  std::unique_ptr<VulkanPipelineLayout> m_compPipelineLayout;
+  std::unique_ptr<VulkanPipeline> m_compPipeline;
 
   std::vector<std::unique_ptr<VulkanFrame>> m_frames;
   std::vector<vk::UniqueSemaphore> m_imageAvailableSemaphores;

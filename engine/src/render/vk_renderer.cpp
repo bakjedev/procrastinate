@@ -63,7 +63,7 @@ VulkanRenderer::VulkanRenderer(SDL_Window *window,
       "../assets/shaders/test.frag.spv", ShaderResourceLoader{});
   m_fragmentShader =
       std::make_unique<VulkanShader>(m_device->get(), fragCode->code);
-
+    
   const vk::PipelineShaderStageCreateInfo vertStage{
       .stage = vk::ShaderStageFlagBits::eVertex,
       .module = m_vertexShader->get(),
@@ -117,6 +117,36 @@ VulkanRenderer::VulkanRenderer(SDL_Window *window,
 
   m_pipeline = std::make_unique<VulkanPipeline>(m_device->get(), pipelineInfo);
 
+
+  const auto compCode = resourceManager.createFromFile<ShaderResource>(
+      "../assets/shaders/test.comp.spv", ShaderResourceLoader{});
+  m_computeShader =
+      std::make_unique<VulkanShader>(m_device->get(), compCode->code);
+
+  const vk::PipelineShaderStageCreateInfo compStage{
+      .stage = vk::ShaderStageFlagBits::eCompute,
+      .module = m_computeShader->get(),
+      .pName = "main"};
+
+  const vk::PushConstantRange compPushConstantRange{
+      .stageFlags = vk::ShaderStageFlagBits::eCompute,
+      .offset = 0,
+      .size = sizeof(PushConstantCompute)};
+
+  pipelineLayoutInfo.pushConstants.clear();
+  pipelineLayoutInfo.pushConstants.push_back(compPushConstantRange);
+
+  m_compPipelineLayout = std::make_unique<VulkanPipelineLayout>(m_device->get(),
+                                                            pipelineLayoutInfo);
+
+
+  ComputePipelineInfo compPipelineInfo{
+    .shaderStage = compStage,
+    .layout = m_compPipelineLayout->get(),
+  };
+
+  m_compPipeline = std::make_unique<VulkanPipeline>(m_device->get(), compPipelineInfo);
+  
   const auto frameCount = m_swapChain->imageCount();
   m_frames.reserve(frameCount);
   for (uint32_t i = 0; i < frameCount; i++) {
@@ -171,9 +201,23 @@ void VulkanRenderer::run() {
     mapped[commandCount++] = mesh;
   }
 
+  auto ccmd = frame->computeCmd();
+  vk::CommandBufferBeginInfo beginInfo{};
+  ccmd.begin(beginInfo);
+    
+  ccmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compPipeline->get());
+  PushConstantCompute pcComp {
+    .input1 = 34.5F,
+    .input2 = 34.5F
+  };
+  ccmd.pushConstants(m_compPipelineLayout->get(), vk::ShaderStageFlagBits::eCompute,
+                    0, sizeof(PushConstantCompute), &pcComp);
+  ccmd.dispatch(1, 1, 1);
+
+  ccmd.end();
+
   auto cmd = frame->graphicsCmd();
 
-  vk::CommandBufferBeginInfo beginInfo{};
   cmd.begin(beginInfo);
 
   vk::BufferCopy copyRegion{
@@ -193,7 +237,7 @@ void VulkanRenderer::run() {
       .size = VK_WHOLE_SIZE};
   vk::DependencyInfo dependencyInfo{.bufferMemoryBarrierCount = 1,
                                     .pBufferMemoryBarriers = &bufferBarrier};
-  cmd.pipelineBarrier2(&dependencyInfo);
+  cmd.pipelineBarrier2(&dependencyInfo);  
 
   VulkanImage::transitionImageLayout(m_swapChain->getImage(imageIndex), cmd,
                                      vk::ImageLayout::eUndefined,
@@ -216,7 +260,7 @@ void VulkanRenderer::run() {
 
   cmd.beginRendering(renderInfo);
   cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline->get());
-
+  
   glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -5.0f);
   glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 1.0f);
   glm::vec3 upVector = glm::vec3(0.0f, 1.0f, 0.0f);
