@@ -1,7 +1,10 @@
 #pragma once
 
+#include <memory>
+
 #include "render/vk_buffer.hpp"
 #include "vulkan/vulkan.hpp"
+
 
 class VulkanCommandPool;
 class VulkanAllocator;
