@@ -31,7 +31,11 @@ class VulkanFrame {
   }
 
   [[nodiscard]] vk::Semaphore renderFinished() const {
-    return m_renderFinished;
+    return m_renderFinished.get();
+  }
+
+  [[nodiscard]] vk::Semaphore computeFinished() const {
+     return m_computeFinished.get(); 
   }
 
  private:
@@ -39,7 +43,8 @@ class VulkanFrame {
   vk::CommandBuffer m_transferCmd;
   vk::CommandBuffer m_computeCmd;
 
-  vk::Semaphore m_renderFinished;
+  vk::UniqueSemaphore m_renderFinished;
+  vk::UniqueSemaphore m_computeFinished;
 
   std::unique_ptr<VulkanBuffer> m_indirectBuffer;
   std::unique_ptr<VulkanBuffer> m_stagingBuffer;

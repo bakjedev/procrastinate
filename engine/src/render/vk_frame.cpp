@@ -44,12 +44,12 @@ VulkanFrame::VulkanFrame(VulkanCommandPool* graphicsPool,
       m_device(device) {
   vk::SemaphoreCreateInfo semaphoreCreateInfo{};
 
-  m_renderFinished = m_device.createSemaphore(semaphoreCreateInfo);
+  m_renderFinished = m_device.createSemaphoreUnique(semaphoreCreateInfo);
+  m_computeFinished = m_device.createSemaphoreUnique(semaphoreCreateInfo);
 
   Util::println("Created vulkan frame");
 }
 
 VulkanFrame::~VulkanFrame() {
-  m_device.destroySemaphore(m_renderFinished);
   Util::println("Destroyed vulkan frame");
 }

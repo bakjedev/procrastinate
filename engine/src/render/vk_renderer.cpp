@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <array>
 
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
@@ -50,8 +51,12 @@ VulkanRenderer::VulkanRenderer(SDL_Window *window,
       m_device->get());
 
   m_computePool = std::make_unique<VulkanCommandPool>(
-      CommandPoolInfo{.queueFamilyIndex = computeQueueFamily, .flags = {}},
-      m_device->get());
+    CommandPoolInfo{
+      .queueFamilyIndex = computeQueueFamily,
+      .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+    },
+    m_device->get()
+  );
 
   // create shaders, add them as stages here, etc.
   const auto vertCode = resourceManager.createFromFile<ShaderResource>(
@@ -117,7 +122,7 @@ VulkanRenderer::VulkanRenderer(SDL_Window *window,
 
   m_pipeline = std::make_unique<VulkanPipeline>(m_device->get(), pipelineInfo);
 
-
+  // COMPUTE PIPELINE STUFF
   const auto compCode = resourceManager.createFromFile<ShaderResource>(
       "../assets/shaders/test.comp.spv", ShaderResourceLoader{});
   m_computeShader =
@@ -138,8 +143,6 @@ VulkanRenderer::VulkanRenderer(SDL_Window *window,
 
   m_compPipelineLayout = std::make_unique<VulkanPipelineLayout>(m_device->get(),
                                                             pipelineLayoutInfo);
-
-
   ComputePipelineInfo compPipelineInfo{
     .shaderStage = compStage,
     .layout = m_compPipelineLayout->get(),
@@ -490,29 +493,59 @@ std::optional<uint32_t> VulkanRenderer::beginFrame() {
 
 void VulkanRenderer::endFrame(uint32_t imageIndex) {
   auto &frame = m_frames[imageIndex];
-  auto cmd = frame->graphicsCmd();
 
-  vk::SemaphoreSubmitInfo waitSemaphore{
-      .semaphore = *m_imageAvailableSemaphores[m_currentFrame],
-      .stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput};
+  vk::SemaphoreSubmitInfo cWaitSemaphore{
+    .semaphore = *m_imageAvailableSemaphores[m_currentFrame],
+    .stageMask = vk::PipelineStageFlagBits2::eAllCommands
+  };
 
-  vk::SemaphoreSubmitInfo signalSemaphore{
+  vk::SemaphoreSubmitInfo cSignalSemaphore{
+    .semaphore = frame->computeFinished(),
+    .stageMask = vk::PipelineStageFlagBits2::eAllCommands
+  };
+
+  vk::CommandBufferSubmitInfo cCmdInfo {
+    .commandBuffer = frame->computeCmd()
+  };
+
+  vk::SubmitInfo2 cSubmitInfo{
+    .waitSemaphoreInfoCount = 1,
+    .pWaitSemaphoreInfos = &cWaitSemaphore,
+    .commandBufferInfoCount = 1,
+    .pCommandBufferInfos = & cCmdInfo,
+    .signalSemaphoreInfoCount = 1,
+    .pSignalSemaphoreInfos = &cSignalSemaphore
+  };
+
+  auto result = m_device->computeQueue().submit2(1, &cSubmitInfo, nullptr);
+  if (result != vk::Result::eSuccess) {
+    throw std::runtime_error("compute submit2 failed: " + vk::to_string(result));
+  }
+
+  vk::SemaphoreSubmitInfo gWaitSemaphore {
+    .semaphore = frame->computeFinished(),
+    .stageMask = vk::PipelineStageFlagBits2::eAllCommands
+  };
+
+  vk::SemaphoreSubmitInfo gSignalSemaphore{
       .semaphore = frame->renderFinished(),
       .stageMask = vk::PipelineStageFlagBits2::eAllCommands};
 
-  vk::CommandBufferSubmitInfo cmdInfo{.commandBuffer = cmd};
-
-  vk::SubmitInfo2 submitInfo{.waitSemaphoreInfoCount = 1,
-                             .pWaitSemaphoreInfos = &waitSemaphore,
+  vk::CommandBufferSubmitInfo gCmdInfo{
+    .commandBuffer = frame->graphicsCmd()
+  };
+ 
+  vk::SubmitInfo2 gSubmitInfo{.waitSemaphoreInfoCount = 1,
+                             .pWaitSemaphoreInfos = &gWaitSemaphore,
                              .commandBufferInfoCount = 1,
-                             .pCommandBufferInfos = &cmdInfo,
+                             .pCommandBufferInfos = &gCmdInfo,
                              .signalSemaphoreInfoCount = 1,
-                             .pSignalSemaphoreInfos = &signalSemaphore};
+                             .pSignalSemaphoreInfos = &gSignalSemaphore};
 
-  auto result = m_device->graphicsQueue().submit2(
-      1, &submitInfo, *m_inFlightFences[m_currentFrame]);
+  result = m_device->graphicsQueue().submit2(
+      1, &gSubmitInfo, *m_inFlightFences[m_currentFrame]);
   if (result != vk::Result::eSuccess) {
-    throw std::runtime_error("submit2 failed: " + vk::to_string(result));
+    throw std::runtime_error("graphics submit2 failed: " + vk::to_string(result));
   }
 
   result = m_swapChain->present(imageIndex, m_device->presentQueue(),
