@@ -32,7 +32,7 @@ public:
   template <typename T, typename Loader, typename... Args>
   ResourceRef<T> createFromFile(const std::string &key, Loader &&loader,
                                 Args &&...args) {
-    const std::string fullPath = m_rootPath / key;
+    const std::string fullPath = (m_rootPath / key).string();
     return getStorage<T>().create(key, std::forward<Loader>(loader), fullPath,
                                   std::forward<Args>(args)...);
   }
