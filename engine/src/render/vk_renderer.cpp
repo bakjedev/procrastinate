@@ -9,8 +9,10 @@
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "render/vk_image.hpp"
+#include "core/window.hpp"
 #include "render/vk_instance.hpp"
 #include "resource/resource_manager.hpp"
+#include "core/events.hpp"
 #include "resource/types/shader_resource.hpp"
 #include "util/print.hpp"
 #include "util/vk_transient_cmd.hpp"
@@ -19,11 +21,11 @@
 #include "vma/vma_usage.h"
 #include "vulkan/vulkan.hpp"
 
-VulkanRenderer::VulkanRenderer(SDL_Window *window,
-                               ResourceManager &resourceManager) {
+VulkanRenderer::VulkanRenderer(Window *window,
+                               ResourceManager &resourceManager, EventManager& eventManager) {
   m_instance = std::make_unique<VulkanInstance>();
 
-  m_surface = std::make_unique<VulkanSurface>(window, m_instance->get());
+  m_surface = std::make_unique<VulkanSurface>(window->get(), m_instance->get());
 
   m_device =
       std::make_unique<VulkanDevice>(m_instance->get(), m_surface->get());
@@ -31,8 +33,9 @@ VulkanRenderer::VulkanRenderer(SDL_Window *window,
   m_allocator = std::make_unique<VulkanAllocator>(
       m_device->getPhysical(), m_device->get(), m_instance->get());
 
+  auto extent = window->getWindowSize();
   m_swapChain = std::make_unique<VulkanSwapChain>(
-      m_device->get(), m_device->getPhysical(), m_surface->get());
+      m_device->get(), m_device->getPhysical(), m_surface->get(), vk::Extent2D{.width = extent.first, .height = extent.second});
 
   const uint32_t graphicsQueueFamily =
       m_device->queueFamilies().graphics.value();
@@ -60,12 +63,12 @@ VulkanRenderer::VulkanRenderer(SDL_Window *window,
 
   // create shaders, add them as stages here, etc.
   const auto vertCode = resourceManager.createFromFile<ShaderResource>(
-      "../assets/shaders/test.vert.spv", ShaderResourceLoader{});
+      "engine/assets/shaders/test.vert.spv", ShaderResourceLoader{});
   m_vertexShader =
       std::make_unique<VulkanShader>(m_device->get(), vertCode->code);
 
   const auto fragCode = resourceManager.createFromFile<ShaderResource>(
-      "../assets/shaders/test.frag.spv", ShaderResourceLoader{});
+      "engine/assets/shaders/test.frag.spv", ShaderResourceLoader{});
   m_fragmentShader =
       std::make_unique<VulkanShader>(m_device->get(), fragCode->code);
     
@@ -124,7 +127,7 @@ VulkanRenderer::VulkanRenderer(SDL_Window *window,
 
   // COMPUTE PIPELINE STUFF
   const auto compCode = resourceManager.createFromFile<ShaderResource>(
-      "../assets/shaders/test.comp.spv", ShaderResourceLoader{});
+      "engine/assets/shaders/test.comp.spv", ShaderResourceLoader{});
   m_computeShader =
       std::make_unique<VulkanShader>(m_device->get(), compCode->code);
 
@@ -171,6 +174,9 @@ VulkanRenderer::VulkanRenderer(SDL_Window *window,
     m_inFlightFences[i] = m_device->get().createFenceUnique(fenceCreateInfo);
   }
 
+  m_window = window;
+  m_eventManager = &eventManager;
+
   Util::println("Created vulkan renderer");
 }
 
@@ -185,10 +191,23 @@ VulkanRenderer::~VulkanRenderer() {
 }
 
 void VulkanRenderer::run() {
+  for (const auto& event : m_eventManager->getEvents()) {
+    switch (event.type) {
+      case EventType::WindowResized: {
+        const auto& windowResize = std::get<WindowResizeData>(event.data);
+        m_swapChain->recreate({.width = windowResize.width, .height = windowResize.height});
+        break;
+      }
+      default:
+        break;
+    }
+  }
+    
   auto imageIndex = beginFrame().value_or(UINT32_MAX);
 
   if (imageIndex == UINT32_MAX) {
-    m_swapChain->recreate();
+    auto extent = m_window->getWindowSize();
+    m_swapChain->recreate({.width=extent.first, .height=extent.second});
     return;
   }
 
@@ -269,7 +288,7 @@ void VulkanRenderer::run() {
   glm::vec3 upVector = glm::vec3(0.0f, 1.0f, 0.0f);
   glm::mat4 view = glm::lookAt(cameraPos, cameraTarget, upVector);
   float fov = glm::radians(45.0f);   // Field of view in radians
-  float aspectRatio = 16.0f / 9.0f;  // Screen aspect ratio
+  float aspectRatio = static_cast<float>(m_window->getWindowSize().first) / static_cast<float>(m_window->getWindowSize().second);  // Screen aspect ratio
   float nearPlane = 0.1f;
   float farPlane = 100.0f;
   glm::mat4 projection =
@@ -553,7 +572,8 @@ void VulkanRenderer::endFrame(uint32_t imageIndex) {
 
   if (result == vk::Result::eErrorOutOfDateKHR ||
       result == vk::Result::eSuboptimalKHR) {
-    m_swapChain->recreate();
+    auto extent = m_window->getWindowSize();
+    m_swapChain->recreate({.width = extent.first, .height = extent.second});
     return;
   }
 

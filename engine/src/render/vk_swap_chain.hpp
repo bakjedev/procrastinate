@@ -1,11 +1,12 @@
 #pragma once
 #include <vector>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_structs.hpp>
 
 class VulkanSwapChain {
  public:
   VulkanSwapChain(vk::Device device, vk::PhysicalDevice physicalDevice,
-                  vk::SurfaceKHR surface);
+                  vk::SurfaceKHR surface, vk::Extent2D extent);
   VulkanSwapChain(const VulkanSwapChain&) = delete;
   VulkanSwapChain(VulkanSwapChain&&) = delete;
   VulkanSwapChain& operator=(const VulkanSwapChain&) = delete;
@@ -33,7 +34,7 @@ class VulkanSwapChain {
   vk::Result present(uint32_t imageIndex, vk::Queue presentQueue,
                      vk::Semaphore waitSemaphore) const;
 
-  void recreate();
+  void recreate(vk::Extent2D extent);
 
  private:
   vk::SwapchainKHR m_swapChain;

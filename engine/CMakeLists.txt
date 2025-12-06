@@ -3,7 +3,7 @@ include(../external/shaders.cmake)
 compile_shaders(
 	Shaders
 	${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders
-	${CMAKE_BINARY_DIR}/assets/shaders
+	${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders
 )
 
 add_library(engine STATIC)

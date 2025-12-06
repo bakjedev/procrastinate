@@ -43,6 +43,12 @@ void EventManager::poll() {
         event = Event{.type = EventType::MouseWheel,
                       .data = WheelData{.scroll = sdlEvent.wheel.y}};
         break;
+      case SDL_EVENT_WINDOW_RESIZED:
+        event = Event{.type = EventType::WindowResized,
+                      .data = WindowResizeData{
+                      .width = static_cast<uint32_t>(sdlEvent.window.data1),
+                      .height = static_cast<uint32_t>(sdlEvent.window.data2)}};
+        break;
       default:
         break;
     }

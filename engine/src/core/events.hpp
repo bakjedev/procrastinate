@@ -11,7 +11,8 @@ enum class EventType : uint8_t {
   MouseButtonDown,
   MouseButtonUp,
   MouseMotion,
-  MouseWheel
+  MouseWheel,
+  WindowResized
 };
 
 struct InputData {
@@ -29,9 +30,14 @@ struct WheelData {
   float scroll;
 };
 
+struct WindowResizeData {
+  uint32_t width;
+  uint32_t height;
+};
+
 struct Event {
   EventType type = EventType::None;
-  std::variant<std::monostate, InputData, MotionData, WheelData> data;
+  std::variant<std::monostate, InputData, MotionData, WheelData, WindowResizeData> data;
 };
 
 class EventManager {

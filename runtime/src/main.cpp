@@ -1,6 +1,7 @@
 #include "core/engine.hpp"
 #include "ecs/components/mesh_component.hpp"
 #include "ecs/scene.hpp"
+#include "files/files.hpp"
 #include "input/input.hpp"
 #include "input/input_enums.hpp"
 #include "resource/resource_manager.hpp"
@@ -13,16 +14,18 @@ struct RuntimeApplication {
 
     mesh_entity = engine->getScene().create();
 
+    auto rootPath = Files::getResourceRoot();
+
     auto *comp = engine->getScene().addComponent<MeshComponent>(mesh_entity);
     comp->mesh = engine->getResourceManager().create<MeshResource>(
-        "firstmesh", MeshResourceLoader{}, "../assets/cylinder.obj",
+        "firstmesh", MeshResourceLoader{}, rootPath / "engine/assets/cylinder.obj",
         engine->getRenderer());
 
     mesh_entity2 = engine->getScene().create();
 
     auto *comp2 = engine->getScene().addComponent<MeshComponent>(mesh_entity2);
     comp2->mesh = engine->getResourceManager().create<MeshResource>(
-        "secondmesh", MeshResourceLoader{}, "../assets/cylinder.obj",
+        "secondmesh", MeshResourceLoader{}, rootPath / "engine/assets/cylinder.obj",
         engine->getRenderer());
   }
 

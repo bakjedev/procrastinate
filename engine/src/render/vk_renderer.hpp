@@ -13,9 +13,10 @@
 #include "render/vk_swap_chain.hpp"
 #include "vk_buffer.hpp"
 
-struct SDL_Window;
+class Window;
 
 class ResourceManager;
+class EventManager;
 
 struct PushConstant {
   glm::mat4 view;
@@ -34,7 +35,7 @@ struct Vertex {
 
 class VulkanRenderer {
  public:
-  explicit VulkanRenderer(SDL_Window *window, ResourceManager &resourceManager);
+  explicit VulkanRenderer(Window *window, ResourceManager &resourceManager, EventManager& eventManager);
   VulkanRenderer(const VulkanRenderer &) = delete;
   VulkanRenderer(VulkanRenderer &&) = delete;
   VulkanRenderer &operator=(const VulkanRenderer &) = delete;
@@ -87,4 +88,7 @@ class VulkanRenderer {
   std::vector<uint32_t> m_indices;
   std::unique_ptr<VulkanBuffer> m_vertexBuffer;
   std::unique_ptr<VulkanBuffer> m_indexBuffer;
+
+  Window* m_window = nullptr;
+  EventManager* m_eventManager = nullptr;
 };

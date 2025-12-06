@@ -4,8 +4,8 @@
 
 VulkanSwapChain::VulkanSwapChain(vk::Device device,
                                  vk::PhysicalDevice physicalDevice,
-                                 vk::SurfaceKHR surface)
-    : m_physicalDevice(physicalDevice), m_surface(surface), m_device(device) {
+                                 vk::SurfaceKHR surface, vk::Extent2D extent)
+    : m_physicalDevice(physicalDevice), m_surface(surface), m_device(device), m_extent(extent) {
   create();
 }
 
@@ -43,13 +43,16 @@ void VulkanSwapChain::create() {
 
   const auto capabilities = getCapabilities();
 
-  // check for invalid surface extent
+  if (m_extent.width == 0 || m_extent.height == 0) {
+    m_extent = capabilities.currentExtent;
+  }
+  /* // check for invalid surface extent
   if (capabilities.currentExtent.width == UINT32_MAX ||
       capabilities.currentExtent.height == UINT32_MAX) {
     throw std::runtime_error("Failed to get Vulkan surface extent");
   }
 
-  m_extent = capabilities.currentExtent;
+  m_extent = capabilities.currentExtent; */
 
   // calculate the amount of image the swap chain will have
   uint32_t minImageCount = capabilities.minImageCount + 1;
@@ -64,7 +67,7 @@ void VulkanSwapChain::create() {
   createInfo.minImageCount = minImageCount;
   createInfo.imageFormat = m_surfaceFormat.format;
   createInfo.imageColorSpace = m_surfaceFormat.colorSpace;
-  createInfo.imageExtent = capabilities.currentExtent;
+  createInfo.imageExtent = m_extent;
   createInfo.imageArrayLayers = 1;
   createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
   createInfo.imageSharingMode = vk::SharingMode::eExclusive;
@@ -90,9 +93,10 @@ void VulkanSwapChain::destroy() {
   Util::println("Destroyed vulkan swap chain");
 }
 
-void VulkanSwapChain::recreate() {
-  vkDeviceWaitIdle(m_device);
+void VulkanSwapChain::recreate(vk::Extent2D extent) {
+  m_device.waitIdle();
   destroy();
+  m_extent = extent;
   create();
 }
 

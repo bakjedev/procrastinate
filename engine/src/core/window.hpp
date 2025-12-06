@@ -1,5 +1,6 @@
 #pragma once
 #include <SDL3/SDL.h>
+#include <utility>
 
 class EventManager;
 
@@ -23,6 +24,8 @@ class Window {
   [[nodiscard]] bool shouldQuit() const;
 
   void update();
+
+  [[nodiscard]] std::pair<uint32_t, uint32_t> getWindowSize() const;
 
  private:
   bool m_quit = false;

@@ -48,3 +48,11 @@ void Window::update() {
     }
   }
 }
+
+std::pair<uint32_t, uint32_t> Window::getWindowSize() const {
+  int width{};
+  int height{};
+  SDL_GetWindowSizeInPixels(m_window, &width, &height);
+
+  return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+}

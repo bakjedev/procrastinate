@@ -24,7 +24,7 @@ Engine::Engine() {
   m_input = std::make_unique<Input>(*m_eventManager);
   m_resourceManager = std::make_unique<ResourceManager>();
   m_renderer =
-      std::make_unique<VulkanRenderer>(m_window->get(), *m_resourceManager);
+      std::make_unique<VulkanRenderer>(m_window.get(), *m_resourceManager, *m_eventManager);
   m_scene = std::make_unique<Scene>();
 
   Util::println("Engine initialized");
