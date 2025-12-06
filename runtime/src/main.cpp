@@ -18,14 +18,14 @@ struct RuntimeApplication {
 
     auto *comp = engine->getScene().addComponent<MeshComponent>(mesh_entity);
     comp->mesh = engine->getResourceManager().create<MeshResource>(
-        "firstmesh", MeshResourceLoader{}, rootPath / "engine/assets/cylinder.obj",
+        "firstmesh", MeshResourceLoader{}, (rootPath / "engine/assets/cylinder.obj").string(),
         engine->getRenderer());
 
     mesh_entity2 = engine->getScene().create();
 
     auto *comp2 = engine->getScene().addComponent<MeshComponent>(mesh_entity2);
     comp2->mesh = engine->getResourceManager().create<MeshResource>(
-        "secondmesh", MeshResourceLoader{}, rootPath / "engine/assets/cylinder.obj",
+        "secondmesh", MeshResourceLoader{}, (rootPath / "engine/assets/cylinder.obj").string(),
         engine->getRenderer());
   }
 
