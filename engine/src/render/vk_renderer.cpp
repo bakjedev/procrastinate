@@ -85,7 +85,7 @@ VulkanRenderer::VulkanRenderer(Window *window,
   descriptorPoolInfo.maxSets = 1000;
   descriptorPoolInfo.poolSizes = {
     {.type=vk::DescriptorType::eCombinedImageSampler, .descriptorCount=1},
-    {.type=vk::DescriptorType::eStorageBuffer, .descriptorCount=1}
+    {.type=vk::DescriptorType::eStorageBuffer, .descriptorCount=20}
   };
 
   m_descriptorPool = std::make_unique<VulkanDescriptorPool>(m_device->get(), descriptorPoolInfo);
@@ -231,7 +231,9 @@ VulkanRenderer::VulkanRenderer(Window *window,
   // ALLOCATE DESCRIPTOR SET
   // -----------------------------------------------------------
   std::vector<vk::WriteDescriptorSet> writes;
+  writes.reserve(m_frames.size());
   std::vector<vk::DescriptorBufferInfo> bufferInfos;
+  bufferInfos.reserve(m_frames.size());
 
   for(const auto& frame : m_frames) {
     bufferInfos.push_back({
