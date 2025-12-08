@@ -3,16 +3,19 @@
 #include <memory>
 
 #include "render/vk_buffer.hpp"
+#include "render/vk_descriptor.hpp"
 #include "vulkan/vulkan.hpp"
 
 
 class VulkanCommandPool;
+class VulkanDescriptorPool;
+class VulkanDescriptorSetLayout;
 class VulkanAllocator;
 
 class VulkanFrame {
  public:
   VulkanFrame(VulkanCommandPool* graphicsPool, VulkanCommandPool* transferPool,
-              VulkanCommandPool* computePool, vk::Device device,
+              VulkanCommandPool* computePool, VulkanDescriptorPool* descriptorPool, VulkanDescriptorSetLayout* descriptorLayout, vk::Device device,
               VulkanAllocator* allocator);
   VulkanFrame(const VulkanFrame&) = delete;
   VulkanFrame(VulkanFrame&&) = delete;
@@ -38,6 +41,10 @@ class VulkanFrame {
      return m_computeFinished.get(); 
   }
 
+  [[nodiscard]] vk::DescriptorSet& descriptorSet() {
+    return m_descriptorSet;
+  }
+
  private:
   vk::CommandBuffer m_graphicsCmd;
   vk::CommandBuffer m_transferCmd;
@@ -48,5 +55,7 @@ class VulkanFrame {
 
   std::unique_ptr<VulkanBuffer> m_indirectBuffer;
   std::unique_ptr<VulkanBuffer> m_stagingBuffer;
+  vk::DescriptorSet m_descriptorSet;
+  
   vk::Device m_device;
 };

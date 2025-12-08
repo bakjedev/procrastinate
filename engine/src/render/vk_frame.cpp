@@ -8,12 +8,16 @@
 #include "vk_allocator.hpp"
 #include "vma/vma_usage.h"
 #include "vulkan/vulkan.hpp"
+#include "render/vk_descriptor.hpp"
 
 #define MAX_INDIRECT_COMMANDS 65536
 
 VulkanFrame::VulkanFrame(VulkanCommandPool* graphicsPool,
                          VulkanCommandPool* transferPool,
-                         VulkanCommandPool* computePool, vk::Device device,
+                         VulkanCommandPool* computePool,
+                         VulkanDescriptorPool* descriptorPool,
+                        VulkanDescriptorSetLayout* descriptorLayout,
+                         vk::Device device,
                          VulkanAllocator* allocator)
     : m_graphicsCmd(graphicsPool->allocate()),
       m_transferCmd(transferPool->allocate()),
@@ -22,9 +26,8 @@ VulkanFrame::VulkanFrame(VulkanCommandPool* graphicsPool,
           BufferInfo{.size = sizeof(vk::DrawIndexedIndirectCommand) *
                              MAX_INDIRECT_COMMANDS,
                      .usage = vk::BufferUsageFlagBits::eIndirectBuffer |
-                              vk::BufferUsageFlagBits::eTransferDst /* |
-                               vk::BufferUsageFlagBits::eStorageBuffer // for
-                               compute write*/
+                              vk::BufferUsageFlagBits::eTransferDst |
+                               vk::BufferUsageFlagBits::eStorageBuffer // for compute write
                      ,
                      .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
                      .memoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT},
@@ -46,6 +49,8 @@ VulkanFrame::VulkanFrame(VulkanCommandPool* graphicsPool,
 
   m_renderFinished = m_device.createSemaphoreUnique(semaphoreCreateInfo);
   m_computeFinished = m_device.createSemaphoreUnique(semaphoreCreateInfo);
+
+  m_descriptorSet = descriptorPool->allocate(descriptorLayout->get());
 
   Util::println("Created vulkan frame");
 }

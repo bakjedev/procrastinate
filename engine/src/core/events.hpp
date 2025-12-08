@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <memory>
 #include <variant>
 #include <vector>
 
@@ -38,6 +39,7 @@ struct WindowResizeData {
 struct Event {
   EventType type = EventType::None;
   std::variant<std::monostate, InputData, MotionData, WheelData, WindowResizeData> data;
+  std::unique_ptr<union SDL_Event> sdlEvent = nullptr;
 };
 
 class EventManager {

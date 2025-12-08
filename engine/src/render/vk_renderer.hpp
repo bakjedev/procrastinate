@@ -4,6 +4,7 @@
 
 #include "render/vk_allocator.hpp"
 #include "render/vk_command_pool.hpp"
+#include "render/vk_descriptor.hpp"
 #include "render/vk_device.hpp"
 #include "render/vk_frame.hpp"
 #include "render/vk_instance.hpp"
@@ -73,6 +74,10 @@ class VulkanRenderer {
   std::unique_ptr<VulkanShader> m_fragmentShader;
   std::unique_ptr<VulkanShader> m_computeShader;
 
+  std::unique_ptr<VulkanDescriptorPool> m_descriptorPool;
+
+  std::unique_ptr<VulkanDescriptorSetLayout> m_descriptorSetLayout;
+
   std::unique_ptr<VulkanPipelineLayout> m_pipelineLayout;
   std::unique_ptr<VulkanPipeline> m_pipeline;
   std::unique_ptr<VulkanPipelineLayout> m_compPipelineLayout;
@@ -88,6 +93,7 @@ class VulkanRenderer {
   std::vector<uint32_t> m_indices;
   std::unique_ptr<VulkanBuffer> m_vertexBuffer;
   std::unique_ptr<VulkanBuffer> m_indexBuffer;
+
 
   Window* m_window = nullptr;
   EventManager* m_eventManager = nullptr;

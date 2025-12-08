@@ -54,7 +54,8 @@ void EventManager::poll() {
     }
 
     if (event) {
-      m_events.push_back(*event);
+      event->sdlEvent = std::make_unique<SDL_Event>(sdlEvent);
+      m_events.push_back(std::move(*event));
     }
   }
 }

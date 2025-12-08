@@ -21,6 +21,8 @@ class VulkanDescriptorPool {
   std::vector<vk::DescriptorSet> allocate(
       const std::vector<vk::DescriptorSetLayout> &layouts);
 
+  vk::DescriptorPool get() const { return m_descriptorPool; }
+
  private:
   vk::Device m_device;
   vk::DescriptorPool m_descriptorPool;
