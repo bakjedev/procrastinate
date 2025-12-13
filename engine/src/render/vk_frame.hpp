@@ -26,9 +26,7 @@ class VulkanFrame {
   [[nodiscard]] vk::CommandBuffer graphicsCmd() const { return m_graphicsCmd; }
   [[nodiscard]] vk::CommandBuffer transferCmd() const { return m_transferCmd; }
   [[nodiscard]] vk::CommandBuffer computeCmd() const { return m_computeCmd; }
-  [[nodiscard]] VulkanBuffer* stagingBuffer() const {
-    return m_stagingBuffer.get();
-  }
+
   [[nodiscard]] VulkanBuffer* indirectBuffer() const {
     return m_indirectBuffer.get();
   }
@@ -54,7 +52,7 @@ class VulkanFrame {
   vk::UniqueSemaphore m_computeFinished;
 
   std::unique_ptr<VulkanBuffer> m_indirectBuffer;
-  std::unique_ptr<VulkanBuffer> m_stagingBuffer;
+
   vk::DescriptorSet m_descriptorSet;
   
   vk::Device m_device;

@@ -78,19 +78,6 @@ VulkanRenderer::VulkanRenderer(Window *window,
   );
 
   // -----------------------------------------------------------
-  // CREATE DESCRIPTOR POOL
-  // -----------------------------------------------------------
-  DescriptorPoolInfo descriptorPoolInfo{};
-  descriptorPoolInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
-  descriptorPoolInfo.maxSets = 1000;
-  descriptorPoolInfo.poolSizes = {
-    {.type=vk::DescriptorType::eCombinedImageSampler, .descriptorCount=1},
-    {.type=vk::DescriptorType::eStorageBuffer, .descriptorCount=20}
-  };
-
-  m_descriptorPool = std::make_unique<VulkanDescriptorPool>(m_device->get(), descriptorPoolInfo);
-
-  // -----------------------------------------------------------
   // LOAD AND CREATE GRAPHICS SHADERS
   // -----------------------------------------------------------
   const auto vertCode = resourceManager.createFromFile<ShaderResource>(
@@ -194,7 +181,13 @@ VulkanRenderer::VulkanRenderer(Window *window,
         .descriptorType = vk::DescriptorType::eStorageBuffer,
         .descriptorCount = 1,
         .stageFlags = vk::ShaderStageFlagBits::eCompute
-      }
+      }/*,
+      vk::DescriptorSetLayoutBinding{
+        .binding = 1,
+        .descriptorType = vk::DescriptorType::eStorageBuffer,
+        .descriptorCount = 1,
+        .stageFlags = vk::ShaderStageFlagBits::eCompute
+      }*/
     },
     std::vector<vk::DescriptorBindingFlags>{},
     vk::DescriptorSetLayoutCreateFlags{}
@@ -215,6 +208,19 @@ VulkanRenderer::VulkanRenderer(Window *window,
   m_compPipeline = std::make_unique<VulkanPipeline>(m_device->get(), compPipelineInfo);
 
   // -----------------------------------------------------------
+  // CREATE DESCRIPTOR POOL
+  // -----------------------------------------------------------
+  DescriptorPoolInfo descriptorPoolInfo{};
+  descriptorPoolInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
+  descriptorPoolInfo.maxSets = 1000;
+  descriptorPoolInfo.poolSizes = {
+    {.type=vk::DescriptorType::eCombinedImageSampler, .descriptorCount=1},
+    {.type=vk::DescriptorType::eStorageBuffer, .descriptorCount=20}
+  };
+
+  m_descriptorPool = std::make_unique<VulkanDescriptorPool>(m_device->get(), descriptorPoolInfo);
+
+  // -----------------------------------------------------------
   // CREATE FRAME RESOURCES
   // -----------------------------------------------------------
   const auto frameCount = m_swapChain->imageCount();
@@ -223,8 +229,6 @@ VulkanRenderer::VulkanRenderer(Window *window,
     m_frames.push_back(std::make_unique<VulkanFrame>(
         m_graphicsPool.get(), m_transferPool.get(), m_computePool.get(),
         m_descriptorPool.get(), m_descriptorSetLayout.get(), m_device->get(), m_allocator.get()));
-
-    m_frames[i]->stagingBuffer()->map();
   }
 
   // -----------------------------------------------------------
@@ -314,10 +318,6 @@ VulkanRenderer::~VulkanRenderer() {
   ImGui_ImplSDL3_Shutdown();
   ImGui::DestroyContext();
 
-  for (const auto &m_frame : m_frames) {
-    m_frame->stagingBuffer()->unmap();
-  }
-
   Util::println("Destroyed vulkan renderer");
 }
 
@@ -345,16 +345,6 @@ void VulkanRenderer::run() {
 
   auto &frame = m_frames[imageIndex];
 
-  auto *stagingBuffer = frame->stagingBuffer();
-  // auto *indirectBuffer = frame->indirectBuffer();
-
-  auto *mapped = stagingBuffer->getMappedDataAs<VkDrawIndexedIndirectCommand>();
-
-  uint32_t commandCount = 0;
-  for (const auto &mesh : m_meshes) {
-    mapped[commandCount++] = mesh;
-  }
-
   auto ccmd = frame->computeCmd();
   vk::CommandBufferBeginInfo beginInfo{};
   ccmd.begin(beginInfo);
@@ -381,25 +371,6 @@ void VulkanRenderer::run() {
   auto cmd = frame->graphicsCmd();
 
   cmd.begin(beginInfo);
-
-  // vk::BufferCopy copyRegion{
-  //     .srcOffset = 0, .dstOffset = 0, .size = stagingBuffer->size()};
-
-  // cmd.copyBuffer(stagingBuffer->get(), indirectBuffer->get(), copyRegion);
-
-  // vk::BufferMemoryBarrier2 bufferBarrier{
-  //     .srcStageMask = vk::PipelineStageFlagBits2::eCopy,
-  //     .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
-  //     .dstStageMask = vk::PipelineStageFlagBits2::eDrawIndirect,
-  //     .dstAccessMask = vk::AccessFlagBits2::eIndirectCommandRead,
-  //     .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-  //     .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-  //     .buffer = indirectBuffer->get(),
-  //     .offset = 0,
-  //     .size = VK_WHOLE_SIZE};
-  // vk::DependencyInfo dependencyInfo{.bufferMemoryBarrierCount = 1,
-  //                                   .pBufferMemoryBarriers = &bufferBarrier};
-  // cmd.pipelineBarrier2(&dependencyInfo);  
 
   VulkanImage::transitionImageLayout(m_swapChain->getImage(imageIndex), cmd,
                                      vk::ImageLayout::eUndefined,

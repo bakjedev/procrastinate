@@ -11,12 +11,15 @@ struct PushConstants {
     float input2;
 };
 
+[[vk::push_constant]]
+uniform PushConstants pc;
+ 
 [[vk::binding(0, 0)]]
 RWStructuredBuffer<DrawIndexedIndirectCommand> outputCommands;
 
 [shader("compute")]
 [numthreads(1, 1, 1)]
-void computeMain(uniform [[vk::push_constant]] PushConstants pc)
+void computeMain()
 {
     outputCommands[0].indexCount = 372;
     outputCommands[0].instanceCount = 1;
