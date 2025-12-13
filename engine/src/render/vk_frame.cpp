@@ -12,6 +12,7 @@
 #include "render/vk_descriptor.hpp"
 
 #define MAX_INDIRECT_COMMANDS 65536
+#define MAX_OBJECTS 10000
 
 VulkanFrame::VulkanFrame(VulkanCommandPool* graphicsPool,
                          VulkanCommandPool* transferPool,
@@ -47,6 +48,22 @@ VulkanFrame::VulkanFrame(VulkanCommandPool* graphicsPool,
         allocator->get() 
     );
     
+    m_objectBuffer = std::make_unique<VulkanBuffer>(
+        BufferInfo{
+            .size = sizeof(RenderObject) * MAX_OBJECTS,
+            .usage = vk::BufferUsageFlagBits::eStorageBuffer |
+            vk::BufferUsageFlagBits::eTransferDst |
+            vk::BufferUsageFlagBits::eStorageBuffer,
+            .memoryUsage = VMA_MEMORY_USAGE_AUTO,
+            .memoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT |
+                           VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+
+        },
+        allocator->get() 
+    );
+
+    m_objectBuffer->map();
+    
     Util::println("Created frame indirect buffer");
 
     m_descriptorSet = descriptorPool->allocate(descriptorLayout->get());
@@ -57,5 +74,6 @@ VulkanFrame::VulkanFrame(VulkanCommandPool* graphicsPool,
 }
 
 VulkanFrame::~VulkanFrame() {
+    m_objectBuffer->unmap();
     Util::println("Destroyed vulkan frame");
 }

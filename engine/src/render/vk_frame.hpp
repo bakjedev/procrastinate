@@ -5,12 +5,21 @@
 #include "render/vk_buffer.hpp"
 #include "render/vk_descriptor.hpp"
 #include "vulkan/vulkan.hpp"
-
+#include  <glm/glm.hpp>
 
 class VulkanCommandPool;
 class VulkanDescriptorPool;
 class VulkanDescriptorSetLayout;
 class VulkanAllocator;
+
+struct RenderObject {
+  glm::mat4 model;
+  uint32_t indexCount;
+  uint32_t instanceCount;
+  uint32_t firstIndex;
+  int32_t vertexOffset;
+  uint32_t firstInstance;
+};
 
 class VulkanFrame {
  public:
@@ -29,6 +38,10 @@ class VulkanFrame {
 
   [[nodiscard]] VulkanBuffer* indirectBuffer() const {
     return m_indirectBuffer.get();
+  }
+  
+  [[nodiscard]] VulkanBuffer* objectBuffer() const {
+    return m_objectBuffer.get();
   }
 
   [[nodiscard]] vk::Semaphore renderFinished() const {
@@ -52,6 +65,7 @@ class VulkanFrame {
   vk::UniqueSemaphore m_computeFinished;
 
   std::unique_ptr<VulkanBuffer> m_indirectBuffer;
+  std::unique_ptr<VulkanBuffer> m_objectBuffer;
 
   vk::DescriptorSet m_descriptorSet;
   

@@ -1,30 +1,27 @@
-struct DrawIndexedIndirectCommand {
-    uint indexCount;
-    uint instanceCount;
-    uint firstIndex;
-    uint vertexOffset;
-    uint firstInstance;
-};
+#include "shared.slangh"
 
-struct PushConstants {
-    float input1;
-    float input2;
-};
-
-[[vk::push_constant]]
-uniform PushConstants pc;
- 
 [[vk::binding(0, 0)]]
 RWStructuredBuffer<DrawIndexedIndirectCommand> outputCommands;
 
+[[vk::binding(1, 0)]]
+RWStructuredBuffer<Object> objects;
+
 [shader("compute")]
-[numthreads(1, 1, 1)]
-void computeMain()
+[numthreads(256, 1, 1)]
+void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    outputCommands[0].indexCount = 372;
-    outputCommands[0].instanceCount = 1;
-    outputCommands[0].firstIndex = 0;
-    outputCommands[0].vertexOffset = 0;
-    outputCommands[0].firstInstance = 0;
-    float result = pc.input1 + pc.input2;
+    uint index = dispatchThreadID.x;
+    uint count, stride;
+    objects.GetDimensions(count, stride);
+
+    if (index >= count)
+        return;
+
+    Object obj = objects[index];
+    
+    outputCommands[index].indexCount = obj.indexCount;
+    outputCommands[index].instanceCount = obj.instanceCount;
+    outputCommands[index].firstIndex = obj.firstIndex;
+    outputCommands[index].vertexOffset = obj.vertexOffset;
+    outputCommands[index].firstInstance = obj.firstInstance;
 }

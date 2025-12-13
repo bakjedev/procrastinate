@@ -24,11 +24,6 @@ struct PushConstant {
   glm::mat4 proj;
 };
 
-struct PushConstantCompute {
-  float input1;
-  float input2;
-};
-
 struct Vertex {
   glm::vec3 position;
   glm::vec3 color;
@@ -48,6 +43,8 @@ class VulkanRenderer {
   void addVertices(const std::vector<Vertex> &vertices);
   void addIndices(const std::vector<uint32_t> &indices);
   void addMesh(uint32_t startVertex, uint32_t startIndex, uint32_t indexCount);
+  void renderMesh(uint32_t startVertex, uint32_t startIndex, uint32_t indexCount);
+  void clear();
   void upload();
 
   [[nodiscard]] uint32_t getVertexCount() const;
@@ -88,7 +85,8 @@ class VulkanRenderer {
   std::vector<vk::UniqueFence> m_inFlightFences;
   uint32_t m_currentFrame = 0;
 
-  std::vector<vk::DrawIndexedIndirectCommand> m_meshes;
+  std::vector<RenderObject> m_objects;
+  std::vector<RenderObject> m_renderObjects;
   std::vector<Vertex> m_vertices;
   std::vector<uint32_t> m_indices;
   std::unique_ptr<VulkanBuffer> m_vertexBuffer;

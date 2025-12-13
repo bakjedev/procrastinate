@@ -165,13 +165,7 @@ VulkanRenderer::VulkanRenderer(Window *window,
   // -----------------------------------------------------------
   // CREATE COMPUTE PIPELINE LAYOUT
   // -----------------------------------------------------------
-  const vk::PushConstantRange compPushConstantRange{
-      .stageFlags = vk::ShaderStageFlagBits::eCompute,
-      .offset = 0,
-      .size = sizeof(PushConstantCompute)};
-
   pipelineLayoutInfo.pushConstants.clear();
-  pipelineLayoutInfo.pushConstants.push_back(compPushConstantRange);
 
   m_descriptorSetLayout = std::make_unique<VulkanDescriptorSetLayout>(
     m_device->get(),
@@ -181,13 +175,13 @@ VulkanRenderer::VulkanRenderer(Window *window,
         .descriptorType = vk::DescriptorType::eStorageBuffer,
         .descriptorCount = 1,
         .stageFlags = vk::ShaderStageFlagBits::eCompute
-      }/*,
+      },
       vk::DescriptorSetLayoutBinding{
         .binding = 1,
         .descriptorType = vk::DescriptorType::eStorageBuffer,
         .descriptorCount = 1,
         .stageFlags = vk::ShaderStageFlagBits::eCompute
-      }*/
+      }
     },
     std::vector<vk::DescriptorBindingFlags>{},
     vk::DescriptorSetLayoutCreateFlags{}
@@ -235,9 +229,9 @@ VulkanRenderer::VulkanRenderer(Window *window,
   // ALLOCATE DESCRIPTOR SET
   // -----------------------------------------------------------
   std::vector<vk::WriteDescriptorSet> writes;
-  writes.reserve(m_frames.size());
+  writes.reserve(m_frames.size() * 2);
   std::vector<vk::DescriptorBufferInfo> bufferInfos;
-  bufferInfos.reserve(m_frames.size());
+  bufferInfos.reserve(m_frames.size() * 2);
 
   for(const auto& frame : m_frames) {
     bufferInfos.push_back({
@@ -256,6 +250,23 @@ VulkanRenderer::VulkanRenderer(Window *window,
     };
 
     writes.push_back(write);
+
+    bufferInfos.push_back({
+      .buffer = frame->objectBuffer()->get(),
+      .offset = 0,
+      .range = vk::WholeSize
+    });
+    
+    vk::WriteDescriptorSet write2{
+      .dstSet = frame->descriptorSet(),
+      .dstBinding = 1,
+      .dstArrayElement = 0,
+      .descriptorCount = 1,
+      .descriptorType = vk::DescriptorType::eStorageBuffer,
+      .pBufferInfo = &bufferInfos.back()
+    };
+
+    writes.push_back(write2);
   }
 
   m_device->get().updateDescriptorSets(writes.size(), writes.data(), 0, nullptr);
@@ -345,11 +356,13 @@ void VulkanRenderer::run() {
 
   auto &frame = m_frames[imageIndex];
 
+  if (!m_renderObjects.empty()) {
+    frame->objectBuffer()->writeRange(m_renderObjects.data(), sizeof(RenderObject) * m_renderObjects.size());
+  }
+
   auto ccmd = frame->computeCmd();
   vk::CommandBufferBeginInfo beginInfo{};
   ccmd.begin(beginInfo);
-
-  
 
   ccmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
                           m_compPipelineLayout->get(),
@@ -358,13 +371,8 @@ void VulkanRenderer::run() {
                           0, nullptr);
 
   ccmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compPipeline->get());
-  PushConstantCompute pcComp {
-    .input1 = 34.5F,
-    .input2 = 34.5F
-  };
-  ccmd.pushConstants(m_compPipelineLayout->get(), vk::ShaderStageFlagBits::eCompute,
-                    0, sizeof(PushConstantCompute), &pcComp);
-  ccmd.dispatch(1, 1, 1);
+  uint32_t workgroups = (m_renderObjects.size() + 255) / 256;
+  ccmd.dispatch(workgroups, 1, 1);
 
   ccmd.end();
 
@@ -439,7 +447,7 @@ void VulkanRenderer::run() {
   //   cmd.drawIndexed(mesh.indexCount, 1, mesh.firstIndex, mesh.vertexOffset,
   //   0);
   // }
-  cmd.drawIndexedIndirect(frame->indirectBuffer()->get(), 0, m_meshes.size(),
+  cmd.drawIndexedIndirect(frame->indirectBuffer()->get(), 0, m_renderObjects.size(),
                           sizeof(vk::DrawIndexedIndirectCommand));
   cmd.endRendering();
 
@@ -488,8 +496,17 @@ void VulkanRenderer::addIndices(const std::vector<uint32_t> &indices) {
 
 void VulkanRenderer::addMesh(uint32_t startVertex, uint32_t startIndex,
                              uint32_t indexCount) {
-  m_meshes.emplace_back(indexCount, 1, startIndex, startVertex, 0);
+  m_objects.emplace_back(glm::mat4(1.0F), indexCount, 1, startIndex, startVertex, 0);
   Util::println("Added mesh with {} {} {}", startVertex, startIndex, indexCount);
+}
+
+void VulkanRenderer::renderMesh(uint32_t startVertex, uint32_t startIndex,
+                             uint32_t indexCount) {
+  m_renderObjects.emplace_back(glm::mat4(1.0F), indexCount, 1, startIndex, startVertex, 0);
+}
+
+void VulkanRenderer::clear() {
+  m_renderObjects.clear();
 }
 
 void VulkanRenderer::upload() {
