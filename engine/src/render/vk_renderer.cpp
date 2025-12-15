@@ -668,11 +668,6 @@ std::optional<uint32_t> VulkanRenderer::beginFrame() {
 void VulkanRenderer::endFrame(uint32_t imageIndex) {
   auto &frame = m_frames[imageIndex];
 
-  vk::SemaphoreSubmitInfo cWaitSemaphore{
-    .semaphore = *m_imageAvailableSemaphores[m_currentFrame],
-    .stageMask = vk::PipelineStageFlagBits2::eAllCommands
-  };
-
   vk::SemaphoreSubmitInfo cSignalSemaphore{
     .semaphore = frame->computeFinished(),
     .stageMask = vk::PipelineStageFlagBits2::eAllCommands
@@ -683,8 +678,8 @@ void VulkanRenderer::endFrame(uint32_t imageIndex) {
   };
 
   vk::SubmitInfo2 cSubmitInfo{
-    .waitSemaphoreInfoCount = 1,
-    .pWaitSemaphoreInfos = &cWaitSemaphore,
+    .waitSemaphoreInfoCount = 0,
+    .pWaitSemaphoreInfos = nullptr,
     .commandBufferInfoCount = 1,
     .pCommandBufferInfos = & cCmdInfo,
     .signalSemaphoreInfoCount = 1,
@@ -696,10 +691,16 @@ void VulkanRenderer::endFrame(uint32_t imageIndex) {
     throw std::runtime_error("compute submit2 failed: " + vk::to_string(result));
   }
 
-  vk::SemaphoreSubmitInfo gWaitSemaphore {
-    .semaphore = frame->computeFinished(),
-    .stageMask = vk::PipelineStageFlagBits2::eAllCommands
-  };
+  std::array<vk::SemaphoreSubmitInfo, 2> gWaitSemaphores {{
+    {
+      .semaphore = frame->computeFinished(),
+      .stageMask = vk::PipelineStageFlagBits2::eAllCommands
+    },
+    {
+      .semaphore = *m_imageAvailableSemaphores[m_currentFrame],
+      .stageMask = vk::PipelineStageFlagBits2::eAllCommands
+    }
+  }};
 
   vk::SemaphoreSubmitInfo gSignalSemaphore{
       .semaphore = frame->renderFinished(),
@@ -709,8 +710,8 @@ void VulkanRenderer::endFrame(uint32_t imageIndex) {
     .commandBuffer = frame->graphicsCmd()
   };
  
-  vk::SubmitInfo2 gSubmitInfo{.waitSemaphoreInfoCount = 1,
-                             .pWaitSemaphoreInfos = &gWaitSemaphore,
+  vk::SubmitInfo2 gSubmitInfo{.waitSemaphoreInfoCount = gWaitSemaphores.size(),
+                             .pWaitSemaphoreInfos = gWaitSemaphores.data(),
                              .commandBufferInfoCount = 1,
                              .pCommandBufferInfos = &gCmdInfo,
                              .signalSemaphoreInfoCount = 1,
