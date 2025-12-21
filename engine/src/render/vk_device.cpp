@@ -123,10 +123,9 @@ void VulkanDevice::getQueues() {
 }
 
 bool VulkanDevice::isDeviceSuitable(
-    const vk::PhysicalDeviceProperties& properties,
+    const vk::PhysicalDeviceProperties&,
     const vk::PhysicalDeviceFeatures& features) {
-  return properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu &&
-         (features.geometryShader != 0U);
+  return (features.geometryShader != 0U); // there should be more requirements
 }
 
 bool VulkanDevice::findQueueFamilies(vk::SurfaceKHR surface) {
