@@ -294,11 +294,6 @@ VulkanRenderer::VulkanRenderer(Window *window,
   // -----------------------------------------------------------
   // INITIALIZE ImGui
   // -----------------------------------------------------------
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
- 
-  ImGui_ImplSDL3_InitForVulkan(m_window->get());
-
   auto format = m_swapChain->format();
   vk::PipelineRenderingCreateInfo renderingInfo{
     .colorAttachmentCount = 1,
@@ -341,7 +336,6 @@ void VulkanRenderer::run() {
         break;
       }
       default:
-        ImGui_ImplSDL3_ProcessEvent(event.sdlEvent.get());
         break;
     }
   }

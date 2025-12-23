@@ -1,8 +1,7 @@
 #include "events.hpp"
-
 #include <optional>
-
 #include "SDL3/SDL_events.h"
+#include "core/imgui.hpp"
 
 void EventManager::poll() {
   clear();
@@ -54,9 +53,9 @@ void EventManager::poll() {
     }
 
     if (event) {
-      event->sdlEvent = std::make_unique<SDL_Event>(sdlEvent);
-      m_events.push_back(std::move(*event));
+      m_events.push_back(*event);
     }
+    ImGuiSystem::processEvent(&sdlEvent);
   }
 }
 
