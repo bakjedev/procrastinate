@@ -122,7 +122,7 @@ VulkanRenderer::VulkanRenderer(Window *window,
   pipelineInfo.shaderStages = {vertStage, fragStage};
   pipelineInfo.colorAttachmentFormats = {m_swapChain->format()};
   pipelineInfo.layout = m_pipelineLayout->get();
-  GraphicsPipelineInfo::ColorBlendAttachment colorBlend{};
+  constexpr GraphicsPipelineInfo::ColorBlendAttachment colorBlend{};
   pipelineInfo.colorBlendAttachments = {colorBlend};
   pipelineInfo.frontFace = vk::FrontFace::eClockwise;
 
@@ -437,6 +437,7 @@ void VulkanRenderer::run() {
   // --------------------------------------------------
   // MAIN RENDER LOOP
   // --------------------------------------------------
+
   // for (const auto &mesh : m_meshes) {
   //   cmd.drawIndexed(mesh.indexCount, 1, mesh.firstIndex, mesh.vertexOffset,
   //   0);
@@ -488,15 +489,17 @@ void VulkanRenderer::addIndices(const std::vector<uint32_t> &indices) {
   m_indices.insert(m_indices.end(), indices.begin(), indices.end());
 }
 
-void VulkanRenderer::addMesh(uint32_t startVertex, uint32_t startIndex,
-                             uint32_t indexCount) {
-  m_objects.emplace_back(glm::mat4(1.0F), indexCount, 1, startIndex, startVertex, 0);
-  Util::println("Added mesh with {} {} {}", startVertex, startIndex, indexCount);
+uint32_t VulkanRenderer::addMesh(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) {
+  m_objects.emplace_back(glm::mat4(1.0F), indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+  Util::println("Added mesh with {} {} {} {} {} at {}", indexCount, instanceCount, firstIndex, vertexOffset, firstInstance, m_objects.size());
+  return m_objects.size();
 }
 
-void VulkanRenderer::renderMesh(uint32_t startVertex, uint32_t startIndex,
-                             uint32_t indexCount) {
-  m_renderObjects.emplace_back(glm::mat4(1.0F), indexCount, 1, startIndex, startVertex, 0);
+void VulkanRenderer::renderMesh(const uint32_t id) {
+  if (m_objects.size() <= id) {
+    return;
+  }
+  m_renderObjects.push_back(m_objects[id]);
 }
 
 void VulkanRenderer::clear() {

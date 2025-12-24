@@ -35,12 +35,7 @@ MeshResource MeshResourceLoader::operator()(const std::string &path,
     }
   }
 
-  res.indexCount = indices.size();
-  res.vertexCount = vertices.size();
-  res.startIndex = renderer.getIndexCount();
-  res.startVertex = renderer.getVertexCount();
-
-  renderer.addMesh(res.startVertex, res.startIndex, res.indexCount);
+  res.renderer_id = renderer.addMesh(indices.size(), 1, renderer.getIndexCount(), renderer.getVertexCount(), 0);
 
   renderer.addVertices(vertices);
   renderer.addIndices(indices);

@@ -42,8 +42,8 @@ class VulkanRenderer {
 
   void addVertices(const std::vector<Vertex> &vertices);
   void addIndices(const std::vector<uint32_t> &indices);
-  void addMesh(uint32_t startVertex, uint32_t startIndex, uint32_t indexCount);
-  void renderMesh(uint32_t startVertex, uint32_t startIndex, uint32_t indexCount);
+  uint32_t addMesh(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
+  void renderMesh(uint32_t id);
   void clear();
   void upload();
 

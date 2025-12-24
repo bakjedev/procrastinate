@@ -7,10 +7,7 @@
 #include "render/vk_renderer.hpp"
 
 struct MeshResource {
-  uint32_t startIndex;
-  uint32_t indexCount;
-  uint32_t startVertex;
-  uint32_t vertexCount;
+  uint32_t renderer_id;
 };
 
 struct MeshResourceLoader {
