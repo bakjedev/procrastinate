@@ -16,7 +16,7 @@ struct PushConstants
 PushConstants pushConst;
 
 [shader("vertex")]
-VertexOutput main(VertexInput input)
+VertexOutput main(VertexInput input, uint instanceID : SV_InstanceID)
 {
     VertexOutput output;
     output.color = input.color;

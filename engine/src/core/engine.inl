@@ -41,11 +41,11 @@ void Engine::run(App& app) {
       accumulator -= fixedDt;
     }
 
-    m_renderer->clear();
+    m_renderer->clearMeshes();
     auto view = m_scene->registry().view<MeshComponent>();
     for (const auto entity : view) {
       const auto& mesh = view.get<MeshComponent>(entity);
-      m_renderer->renderMesh(mesh.mesh->renderer_id);
+      m_renderer->renderMesh(glm::mat4(1.0f), mesh.mesh->renderer_id);
     }
 
     app.render();

@@ -21,24 +21,20 @@ MeshResource MeshResourceLoader::operator()(const std::string &path,
   for (const auto &shape : shapes) {
     for (const auto &index : shape.mesh.indices) {
 
-      glm::vec3 pos = {attrib.vertices[index.vertex_index * 3],
+      const glm::vec3 pos = {attrib.vertices[index.vertex_index * 3],
                        attrib.vertices[(index.vertex_index * 3) + 1],
                        attrib.vertices[(index.vertex_index * 3) + 2]};
 
-      glm::vec3 col = {attrib.colors[index.vertex_index * 3],
+      const glm::vec3 col = {attrib.colors[index.vertex_index * 3],
                        attrib.colors[(index.vertex_index * 3) + 1],
                        attrib.colors[(index.vertex_index * 3) + 2]};
 
-      Vertex vert = {.position = pos, .color = col};
-      vertices.push_back(vert);
+      vertices.emplace_back(pos, col);
       indices.push_back(static_cast<uint32_t>(vertices.size() - 1));
     }
   }
 
-  res.renderer_id = renderer.addMesh(indices.size(), 1, renderer.getIndexCount(), renderer.getVertexCount(), 0);
-
-  renderer.addVertices(vertices);
-  renderer.addIndices(indices);
+  res.renderer_id = renderer.addMesh(vertices, indices, renderer.getIndexCount(), renderer.getVertexCount());
   renderer.upload();
 
   return res;

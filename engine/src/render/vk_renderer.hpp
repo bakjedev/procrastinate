@@ -1,6 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <memory>
+#include <unordered_set>
 
 #include "render/vk_allocator.hpp"
 #include "render/vk_command_pool.hpp"
@@ -18,6 +19,12 @@ class Window;
 
 class ResourceManager;
 class EventManager;
+
+struct MeshInfo {
+  uint32_t indexCount;
+  uint32_t firstIndex;
+  int32_t vertexOffset;
+};
 
 struct PushConstant {
   glm::mat4 view;
@@ -40,14 +47,13 @@ class VulkanRenderer {
 
   void run();
 
-  void addVertices(const std::vector<Vertex> &vertices);
-  void addIndices(const std::vector<uint32_t> &indices);
-  uint32_t addMesh(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
-  void renderMesh(uint32_t id);
-  void clear();
+  uint32_t addMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, uint32_t firstIndex, int32_t vertexOffset);
   void upload();
 
-  [[nodiscard]] uint32_t getVertexCount() const;
+  void renderMesh(glm::mat4 model, uint32_t meshID);
+  void clearMeshes();
+
+  [[nodiscard]] int32_t getVertexCount() const;
   [[nodiscard]] uint32_t getIndexCount() const;
 
  private:
@@ -73,7 +79,9 @@ class VulkanRenderer {
 
   std::unique_ptr<VulkanDescriptorPool> m_descriptorPool;
 
-  std::unique_ptr<VulkanDescriptorSetLayout> m_descriptorSetLayout;
+  std::unique_ptr<VulkanDescriptorSetLayout> m_staticDescriptorSetLayout;
+  std::unique_ptr<VulkanDescriptorSetLayout> m_frameDescriptorSetLayout;
+  vk::DescriptorSet m_staticDescriptorSet;
 
   std::unique_ptr<VulkanPipelineLayout> m_pipelineLayout;
   std::unique_ptr<VulkanPipeline> m_pipeline;
@@ -85,12 +93,14 @@ class VulkanRenderer {
   std::vector<vk::UniqueFence> m_inFlightFences;
   uint32_t m_currentFrame = 0;
 
-  std::vector<RenderObject> m_objects;
   std::vector<RenderObject> m_renderObjects;
+
   std::vector<Vertex> m_vertices;
   std::vector<uint32_t> m_indices;
+  std::vector<MeshInfo> m_meshInfos;
   std::unique_ptr<VulkanBuffer> m_vertexBuffer;
   std::unique_ptr<VulkanBuffer> m_indexBuffer;
+  std::unique_ptr<VulkanBuffer> m_meshInfoBuffer;
 
 
   Window* m_window = nullptr;

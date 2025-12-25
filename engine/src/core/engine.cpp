@@ -13,6 +13,8 @@
 #include "core/imgui.hpp"
 
 Engine::Engine() {
+  Util::println("procrastinating");
+
   constexpr uint32_t width = 1920;
   constexpr uint32_t height = 1080;
 

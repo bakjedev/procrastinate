@@ -163,13 +163,13 @@ VulkanRenderer::VulkanRenderer(Window *window,
       .pName = "main"};
 
   // -----------------------------------------------------------
-  // CREATE COMPUTE PIPELINE LAYOUT
+  // CREATE COMPUTE PIPELINE LAYOUT (DESCRIPTOR SET LAYOUT)
   // -----------------------------------------------------------
   pipelineLayoutInfo.pushConstants.clear();
 
-  m_descriptorSetLayout = std::make_unique<VulkanDescriptorSetLayout>(
+  m_frameDescriptorSetLayout = std::make_unique<VulkanDescriptorSetLayout>(
     m_device->get(),
-    std::vector<vk::DescriptorSetLayoutBinding>{
+    std::vector{
       vk::DescriptorSetLayoutBinding{
         .binding = 0,
         .descriptorType = vk::DescriptorType::eStorageBuffer,
@@ -187,7 +187,22 @@ VulkanRenderer::VulkanRenderer(Window *window,
     vk::DescriptorSetLayoutCreateFlags{}
   );
 
-  pipelineLayoutInfo.descriptorSets.push_back(m_descriptorSetLayout->get());
+  m_staticDescriptorSetLayout = std::make_unique<VulkanDescriptorSetLayout>(
+    m_device->get(),
+    std::vector{
+      vk::DescriptorSetLayoutBinding{
+        .binding = 0,
+        .descriptorType = vk::DescriptorType::eStorageBuffer,
+        .descriptorCount = 1,
+        .stageFlags = vk::ShaderStageFlagBits::eCompute
+      }
+    },
+    std::vector<vk::DescriptorBindingFlags>{},
+    vk::DescriptorSetLayoutCreateFlags{}
+  );
+
+  pipelineLayoutInfo.descriptorSets.push_back(m_staticDescriptorSetLayout->get());
+  pipelineLayoutInfo.descriptorSets.push_back(m_frameDescriptorSetLayout->get());
 
   m_compPipelineLayout = std::make_unique<VulkanPipelineLayout>(m_device->get(),
                                                             pipelineLayoutInfo);
@@ -222,11 +237,16 @@ VulkanRenderer::VulkanRenderer(Window *window,
   for (uint32_t i = 0; i < frameCount; i++) {
     m_frames.push_back(std::make_unique<VulkanFrame>(
         m_graphicsPool.get(), m_transferPool.get(), m_computePool.get(),
-        m_descriptorPool.get(), m_descriptorSetLayout.get(), m_device->get(), m_allocator.get()));
+        m_descriptorPool.get(), m_frameDescriptorSetLayout.get(), m_device->get(), m_allocator.get()));
   }
+  // -----------------------------------------------------------
+  // ALLOCATE STATIC DESCRIPTOR SET
+  // -----------------------------------------------------------
+
+  m_staticDescriptorSet = m_descriptorPool->allocate(m_staticDescriptorSetLayout->get());
 
   // -----------------------------------------------------------
-  // ALLOCATE DESCRIPTOR SET
+  // WRITE TO DESCRIPTOR SETS
   // -----------------------------------------------------------
   std::vector<vk::WriteDescriptorSet> writes;
   writes.reserve(m_frames.size() * 2);
@@ -240,7 +260,7 @@ VulkanRenderer::VulkanRenderer(Window *window,
       .range = vk::WholeSize
     });
     
-    vk::WriteDescriptorSet write{
+    const vk::WriteDescriptorSet write{
       .dstSet = frame->descriptorSet(),
       .dstBinding = 0,
       .dstArrayElement = 0,
@@ -257,7 +277,7 @@ VulkanRenderer::VulkanRenderer(Window *window,
       .range = vk::WholeSize
     });
     
-    vk::WriteDescriptorSet write2{
+    const vk::WriteDescriptorSet write2{
       .dstSet = frame->descriptorSet(),
       .dstBinding = 1,
       .dstArrayElement = 0,
@@ -274,12 +294,12 @@ VulkanRenderer::VulkanRenderer(Window *window,
   // -----------------------------------------------------------
   // CREATE FRAME SYNC OBJECTS
   // -----------------------------------------------------------
-  vk::SemaphoreCreateInfo semaphoreCreateInfo{};
-  vk::FenceCreateInfo fenceCreateInfo{.flags =
+  constexpr vk::FenceCreateInfo fenceCreateInfo{.flags =
                                           vk::FenceCreateFlagBits::eSignaled};
   m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
   m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
   for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+    constexpr vk::SemaphoreCreateInfo semaphoreCreateInfo{};
     m_imageAvailableSemaphores[i] =
         m_device->get().createSemaphoreUnique(semaphoreCreateInfo);
     m_inFlightFences[i] = m_device->get().createFenceUnique(fenceCreateInfo);
@@ -350,22 +370,39 @@ void VulkanRenderer::run() {
 
   auto &frame = m_frames[imageIndex];
 
-  if (!m_renderObjects.empty()) {
-    frame->objectBuffer()->writeRange(m_renderObjects.data(), sizeof(RenderObject) * m_renderObjects.size());
+  // if (!m_renderObjects.empty()) {
+  //   frame->objectBuffer()->writeRange(m_renderObjects.data(), sizeof(RenderObject) * m_renderObjects.size());
+  // }
+  size_t writeOffset = 0;
+  for (const auto& renderObject : m_renderObjects) {
+    constexpr auto size = sizeof(RenderObject);
+    frame->objectBuffer()->writeRangeOffset(&renderObject, size, writeOffset);
+    writeOffset += size;
   }
 
+  // auto tempVector = std::vector<RenderObject>{};
+  // tempVector.reserve(m_renderObjects.size());
+  // for (const auto& id : m_renderObjects) {
+  //   tempVector.push_back(m_objects.at(id));
+  // }
+  // frame->objectBuffer()->writeRange(tempVector.data(), sizeof(RenderObject) * tempVector.size());
+
+
+
   auto ccmd = frame->computeCmd();
-  vk::CommandBufferBeginInfo beginInfo{};
+  constexpr vk::CommandBufferBeginInfo beginInfo{};
   ccmd.begin(beginInfo);
+
+  auto descriptorSets = std::array{m_staticDescriptorSet, frame->descriptorSet()};
 
   ccmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
                           m_compPipelineLayout->get(),
-                          0, 1,
-                          &frame->descriptorSet(),
+                          0, descriptorSets.size(),
+                          descriptorSets.data(),
                           0, nullptr);
 
   ccmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compPipeline->get());
-  uint32_t workgroups = (m_renderObjects.size() + 255) / 256;
+  const uint32_t workgroups = (m_renderObjects.size() + 255) / 256;
   ccmd.dispatch(workgroups, 1, 1);
 
   ccmd.end();
@@ -378,7 +415,7 @@ void VulkanRenderer::run() {
                                      vk::ImageLayout::eUndefined,
                                      vk::ImageLayout::eColorAttachmentOptimal);
 
-  vk::RenderingAttachmentInfo colorAttachment{
+  const vk::RenderingAttachmentInfo colorAttachment{
       .imageView = m_swapChain->imageViews()[imageIndex],
       .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
       .loadOp = vk::AttachmentLoadOp::eClear,
@@ -386,7 +423,7 @@ void VulkanRenderer::run() {
       .clearValue = vk::ClearValue{
           .color = vk::ClearColorValue{std::array{0.0F, 0.0F, 0.0F, 1.0F}}}};
 
-  vk::RenderingInfo renderInfo{
+  const vk::RenderingInfo renderInfo{
       .renderArea = vk::Rect2D{.offset = {.x = 0, .y = 0},
                                .extent = m_swapChain->extent()},
       .layerCount = 1,
@@ -395,7 +432,7 @@ void VulkanRenderer::run() {
 
   cmd.beginRendering(renderInfo);
   cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline->get());
-  
+
   glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -5.0f);
   glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 1.0f);
   glm::vec3 upVector = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -481,29 +518,12 @@ void VulkanRenderer::run() {
   endFrame(imageIndex);
 }
 
-void VulkanRenderer::addVertices(const std::vector<Vertex> &vertices) {
+uint32_t VulkanRenderer::addMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, uint32_t firstIndex, int32_t vertexOffset) {
+  const uint32_t meshID = m_meshInfos.size();
   m_vertices.insert(m_vertices.end(), vertices.begin(), vertices.end());
-}
-
-void VulkanRenderer::addIndices(const std::vector<uint32_t> &indices) {
   m_indices.insert(m_indices.end(), indices.begin(), indices.end());
-}
-
-uint32_t VulkanRenderer::addMesh(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) {
-  m_objects.emplace_back(glm::mat4(1.0F), indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
-  Util::println("Added mesh with {} {} {} {} {} at {}", indexCount, instanceCount, firstIndex, vertexOffset, firstInstance, m_objects.size());
-  return m_objects.size();
-}
-
-void VulkanRenderer::renderMesh(const uint32_t id) {
-  if (m_objects.size() <= id) {
-    return;
-  }
-  m_renderObjects.push_back(m_objects[id]);
-}
-
-void VulkanRenderer::clear() {
-  m_renderObjects.clear();
+  m_meshInfos.emplace_back(indices.size(), firstIndex, vertexOffset);
+  return meshID;
 }
 
 void VulkanRenderer::upload() {
@@ -517,8 +537,14 @@ void VulkanRenderer::upload() {
     m_indexBuffer = nullptr;
   }
 
-  auto verticesSize = sizeof(Vertex) * m_vertices.size();
-  auto indicesSize = sizeof(uint32_t) * m_indices.size();
+  if (m_meshInfoBuffer) {
+    m_meshInfoBuffer->destroy();
+    m_meshInfoBuffer = nullptr;
+  }
+
+  const auto verticesSize = sizeof(Vertex) * m_vertices.size();
+  const auto indicesSize = sizeof(uint32_t) * m_indices.size();
+  const auto meshesSize = sizeof(MeshInfo) * m_meshInfos.size();
 
   m_vertexBuffer = std::make_unique<VulkanBuffer>(
       BufferInfo{.size = verticesSize,
@@ -531,6 +557,14 @@ void VulkanRenderer::upload() {
   m_indexBuffer = std::make_unique<VulkanBuffer>(
       BufferInfo{.size = indicesSize,
                  .usage = vk::BufferUsageFlagBits::eIndexBuffer |
+                          vk::BufferUsageFlagBits::eTransferDst,
+                 .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
+                 .memoryFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT},
+      m_allocator->get());
+
+  m_meshInfoBuffer = std::make_unique<VulkanBuffer>(
+      BufferInfo{.size = meshesSize,
+                 .usage = vk::BufferUsageFlagBits::eStorageBuffer |
                           vk::BufferUsageFlagBits::eTransferDst,
                  .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
                  .memoryFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT},
@@ -556,6 +590,16 @@ void VulkanRenderer::upload() {
       m_allocator->get());
   stagingIndexBuffer.write(m_indices.data());
 
+  auto stagingMeshInfoBuffer = VulkanBuffer(
+    BufferInfo{.size = meshesSize,
+               .usage = vk::BufferUsageFlagBits::eTransferSrc,
+               .memoryUsage = VMA_MEMORY_USAGE_AUTO,
+               .memoryFlags =
+                   VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+                   VMA_ALLOCATION_CREATE_MAPPED_BIT},
+    m_allocator->get());
+  stagingMeshInfoBuffer.write(m_meshInfos.data());
+
   auto cmd = Util::beginSingleTimeCommandBuffer(*m_transferPool);
 
   vk::BufferCopy vertexCopyRegion = {};
@@ -571,6 +615,14 @@ void VulkanRenderer::upload() {
   indexCopyRegion.size = indicesSize;
   cmd.copyBuffer(stagingIndexBuffer.get(), m_indexBuffer->get(), 1,
                  &indexCopyRegion);
+
+  vk::BufferCopy meshInfoCopyRegion = {};
+  meshInfoCopyRegion.srcOffset = 0;
+  meshInfoCopyRegion.dstOffset = 0;
+  meshInfoCopyRegion.size = meshesSize;
+  cmd.copyBuffer(stagingMeshInfoBuffer.get(), m_meshInfoBuffer->get(), 1,
+                 &meshInfoCopyRegion);
+
   if (m_device->queueFamilies().transfer !=
       m_device->queueFamilies().graphics) {
     std::array<vk::BufferMemoryBarrier2, 2> releaseBarriers = {
@@ -593,7 +645,7 @@ void VulkanRenderer::upload() {
           .offset = 0,
           .size = vk::WholeSize}}};
 
-    vk::DependencyInfoKHR dependencyInfo{
+    const vk::DependencyInfoKHR dependencyInfo{
         .sType = vk::StructureType::eDependencyInfoKHR,
         .bufferMemoryBarrierCount = 2,
         .pBufferMemoryBarriers = releaseBarriers.data()};
@@ -602,6 +654,23 @@ void VulkanRenderer::upload() {
   }
   Util::endSingleTimeCommandBuffer(cmd, m_device->transferQueue(),
                                    *m_transferPool);
+
+  // UPDATE MESH INFO DESCRIPTOR SET
+  auto bufferInfo = vk::DescriptorBufferInfo{
+      .buffer = m_meshInfoBuffer->get(),
+      .offset = 0,
+      .range = vk::WholeSize
+  };
+
+  const vk::WriteDescriptorSet write{
+    .dstSet = m_staticDescriptorSet,
+    .dstBinding = 0,
+    .dstArrayElement = 0,
+    .descriptorCount = 1,
+    .descriptorType = vk::DescriptorType::eStorageBuffer,
+    .pBufferInfo = &bufferInfo
+  };
+  m_device->get().updateDescriptorSets(1, &write, 0, nullptr);
 
   if (m_device->queueFamilies().transfer !=
       m_device->queueFamilies().graphics) {
@@ -627,7 +696,7 @@ void VulkanRenderer::upload() {
           .offset = 0,
           .size = vk::WholeSize}}};
 
-    vk::DependencyInfo acquireDependencyInfo{
+    const vk::DependencyInfo acquireDependencyInfo{
         .bufferMemoryBarrierCount = 2,
         .pBufferMemoryBarriers = acquireBarriers.data()};
 
@@ -638,7 +707,15 @@ void VulkanRenderer::upload() {
   }
 }
 
-uint32_t VulkanRenderer::getVertexCount() const { return m_vertices.size(); }
+void VulkanRenderer::renderMesh(glm::mat4 model, const uint32_t meshID) {
+  m_renderObjects.emplace_back(model, meshID);
+}
+
+void VulkanRenderer::clearMeshes() {
+  m_renderObjects.clear();
+}
+
+int32_t VulkanRenderer::getVertexCount() const { return m_vertices.size(); }
 uint32_t VulkanRenderer::getIndexCount() const { return m_indices.size(); }
 
 std::optional<uint32_t> VulkanRenderer::beginFrame() {

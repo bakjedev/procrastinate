@@ -12,11 +12,13 @@ struct DrawIndexedIndirectCommand {
     uint firstInstance;
 };
 
-struct Object {
-    float4x4 model;
+struct MeshInfo {
     uint indexCount;
-    uint instanceCount;
     uint firstIndex;
     int vertexOffset;
-    uint firstInstance;
+};
+
+struct RenderObject {
+    float4x4 model;
+    uint meshID;
 };

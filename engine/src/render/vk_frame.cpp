@@ -23,8 +23,8 @@ VulkanFrame::VulkanFrame(VulkanCommandPool* graphicsPool,
                          VulkanAllocator* allocator)
 {
     m_device = device;
-    
-    vk::SemaphoreCreateInfo semaphoreCreateInfo{};
+
+    constexpr vk::SemaphoreCreateInfo semaphoreCreateInfo{};
     m_renderFinished = m_device.createSemaphoreUnique(semaphoreCreateInfo);
     m_computeFinished = m_device.createSemaphoreUnique(semaphoreCreateInfo);
 

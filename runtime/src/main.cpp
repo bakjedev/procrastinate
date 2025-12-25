@@ -25,7 +25,7 @@ struct RuntimeApplication {
 
     auto *comp2 = engine->getScene().addComponent<MeshComponent>(mesh_entity2);
     comp2->mesh = engine->getResourceManager().create<MeshResource>(
-        "secondmesh", MeshResourceLoader{}, (rootPath / "engine/assets/cylinder.obj").string(),
+        "firstmesh", MeshResourceLoader{}, (rootPath / "engine/assets/cylinder.obj").string(),
         engine->getRenderer());
   }
 

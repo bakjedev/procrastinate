@@ -5,7 +5,7 @@
 #include "render/vk_buffer.hpp"
 #include "render/vk_descriptor.hpp"
 #include "vulkan/vulkan.hpp"
-#include  <glm/glm.hpp>
+#include "glm/glm.hpp"
 
 class VulkanCommandPool;
 class VulkanDescriptorPool;
@@ -14,11 +14,7 @@ class VulkanAllocator;
 
 struct RenderObject {
   glm::mat4 model;
-  uint32_t indexCount;
-  uint32_t instanceCount;
-  uint32_t firstIndex;
-  int32_t vertexOffset;
-  uint32_t firstInstance;
+  uint32_t meshID;
 };
 
 class VulkanFrame {
@@ -68,6 +64,6 @@ class VulkanFrame {
   std::unique_ptr<VulkanBuffer> m_objectBuffer;
 
   vk::DescriptorSet m_descriptorSet;
-  
+
   vk::Device m_device;
 };
