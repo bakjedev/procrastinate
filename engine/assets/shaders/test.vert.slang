@@ -15,11 +15,21 @@ struct PushConstants
 [[vk::push_constant]]
 PushConstants pushConst;
 
+[[vk::binding(1, 0)]]
+StructuredBuffer<RenderObject> renderObjects;
+
 [shader("vertex")]
-VertexOutput main(VertexInput input, uint instanceID : SV_InstanceID)
+VertexOutput main(VertexInput input, uint instanceID : SV_InstanceID, uint baseInstance : SV_StartInstanceLocation)
 {
+    uint index = baseInstance;
+    RenderObject renderObject = renderObjects[index];
+    float4x4 model = renderObject.model;
     VertexOutput output;
     output.color = input.color;
-    output.position = mul(mul(pushConst.proj, pushConst.view), float4(input.position, 1.0));
+
+    float4 worldPos = mul(model, float4(input.position, 1.0));   
+    float4 viewPos = mul(pushConst.view, worldPos);    
+
+    output.position = mul(pushConst.proj, viewPos);
     return output;
 }

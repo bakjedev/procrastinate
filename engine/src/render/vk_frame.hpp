@@ -15,6 +15,7 @@ class VulkanAllocator;
 struct RenderObject {
   glm::mat4 model;
   uint32_t meshID;
+  int32_t padding[3];
 };
 
 class VulkanFrame {

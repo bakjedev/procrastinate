@@ -23,6 +23,8 @@ class Window {
   [[nodiscard]] SDL_Window* get() const;
   [[nodiscard]] bool shouldQuit() const;
 
+  void quit();
+
   void update();
 
   [[nodiscard]] std::pair<uint32_t, uint32_t> getWindowSize() const;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ecs/components/mesh_component.hpp"
+#include "ecs/components/transform_component.hpp"
 #ifndef ENGINE_HPP_INCLUDED
 #include "engine.hpp"  // for lsp
 #endif
@@ -42,10 +43,11 @@ void Engine::run(App& app) {
     }
 
     m_renderer->clearMeshes();
-    auto view = m_scene->registry().view<MeshComponent>();
+    auto view = m_scene->registry().view<CMesh, CTransform>();
     for (const auto entity : view) {
-      const auto& mesh = view.get<MeshComponent>(entity);
-      m_renderer->renderMesh(glm::mat4(1.0f), mesh.mesh->renderer_id);
+      const auto& mesh = view.get<CMesh>(entity);
+      const auto& transform = view.get<CTransform>(entity);
+      m_renderer->renderMesh(transform.world, mesh.mesh->renderer_id);
     }
 
     app.render();

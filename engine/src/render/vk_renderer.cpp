@@ -100,6 +100,44 @@ VulkanRenderer::VulkanRenderer(Window *window,
       .module = m_fragmentShader->get(),
       .pName = "main"};
 
+
+  // -----------------------------------------------------------
+  // Descriptor Set Layouts
+  // -----------------------------------------------------------
+  m_frameDescriptorSetLayout = std::make_unique<VulkanDescriptorSetLayout>(
+    m_device->get(),
+    std::vector{
+      vk::DescriptorSetLayoutBinding{
+        .binding = 0,
+        .descriptorType = vk::DescriptorType::eStorageBuffer,
+        .descriptorCount = 1,
+        .stageFlags = vk::ShaderStageFlagBits::eCompute
+      },
+      vk::DescriptorSetLayoutBinding{
+        .binding = 1,
+        .descriptorType = vk::DescriptorType::eStorageBuffer,
+        .descriptorCount = 1,
+        .stageFlags = vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eVertex
+      }
+    },
+    std::vector<vk::DescriptorBindingFlags>{},
+    vk::DescriptorSetLayoutCreateFlags{}
+  );
+
+  m_staticDescriptorSetLayout = std::make_unique<VulkanDescriptorSetLayout>(
+    m_device->get(),
+    std::vector{
+      vk::DescriptorSetLayoutBinding{
+        .binding = 0,
+        .descriptorType = vk::DescriptorType::eStorageBuffer,
+        .descriptorCount = 1,
+        .stageFlags = vk::ShaderStageFlagBits::eCompute
+      }
+    },
+    std::vector<vk::DescriptorBindingFlags>{},
+    vk::DescriptorSetLayoutCreateFlags{}
+  );
+
   // -----------------------------------------------------------
   // CREATE GRAPHICS PIPELINE LAYOUT
   // -----------------------------------------------------------
@@ -111,6 +149,7 @@ VulkanRenderer::VulkanRenderer(Window *window,
       .size = sizeof(PushConstant)};
 
   pipelineLayoutInfo.pushConstants.push_back(pushConstantRange);
+  pipelineLayoutInfo.descriptorSets.push_back(m_frameDescriptorSetLayout->get());
 
   m_pipelineLayout = std::make_unique<VulkanPipelineLayout>(m_device->get(),
                                                             pipelineLayoutInfo);
@@ -147,6 +186,8 @@ VulkanRenderer::VulkanRenderer(Window *window,
   pipelineInfo.vertexAttributes.push_back(positionAttr);
   pipelineInfo.vertexAttributes.push_back(colorAttr);
 
+
+  Util::println("Creating Graphics pipeline");
   m_pipeline = std::make_unique<VulkanPipeline>(m_device->get(), pipelineInfo);
 
   // -----------------------------------------------------------
@@ -166,40 +207,7 @@ VulkanRenderer::VulkanRenderer(Window *window,
   // CREATE COMPUTE PIPELINE LAYOUT (DESCRIPTOR SET LAYOUT)
   // -----------------------------------------------------------
   pipelineLayoutInfo.pushConstants.clear();
-
-  m_frameDescriptorSetLayout = std::make_unique<VulkanDescriptorSetLayout>(
-    m_device->get(),
-    std::vector{
-      vk::DescriptorSetLayoutBinding{
-        .binding = 0,
-        .descriptorType = vk::DescriptorType::eStorageBuffer,
-        .descriptorCount = 1,
-        .stageFlags = vk::ShaderStageFlagBits::eCompute
-      },
-      vk::DescriptorSetLayoutBinding{
-        .binding = 1,
-        .descriptorType = vk::DescriptorType::eStorageBuffer,
-        .descriptorCount = 1,
-        .stageFlags = vk::ShaderStageFlagBits::eCompute
-      }
-    },
-    std::vector<vk::DescriptorBindingFlags>{},
-    vk::DescriptorSetLayoutCreateFlags{}
-  );
-
-  m_staticDescriptorSetLayout = std::make_unique<VulkanDescriptorSetLayout>(
-    m_device->get(),
-    std::vector{
-      vk::DescriptorSetLayoutBinding{
-        .binding = 0,
-        .descriptorType = vk::DescriptorType::eStorageBuffer,
-        .descriptorCount = 1,
-        .stageFlags = vk::ShaderStageFlagBits::eCompute
-      }
-    },
-    std::vector<vk::DescriptorBindingFlags>{},
-    vk::DescriptorSetLayoutCreateFlags{}
-  );
+  pipelineLayoutInfo.descriptorSets.clear();
 
   pipelineLayoutInfo.descriptorSets.push_back(m_staticDescriptorSetLayout->get());
   pipelineLayoutInfo.descriptorSets.push_back(m_frameDescriptorSetLayout->get());
@@ -214,6 +222,7 @@ VulkanRenderer::VulkanRenderer(Window *window,
     .layout = m_compPipelineLayout->get(),
   };
 
+  Util::println("Creating Compute pipeline");
   m_compPipeline = std::make_unique<VulkanPipeline>(m_device->get(), compPipelineInfo);
 
   // -----------------------------------------------------------
@@ -232,9 +241,8 @@ VulkanRenderer::VulkanRenderer(Window *window,
   // -----------------------------------------------------------
   // CREATE FRAME RESOURCES
   // -----------------------------------------------------------
-  const auto frameCount = m_swapChain->imageCount();
-  m_frames.reserve(frameCount);
-  for (uint32_t i = 0; i < frameCount; i++) {
+  m_frames.reserve(MAX_FRAMES_IN_FLIGHT);
+  for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
     m_frames.push_back(std::make_unique<VulkanFrame>(
         m_graphicsPool.get(), m_transferPool.get(), m_computePool.get(),
         m_descriptorPool.get(), m_frameDescriptorSetLayout.get(), m_device->get(), m_allocator.get()));
@@ -352,6 +360,7 @@ void VulkanRenderer::run() {
     switch (event.type) {
       case EventType::WindowResized: {
         const auto& windowResize = std::get<WindowResizeData>(event.data);
+        Util::println("Got a window resize event");
         m_swapChain->recreate({.width = windowResize.width, .height = windowResize.height});
         break;
       }
@@ -364,11 +373,12 @@ void VulkanRenderer::run() {
 
   if (imageIndex == UINT32_MAX) {
     auto extent = m_window->getWindowSize();
+    Util::println("Failed to get the image index");
     m_swapChain->recreate({.width=extent.first, .height=extent.second});
     return;
   }
 
-  auto &frame = m_frames[imageIndex];
+  auto &frame = m_frames[m_currentFrame];
 
   // if (!m_renderObjects.empty()) {
   //   frame->objectBuffer()->writeRange(m_renderObjects.data(), sizeof(RenderObject) * m_renderObjects.size());
@@ -432,6 +442,11 @@ void VulkanRenderer::run() {
 
   cmd.beginRendering(renderInfo);
   cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline->get());
+  cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
+                          m_pipelineLayout->get(),
+                          0, 1,
+                          &frame->descriptorSet(),
+                          0, nullptr);
 
   glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -5.0f);
   glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -740,7 +755,7 @@ std::optional<uint32_t> VulkanRenderer::beginFrame() {
 }
 
 void VulkanRenderer::endFrame(uint32_t imageIndex) {
-  auto &frame = m_frames[imageIndex];
+  auto &frame = m_frames[m_currentFrame];
 
   vk::SemaphoreSubmitInfo cSignalSemaphore{
     .semaphore = frame->computeFinished(),
@@ -803,6 +818,7 @@ void VulkanRenderer::endFrame(uint32_t imageIndex) {
   if (result == vk::Result::eErrorOutOfDateKHR ||
       result == vk::Result::eSuboptimalKHR) {
     auto extent = m_window->getWindowSize();
+    Util::println("Got an error in endframe");
     m_swapChain->recreate({.width = extent.first, .height = extent.second});
     return;
   }

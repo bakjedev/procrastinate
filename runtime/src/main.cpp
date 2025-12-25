@@ -1,5 +1,6 @@
 #include "core/engine.hpp"
 #include "ecs/components/mesh_component.hpp"
+#include "ecs/components/transform_component.hpp"
 #include "ecs/scene.hpp"
 #include "files/files.hpp"
 #include "input/input.hpp"
@@ -7,6 +8,7 @@
 #include "resource/resource_manager.hpp"
 #include "resource/types/mesh_resource.hpp"
 #include "util/print.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
 struct RuntimeApplication {
   void init(Engine &eng) {
@@ -16,17 +18,21 @@ struct RuntimeApplication {
 
     auto rootPath = Files::getResourceRoot();
 
-    auto *comp = engine->getScene().addComponent<MeshComponent>(mesh_entity);
+    auto *comp = engine->getScene().addComponent<CMesh>(mesh_entity);
     comp->mesh = engine->getResourceManager().create<MeshResource>(
         "firstmesh", MeshResourceLoader{}, (rootPath / "engine/assets/cylinder.obj").string(),
         engine->getRenderer());
+    auto *transformComp = engine->getScene().addComponent<CTransform>(mesh_entity);
+    transformComp->world = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 3.0f));
 
     mesh_entity2 = engine->getScene().create();
 
-    auto *comp2 = engine->getScene().addComponent<MeshComponent>(mesh_entity2);
+    auto *comp2 = engine->getScene().addComponent<CMesh>(mesh_entity2);
     comp2->mesh = engine->getResourceManager().create<MeshResource>(
         "firstmesh", MeshResourceLoader{}, (rootPath / "engine/assets/cylinder.obj").string(),
         engine->getRenderer());
+    auto *transformComp2 = engine->getScene().addComponent<CTransform>(mesh_entity2);
+    transformComp2->world = glm::mat4(1.0f);
   }
 
   void update(float /*unused*/) const {
@@ -43,6 +49,10 @@ struct RuntimeApplication {
     }
     if (input.getMouseScroll() != 0.0F) {
       Util::println("TESTING {}", input.getMouseScroll());
+    }
+
+    if (input.keyDown(KeyboardKey::A)) {
+      engine->getWindow().quit();
     }
   }
 
