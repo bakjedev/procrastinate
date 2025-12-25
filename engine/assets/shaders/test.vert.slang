@@ -21,7 +21,7 @@ StructuredBuffer<RenderObject> renderObjects;
 [shader("vertex")]
 VertexOutput main(VertexInput input, uint instanceID : SV_InstanceID, uint baseInstance : SV_StartInstanceLocation)
 {
-    uint index = baseInstance;
+    uint index = baseInstance + instanceID;
     RenderObject renderObject = renderObjects[index];
     float4x4 model = renderObject.model;
     VertexOutput output;

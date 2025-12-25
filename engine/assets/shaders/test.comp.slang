@@ -11,10 +11,7 @@ StructuredBuffer<MeshInfo> meshInfos;
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
-void computeMain(
-uint3 dispatchThreadID : SV_DispatchThreadID,
-uint baseInstance : SV_StartInstanceLocation
-)
+void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     uint index = dispatchThreadID.x;
     uint count, stride;
