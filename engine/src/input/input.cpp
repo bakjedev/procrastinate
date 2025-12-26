@@ -1,6 +1,7 @@
 #include "input.hpp"
 
 #include "core/events.hpp"
+#include "util/print.hpp"
 
 Input::Input(EventManager& eventManager) : m_eventManager(&eventManager) {}
 

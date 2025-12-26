@@ -15,6 +15,12 @@ struct RuntimeApplication {
   void init(Engine &eng) {
     engine = &eng;
 
+    cameraEntity = engine->getScene().create();
+    auto* cameraTransform = engine->getScene().addComponent<CTransform>(cameraEntity);
+    auto* cameraComponent = engine->getScene().addComponent<CCamera>(cameraEntity);
+    cameraTransform->world = glm::mat4(1.0F);
+    cameraComponent->fov = 90.0F;
+
     auto rootPath = Files::getResourceRoot();
     constexpr int gridSize = 30;
     for (int j{}; j < gridSize; ++j) {
@@ -28,7 +34,8 @@ struct RuntimeApplication {
                                                    glm::vec3(static_cast<float>(j) * spacing,
                                                              0.0F,
                                                              static_cast<float>(i) * spacing));
-        transformComponent->world = glm::translate(transformComponent->world, glm::vec3(-static_cast<float>(gridSize), 6.0F, 20.0F));
+        transformComponent->world = glm::translate(transformComponent->world, glm::vec3(-static_cast<float>(gridSize), 6.0F, -100.0F));
+        transformComponent->world = glm::scale(transformComponent->world, glm::vec3(1.0F));
         meshComponent->mesh = engine->getResourceManager().create<MeshResource>(
             "firstmesh", MeshResourceLoader{}, (rootPath / "engine/assets/cylinder.obj").string(),
             engine->getRenderer());
@@ -36,7 +43,7 @@ struct RuntimeApplication {
     }
   }
 
-  void update(float /*unused*/) const {
+  void update(float deltaTime) const {
     auto &input = engine->getInput();
 
     if (input.mouseButtonReleased(MouseButton::Left)) {
@@ -52,14 +59,33 @@ struct RuntimeApplication {
       Util::println("TESTING {}", input.getMouseScroll());
     }
 
-    if (input.keyDown(KeyboardKey::A)) {
+    if (input.keyDown(KeyboardKey::Escape)) {
       engine->getWindow().quit();
+    }
+
+    auto& transform = engine->getScene().registry().get<CTransform>(static_cast<entt::entity>(cameraEntity));
+    if (input.keyDown(KeyboardKey::W)) {
+      transform.world = glm::translate(transform.world, glm::vec3(0.0F, 0.0F, -deltaTime * 10.0F));
+    } else if (input.keyDown(KeyboardKey::S)) {
+      transform.world = glm::translate(transform.world, glm::vec3(0.0F, 0.0F, deltaTime * 10.0F));
+    }
+    if (input.keyDown(KeyboardKey::A)) {
+      transform.world = glm::translate(transform.world, glm::vec3(-deltaTime * 10.0F, 0.0F, 0.0F));
+    } else if (input.keyDown(KeyboardKey::D)) {
+      transform.world = glm::translate(transform.world, glm::vec3(deltaTime * 10.0F, 0.0F, 0.0F));
+    }
+    if (input.keyDown(KeyboardKey::Space)) {
+      transform.world = glm::translate(transform.world, glm::vec3(0.0F, -deltaTime * 10.0F, 0.0F));
+    } else if (input.keyDown(KeyboardKey::LeftControl)) {
+      transform.world = glm::translate(transform.world, glm::vec3(0.0F, deltaTime * 10.0F, 0.0F));
     }
   }
 
   void fixedUpdate(float /*unused*/) {}
   void render() {}
   void shutdown() const {}
+
+  uint32_t cameraEntity;
 
   Engine *engine = nullptr;
 };

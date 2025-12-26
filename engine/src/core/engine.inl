@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ecs/components/camera_component.hpp"
 #include "ecs/components/mesh_component.hpp"
 #include "ecs/components/transform_component.hpp"
 #ifndef ENGINE_HPP_INCLUDED
@@ -50,8 +51,18 @@ void Engine::run(App& app) {
       m_renderer->renderMesh(transform.world, mesh.mesh->renderer_id);
     }
 
-    app.render();
-    m_renderer->run();
+    const auto cameraView = m_scene->registry().view<CCamera, CTransform>();
+    entt::entity cameraEntity = entt::null;
+    auto it = cameraView.begin();
+    if (it != cameraView.end()) {
+      cameraEntity = *it;
+    }
+    if (cameraEntity != entt::null) {
+      const auto& camera = cameraView.get<CCamera>(cameraEntity);
+      const auto& transform = cameraView.get<CTransform>(cameraEntity);
+      app.render();
+      m_renderer->run(transform.world, camera.fov);
+    }
   }
 
   app.shutdown();

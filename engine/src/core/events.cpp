@@ -17,11 +17,11 @@ void EventManager::poll() {
         break;
       case SDL_EVENT_KEY_DOWN:
         event = Event{.type = EventType::KeyDown,
-                      .data = InputData{.scancode = sdlEvent.key.key}};
+                      .data = InputData{.scancode = static_cast<uint32_t>(sdlEvent.key.scancode)}};
         break;
       case SDL_EVENT_KEY_UP:
         event = Event{.type = EventType::KeyUp,
-                      .data = InputData{.scancode = sdlEvent.key.key}};
+                      .data = InputData{.scancode = static_cast<uint32_t>(sdlEvent.key.scancode)}};
         break;
       case SDL_EVENT_MOUSE_BUTTON_DOWN:
         event = Event{.type = EventType::MouseButtonDown,

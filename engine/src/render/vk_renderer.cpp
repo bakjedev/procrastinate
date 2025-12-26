@@ -351,7 +351,7 @@ VulkanRenderer::~VulkanRenderer() {
   Util::println("Destroyed vulkan renderer");
 }
 
-void VulkanRenderer::run() {
+void VulkanRenderer::run(glm::mat4 world, float fov) {
   for (const auto& event : m_eventManager->getEvents()) {
     switch (event.type) {
       case EventType::WindowResized: {
@@ -444,16 +444,12 @@ void VulkanRenderer::run() {
                           &frame->descriptorSet(),
                           0, nullptr);
 
-  glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -5.0f);
-  glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 1.0f);
-  glm::vec3 upVector = glm::vec3(0.0f, 1.0f, 0.0f);
-  glm::mat4 view = glm::lookAt(cameraPos, cameraTarget, upVector);
-  float fov = glm::radians(45.0f);   // Field of view in radians
+  glm::mat4 view = glm::inverse(world);
   float aspectRatio = static_cast<float>(m_window->getWindowSize().first) / static_cast<float>(m_window->getWindowSize().second);  // Screen aspect ratio
   float nearPlane = 0.1f;
   float farPlane = 100.0f;
   glm::mat4 projection =
-      glm::perspective(fov, aspectRatio, nearPlane, farPlane);
+      glm::perspective(glm::radians(fov), aspectRatio, nearPlane, farPlane);
 
   PushConstant pushConstant{
       .view = view,

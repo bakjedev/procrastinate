@@ -45,7 +45,7 @@ class VulkanRenderer {
   VulkanRenderer &operator=(VulkanRenderer &&) = delete;
   ~VulkanRenderer();
 
-  void run();
+  void run(glm::mat4 world, float fov);
 
   uint32_t addMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, uint32_t firstIndex, int32_t vertexOffset);
   void upload();
