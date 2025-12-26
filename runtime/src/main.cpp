@@ -3,6 +3,7 @@
 #include "ecs/components/transform_component.hpp"
 #include "ecs/scene.hpp"
 #include "files/files.hpp"
+#include "glm/ext/matrix_transform.hpp"
 #include "input/input.hpp"
 #include "input/input_enums.hpp"
 #include "resource/resource_manager.hpp"
@@ -14,25 +15,25 @@ struct RuntimeApplication {
   void init(Engine &eng) {
     engine = &eng;
 
-    mesh_entity = engine->getScene().create();
-
     auto rootPath = Files::getResourceRoot();
+    constexpr int gridSize = 30;
+    for (int j{}; j < gridSize; ++j) {
+      for (int i{}; i < gridSize; ++i) {
+        const auto entity = engine->getScene().create();
+        auto* transformComponent = engine->getScene().addComponent<CTransform>(entity);
+        auto* meshComponent = engine->getScene().addComponent<CMesh>(entity);
 
-    auto *comp = engine->getScene().addComponent<CMesh>(mesh_entity);
-    comp->mesh = engine->getResourceManager().create<MeshResource>(
-        "firstmesh", MeshResourceLoader{}, (rootPath / "engine/assets/cylinder.obj").string(),
-        engine->getRenderer());
-    auto *transformComp = engine->getScene().addComponent<CTransform>(mesh_entity);
-    transformComp->world = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 3.0f));
-
-    mesh_entity2 = engine->getScene().create();
-
-    auto *comp2 = engine->getScene().addComponent<CMesh>(mesh_entity2);
-    comp2->mesh = engine->getResourceManager().create<MeshResource>(
-        "firstmesh", MeshResourceLoader{}, (rootPath / "engine/assets/cylinder.obj").string(),
-        engine->getRenderer());
-    auto *transformComp2 = engine->getScene().addComponent<CTransform>(mesh_entity2);
-    transformComp2->world = glm::mat4(1.0f);
+        constexpr float spacing = 2.6F;
+        transformComponent->world = glm::translate(glm::mat4(1.0F),
+                                                   glm::vec3(static_cast<float>(j) * spacing,
+                                                             0.0F,
+                                                             static_cast<float>(i) * spacing));
+        transformComponent->world = glm::translate(transformComponent->world, glm::vec3(-static_cast<float>(gridSize), 6.0F, 20.0F));
+        meshComponent->mesh = engine->getResourceManager().create<MeshResource>(
+            "firstmesh", MeshResourceLoader{}, (rootPath / "engine/assets/cylinder.obj").string(),
+            engine->getRenderer());
+      }
+    }
   }
 
   void update(float /*unused*/) const {
@@ -58,11 +59,9 @@ struct RuntimeApplication {
 
   void fixedUpdate(float /*unused*/) {}
   void render() {}
-  void shutdown() const { engine->getScene().destroy(mesh_entity); }
+  void shutdown() const {}
 
   Engine *engine = nullptr;
-  uint32_t mesh_entity{};
-  uint32_t mesh_entity2{};
 };
 
 int main() {

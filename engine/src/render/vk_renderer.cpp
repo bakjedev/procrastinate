@@ -247,10 +247,10 @@ VulkanRenderer::VulkanRenderer(Window *window,
         m_graphicsPool.get(), m_transferPool.get(), m_computePool.get(),
         m_descriptorPool.get(), m_frameDescriptorSetLayout.get(), m_device->get(), m_allocator.get()));
   }
+
   // -----------------------------------------------------------
   // ALLOCATE STATIC DESCRIPTOR SET
   // -----------------------------------------------------------
-
   m_staticDescriptorSet = m_descriptorPool->allocate(m_staticDescriptorSetLayout->get());
 
   // -----------------------------------------------------------
@@ -302,15 +302,11 @@ VulkanRenderer::VulkanRenderer(Window *window,
   // -----------------------------------------------------------
   // CREATE FRAME SYNC OBJECTS
   // -----------------------------------------------------------
-  constexpr vk::FenceCreateInfo fenceCreateInfo{.flags =
-                                          vk::FenceCreateFlagBits::eSignaled};
-  m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-  m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-  for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+  const auto frameCount = m_swapChain->imageCount();
+  m_renderFinishedSemaphores.resize(frameCount);
+  for (uint32_t i = 0; i < frameCount; i++) {
     constexpr vk::SemaphoreCreateInfo semaphoreCreateInfo{};
-    m_imageAvailableSemaphores[i] =
-        m_device->get().createSemaphoreUnique(semaphoreCreateInfo);
-    m_inFlightFences[i] = m_device->get().createFenceUnique(fenceCreateInfo);
+    m_renderFinishedSemaphores[i] = m_device->get().createSemaphoreUnique(semaphoreCreateInfo);
   }
 
   // -----------------------------------------------------------
@@ -734,22 +730,24 @@ int32_t VulkanRenderer::getVertexCount() const { return m_vertices.size(); }
 uint32_t VulkanRenderer::getIndexCount() const { return m_indices.size(); }
 
 std::optional<uint32_t> VulkanRenderer::beginFrame() {
-  auto result = m_device->get().waitForFences(*m_inFlightFences[m_currentFrame],
+  auto& frame = m_frames[m_currentFrame];
+
+  auto result = m_device->get().waitForFences(frame->inFlight(),
                                               VK_TRUE, UINT64_MAX);
   if (result != vk::Result::eSuccess) {
     throw std::runtime_error("waitForFences failed: " + vk::to_string(result));
   }
 
-  m_device->get().resetFences(*m_inFlightFences[m_currentFrame]);
-
   uint32_t imageIndex{};
   result = m_swapChain->acquireNextImage(
-      *m_imageAvailableSemaphores[m_currentFrame], imageIndex);
+      frame->imageAvailable(), imageIndex);
 
   if (result == vk::Result::eErrorOutOfDateKHR ||
       result == vk::Result::eSuboptimalKHR) {
     return std::nullopt;
   }
+
+  m_device->get().resetFences(frame->inFlight());
 
   return imageIndex;
 }
@@ -786,13 +784,13 @@ void VulkanRenderer::endFrame(uint32_t imageIndex) {
       .stageMask = vk::PipelineStageFlagBits2::eAllCommands
     },
     {
-      .semaphore = *m_imageAvailableSemaphores[m_currentFrame],
+      .semaphore = frame->imageAvailable(),
       .stageMask = vk::PipelineStageFlagBits2::eAllCommands
     }
   }};
 
   vk::SemaphoreSubmitInfo gSignalSemaphore{
-      .semaphore = frame->renderFinished(),
+      .semaphore = *m_renderFinishedSemaphores[imageIndex],
       .stageMask = vk::PipelineStageFlagBits2::eAllCommands};
 
   vk::CommandBufferSubmitInfo gCmdInfo{
@@ -807,13 +805,13 @@ void VulkanRenderer::endFrame(uint32_t imageIndex) {
                              .pSignalSemaphoreInfos = &gSignalSemaphore};
 
   result = m_device->graphicsQueue().submit2(
-      1, &gSubmitInfo, *m_inFlightFences[m_currentFrame]);
+      1, &gSubmitInfo, frame->inFlight());
   if (result != vk::Result::eSuccess) {
     throw std::runtime_error("graphics submit2 failed: " + vk::to_string(result));
   }
 
   result = m_swapChain->present(imageIndex, m_device->presentQueue(),
-                                frame->renderFinished());
+                                *m_renderFinishedSemaphores[imageIndex]);
 
   if (result == vk::Result::eErrorOutOfDateKHR ||
       result == vk::Result::eSuboptimalKHR) {

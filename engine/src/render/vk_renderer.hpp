@@ -89,8 +89,8 @@ class VulkanRenderer {
   std::unique_ptr<VulkanPipeline> m_compPipeline;
 
   std::vector<std::unique_ptr<VulkanFrame>> m_frames;
-  std::vector<vk::UniqueSemaphore> m_imageAvailableSemaphores;
-  std::vector<vk::UniqueFence> m_inFlightFences;
+  std::vector<vk::UniqueSemaphore> m_renderFinishedSemaphores;
+
   uint32_t m_currentFrame = 0;
 
   std::vector<RenderObject> m_renderObjects;

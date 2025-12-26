@@ -41,8 +41,12 @@ class VulkanFrame {
     return m_objectBuffer.get();
   }
 
-  [[nodiscard]] vk::Semaphore renderFinished() const {
-    return m_renderFinished.get();
+  [[nodiscard]] vk::Semaphore imageAvailable() const {
+    return m_imageAvailable.get();
+  }
+
+  [[nodiscard]] vk::Fence inFlight() const {
+    return m_inFlight.get();
   }
 
   [[nodiscard]] vk::Semaphore computeFinished() const {
@@ -58,7 +62,8 @@ class VulkanFrame {
   vk::CommandBuffer m_transferCmd;
   vk::CommandBuffer m_computeCmd;
 
-  vk::UniqueSemaphore m_renderFinished;
+  vk::UniqueSemaphore m_imageAvailable;
+  vk::UniqueFence m_inFlight;
   vk::UniqueSemaphore m_computeFinished;
 
   std::unique_ptr<VulkanBuffer> m_indirectBuffer;
