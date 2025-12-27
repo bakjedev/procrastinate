@@ -390,24 +390,8 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
 
   auto& frame = m_frames[m_currentFrame];
 
-  // if (!m_renderObjects.empty()) {
-  //   frame->objectBuffer()->writeRange(m_renderObjects.data(),
-  //   sizeof(RenderObject) * m_renderObjects.size());
-  // }
-  size_t writeOffset = 0;
-  for (const auto& renderObject : m_renderObjects) {
-    constexpr auto size = sizeof(RenderObject);
-    frame->objectBuffer()->writeRangeOffset(&renderObject, size, writeOffset);
-    writeOffset += size;
-  }
-
-  // auto tempVector = std::vector<RenderObject>{};
-  // tempVector.reserve(m_renderObjects.size());
-  // for (const auto& id : m_renderObjects) {
-  //   tempVector.push_back(m_objects.at(id));
-  // }
-  // frame->objectBuffer()->writeRange(tempVector.data(), sizeof(RenderObject) *
-  // tempVector.size());
+  frame->objectBuffer()->writeRange(
+      m_renderObjects.data(), sizeof(RenderObject) * m_renderObjects.size());
 
   auto ccmd = frame->computeCmd();
   constexpr vk::CommandBufferBeginInfo beginInfo{};
