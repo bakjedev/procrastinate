@@ -41,8 +41,7 @@ VulkanFrame::VulkanFrame(VulkanCommandPool* graphicsPool,
       BufferInfo{
           .size = sizeof(RenderObject) * MAX_OBJECTS,
           .usage = vk::BufferUsageFlagBits::eStorageBuffer |
-                   vk::BufferUsageFlagBits::eTransferDst |
-                   vk::BufferUsageFlagBits::eStorageBuffer,
+                   vk::BufferUsageFlagBits::eTransferDst,
           .memoryUsage = VMA_MEMORY_USAGE_AUTO,
           .memoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT |
                          VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
