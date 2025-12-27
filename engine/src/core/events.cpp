@@ -1,5 +1,7 @@
 #include "events.hpp"
+
 #include <optional>
+
 #include "SDL3/SDL_events.h"
 #include "core/imgui.hpp"
 
@@ -17,11 +19,13 @@ void EventManager::poll() {
         break;
       case SDL_EVENT_KEY_DOWN:
         event = Event{.type = EventType::KeyDown,
-                      .data = InputData{.scancode = static_cast<uint32_t>(sdlEvent.key.scancode)}};
+                      .data = InputData{.scancode = static_cast<uint32_t>(
+                                            sdlEvent.key.scancode)}};
         break;
       case SDL_EVENT_KEY_UP:
         event = Event{.type = EventType::KeyUp,
-                      .data = InputData{.scancode = static_cast<uint32_t>(sdlEvent.key.scancode)}};
+                      .data = InputData{.scancode = static_cast<uint32_t>(
+                                            sdlEvent.key.scancode)}};
         break;
       case SDL_EVENT_MOUSE_BUTTON_DOWN:
         event = Event{.type = EventType::MouseButtonDown,
@@ -43,8 +47,9 @@ void EventManager::poll() {
                       .data = WheelData{.scroll = sdlEvent.wheel.y}};
         break;
       case SDL_EVENT_WINDOW_RESIZED:
-        event = Event{.type = EventType::WindowResized,
-                      .data = WindowResizeData{
+        event =
+            Event{.type = EventType::WindowResized,
+                  .data = WindowResizeData{
                       .width = static_cast<uint32_t>(sdlEvent.window.data1),
                       .height = static_cast<uint32_t>(sdlEvent.window.data2)}};
         break;

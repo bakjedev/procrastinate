@@ -125,7 +125,7 @@ void VulkanDevice::getQueues() {
 bool VulkanDevice::isDeviceSuitable(
     const vk::PhysicalDeviceProperties&,
     const vk::PhysicalDeviceFeatures& features) {
-  return (features.geometryShader != 0U); // there should be more requirements
+  return (features.geometryShader != 0U);  // there should be more requirements
 }
 
 bool VulkanDevice::findQueueFamilies(vk::SurfaceKHR surface) {

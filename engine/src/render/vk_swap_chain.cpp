@@ -5,7 +5,10 @@
 VulkanSwapChain::VulkanSwapChain(vk::Device device,
                                  vk::PhysicalDevice physicalDevice,
                                  vk::SurfaceKHR surface, vk::Extent2D extent)
-    : m_physicalDevice(physicalDevice), m_surface(surface), m_device(device), m_extent(extent) {
+    : m_physicalDevice(physicalDevice),
+      m_surface(surface),
+      m_device(device),
+      m_extent(extent) {
   create();
 }
 

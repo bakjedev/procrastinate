@@ -3,7 +3,7 @@
 #include <entt/entt.hpp>
 
 class Scene {
-public:
+ public:
   uint32_t create();
   void destroy(uint32_t entity);
 
@@ -12,7 +12,7 @@ public:
 
   entt::registry &registry() { return m_registry; }
 
-private:
+ private:
   entt::registry m_registry;
 };
 

@@ -2,10 +2,10 @@
 
 #include <memory>
 
+#include "glm/glm.hpp"
 #include "render/vk_buffer.hpp"
 #include "render/vk_descriptor.hpp"
 #include "vulkan/vulkan.hpp"
-#include "glm/glm.hpp"
 
 class VulkanCommandPool;
 class VulkanDescriptorPool;
@@ -21,7 +21,9 @@ struct RenderObject {
 class VulkanFrame {
  public:
   VulkanFrame(VulkanCommandPool* graphicsPool, VulkanCommandPool* transferPool,
-              VulkanCommandPool* computePool, VulkanDescriptorPool* descriptorPool, VulkanDescriptorSetLayout* descriptorLayout, vk::Device device,
+              VulkanCommandPool* computePool,
+              VulkanDescriptorPool* descriptorPool,
+              VulkanDescriptorSetLayout* descriptorLayout, vk::Device device,
               VulkanAllocator* allocator);
   VulkanFrame(const VulkanFrame&) = delete;
   VulkanFrame(VulkanFrame&&) = delete;
@@ -41,17 +43,13 @@ class VulkanFrame {
     return m_imageAvailable.get();
   }
 
-  [[nodiscard]] vk::Fence inFlight() const {
-    return m_inFlight.get();
-  }
+  [[nodiscard]] vk::Fence inFlight() const { return m_inFlight.get(); }
 
   [[nodiscard]] vk::Semaphore computeFinished() const {
-     return m_computeFinished.get(); 
+    return m_computeFinished.get();
   }
 
-  [[nodiscard]] vk::DescriptorSet& descriptorSet() {
-    return m_descriptorSet;
-  }
+  [[nodiscard]] vk::DescriptorSet& descriptorSet() { return m_descriptorSet; }
 
  private:
   vk::CommandBuffer m_graphicsCmd;

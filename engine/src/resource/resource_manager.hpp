@@ -9,16 +9,16 @@
 #include "types/shader_resource.hpp"
 
 class ResourceManager {
-public:
-  ResourceManager() {
-    m_rootPath = Files::getResourceRoot();
-  }
-  
-  template <typename T> ResourceStorage<T> &getStorage() {
+ public:
+  ResourceManager() { m_rootPath = Files::getResourceRoot(); }
+
+  template <typename T>
+  ResourceStorage<T> &getStorage() {
     return std::get<ResourceStorage<T>>(m_storages);
   }
 
-  template <typename T> const ResourceStorage<T> &getStorage() const {
+  template <typename T>
+  const ResourceStorage<T> &getStorage() const {
     return std::get<ResourceStorage<T>>(m_storages);
   }
 
@@ -37,7 +37,7 @@ public:
                                   std::forward<Args>(args)...);
   }
 
-private:
+ private:
   std::tuple<ResourceStorage<ShaderResource>, ResourceStorage<MeshResource>>
       m_storages;
 

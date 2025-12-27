@@ -1,14 +1,14 @@
 add_executable(${CMAKE_PROJECT_NAME})
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    src/main.cpp
+        src/main.cpp
 )
 
 target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
-	-Wall
-	-Wextra
-	-Wpedantic
-	-Werror
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Werror
 )
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE engine)

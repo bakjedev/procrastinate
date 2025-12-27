@@ -9,11 +9,11 @@
 
 #include <chrono>
 
+#include "ecs/scene.hpp"
 #include "events.hpp"
 #include "input/input.hpp"
 #include "render/vk_renderer.hpp"
 #include "window.hpp"
-#include "ecs/scene.hpp"
 
 template <Application App>
 void Engine::run(App& app) {

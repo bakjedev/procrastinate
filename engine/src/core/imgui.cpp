@@ -1,6 +1,7 @@
 #include "core/imgui.hpp"
-#include "imgui.h"
+
 #include "core/window.hpp"
+#include "imgui.h"
 #include "imgui_impl_sdl3.h"
 
 void ImGuiSystem::initialize(Window* window) {

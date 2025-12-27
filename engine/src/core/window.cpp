@@ -41,9 +41,7 @@ SDL_Window* Window::get() const { return m_window; }
 
 bool Window::shouldQuit() const { return m_quit; }
 
-void Window::quit() {
-  m_quit = true;
-}
+void Window::quit() { m_quit = true; }
 
 void Window::update() {
   for (const auto& event : m_eventManager->getEvents()) {

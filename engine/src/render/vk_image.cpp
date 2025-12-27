@@ -3,7 +3,9 @@
 #include "util/vk_check.hpp"
 
 VulkanImage::VulkanImage(const ImageInfo &info, VmaAllocator allocator)
-    : m_format(info.format), m_width(info.width), m_height(info.height),
+    : m_format(info.format),
+      m_width(info.width),
+      m_height(info.height),
       m_allocator(allocator) {
   VmaAllocatorInfo allocatorInfo;
   vmaGetAllocatorInfo(m_allocator, &allocatorInfo);

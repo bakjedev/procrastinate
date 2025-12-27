@@ -3,6 +3,7 @@
 #include <cassert>
 #include <memory>
 
+#include "core/imgui.hpp"
 #include "ecs/scene.hpp"
 #include "events.hpp"
 #include "input/input.hpp"
@@ -10,7 +11,6 @@
 #include "resource/resource_manager.hpp"
 #include "util/print.hpp"
 #include "window.hpp"
-#include "core/imgui.hpp"
 
 Engine::Engine() {
   Util::println("procrastinating");
@@ -27,8 +27,8 @@ Engine::Engine() {
   m_input = std::make_unique<Input>(*m_eventManager);
   m_resourceManager = std::make_unique<ResourceManager>();
   ImGuiSystem::initialize(m_window.get());
-  m_renderer =
-      std::make_unique<VulkanRenderer>(m_window.get(), *m_resourceManager, *m_eventManager);
+  m_renderer = std::make_unique<VulkanRenderer>(
+      m_window.get(), *m_resourceManager, *m_eventManager);
   m_scene = std::make_unique<Scene>();
 
   Util::println("Engine initialized");

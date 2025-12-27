@@ -5,11 +5,11 @@
 #include <vulkan/vulkan_structs.hpp>
 
 #include "render/vk_command_pool.hpp"
+#include "render/vk_descriptor.hpp"
 #include "util/print.hpp"
 #include "vk_allocator.hpp"
 #include "vma/vma_usage.h"
 #include "vulkan/vulkan.hpp"
-#include "render/vk_descriptor.hpp"
 
 #define MAX_OBJECTS 10000
 
@@ -18,13 +18,12 @@ VulkanFrame::VulkanFrame(VulkanCommandPool* graphicsPool,
                          VulkanCommandPool* computePool,
                          VulkanDescriptorPool* descriptorPool,
                          VulkanDescriptorSetLayout* descriptorLayout,
-                         vk::Device device,
-                         VulkanAllocator* allocator)
-{
+                         vk::Device device, VulkanAllocator* allocator) {
   m_device = device;
 
   constexpr vk::SemaphoreCreateInfo semaphoreCreateInfo{};
-  constexpr vk::FenceCreateInfo fenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled};
+  constexpr vk::FenceCreateInfo fenceCreateInfo{
+      .flags = vk::FenceCreateFlagBits::eSignaled};
 
   m_imageAvailable = m_device.createSemaphoreUnique(semaphoreCreateInfo);
   m_inFlight = m_device.createFenceUnique(fenceCreateInfo);
@@ -42,15 +41,14 @@ VulkanFrame::VulkanFrame(VulkanCommandPool* graphicsPool,
       BufferInfo{
           .size = sizeof(RenderObject) * MAX_OBJECTS,
           .usage = vk::BufferUsageFlagBits::eStorageBuffer |
-          vk::BufferUsageFlagBits::eTransferDst |
-          vk::BufferUsageFlagBits::eStorageBuffer,
+                   vk::BufferUsageFlagBits::eTransferDst |
+                   vk::BufferUsageFlagBits::eStorageBuffer,
           .memoryUsage = VMA_MEMORY_USAGE_AUTO,
           .memoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT |
                          VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
 
       },
-      allocator->get()
-  );
+      allocator->get());
 
   m_objectBuffer->map();
 
@@ -64,6 +62,6 @@ VulkanFrame::VulkanFrame(VulkanCommandPool* graphicsPool,
 }
 
 VulkanFrame::~VulkanFrame() {
-    m_objectBuffer->unmap();
-    Util::println("Destroyed vulkan frame");
+  m_objectBuffer->unmap();
+  Util::println("Destroyed vulkan frame");
 }

@@ -5,7 +5,7 @@ class EventManager;
 union SDL_Event;
 
 namespace ImGuiSystem {
-  void initialize(Window* window);
+void initialize(Window* window);
 
-  void processEvent(const SDL_Event* event);
-}
+void processEvent(const SDL_Event* event);
+}  // namespace ImGuiSystem

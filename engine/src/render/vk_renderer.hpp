@@ -40,7 +40,8 @@ struct Vertex {
 
 class VulkanRenderer {
  public:
-  explicit VulkanRenderer(Window *window, ResourceManager &resourceManager, EventManager& eventManager);
+  explicit VulkanRenderer(Window *window, ResourceManager &resourceManager,
+                          EventManager &eventManager);
   VulkanRenderer(const VulkanRenderer &) = delete;
   VulkanRenderer(VulkanRenderer &&) = delete;
   VulkanRenderer &operator=(const VulkanRenderer &) = delete;
@@ -49,7 +50,9 @@ class VulkanRenderer {
 
   void run(glm::mat4 world, float fov);
 
-  uint32_t addMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, uint32_t firstIndex, int32_t vertexOffset);
+  uint32_t addMesh(const std::vector<Vertex> &vertices,
+                   const std::vector<uint32_t> &indices, uint32_t firstIndex,
+                   int32_t vertexOffset);
   void upload();
 
   void renderMesh(glm::mat4 model, uint32_t meshID);
@@ -110,6 +113,6 @@ class VulkanRenderer {
   std::unique_ptr<VulkanBuffer> m_indirectBuffer;
   std::unique_ptr<VulkanImage> m_depthImage;
 
-  Window* m_window = nullptr;
-  EventManager* m_eventManager = nullptr;
+  Window *m_window = nullptr;
+  EventManager *m_eventManager = nullptr;
 };

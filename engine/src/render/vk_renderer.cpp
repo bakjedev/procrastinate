@@ -435,12 +435,11 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
                                      vk::ImageLayout::eColorAttachmentOptimal);
 
   const vk::RenderingAttachmentInfo depthAttachment{
-    .imageView = m_depthImage->view(),
-    .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
-    .loadOp = vk::AttachmentLoadOp::eClear,
-    .storeOp = vk::AttachmentStoreOp::eDontCare,
-    .clearValue = vk::ClearValue{.depthStencil = {1.0f, 0}}};
-
+      .imageView = m_depthImage->view(),
+      .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+      .loadOp = vk::AttachmentLoadOp::eClear,
+      .storeOp = vk::AttachmentStoreOp::eDontCare,
+      .clearValue = vk::ClearValue{.depthStencil = {1.0f, 0}}};
 
   const vk::RenderingAttachmentInfo colorAttachment{
       .imageView = m_swapChain->imageViews()[imageIndex],
@@ -827,21 +826,23 @@ void VulkanRenderer::endFrame(uint32_t imageIndex) {
 }
 void VulkanRenderer::recreateSwapchain() {
   const auto [width, height] = m_window->getWindowSize();
-  Util::println("Going to recreate swapchain and depth image with: {}, {}", width, height);
+  Util::println("Going to recreate swapchain and depth image with: {}, {}",
+                width, height);
 
   m_swapChain->recreate({.width = width, .height = height});
 
   recreateDepthImage(width, height);
 }
-void VulkanRenderer::recreateDepthImage(const uint32_t width, const uint32_t height) {
+void VulkanRenderer::recreateDepthImage(const uint32_t width,
+                                        const uint32_t height) {
   m_depthImage = nullptr;
 
   auto imageInfo = ImageInfo{
-    .width = width,
-    .height = height,
-    .format = vk::Format::eD32Sfloat,
-    .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
-    .aspectFlags = vk::ImageAspectFlagBits::eDepth,
-};
+      .width = width,
+      .height = height,
+      .format = vk::Format::eD32Sfloat,
+      .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
+      .aspectFlags = vk::ImageAspectFlagBits::eDepth,
+  };
   m_depthImage = std::make_unique<VulkanImage>(imageInfo, m_allocator->get());
 }

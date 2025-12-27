@@ -1,5 +1,6 @@
 #pragma once
 #include <SDL3/SDL.h>
+
 #include <utility>
 
 class EventManager;

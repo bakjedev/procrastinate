@@ -38,7 +38,9 @@ struct WindowResizeData {
 
 struct Event {
   EventType type = EventType::None;
-  std::variant<std::monostate, InputData, MotionData, WheelData, WindowResizeData> data;
+  std::variant<std::monostate, InputData, MotionData, WheelData,
+               WindowResizeData>
+      data;
 };
 
 class EventManager {
