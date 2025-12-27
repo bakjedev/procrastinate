@@ -128,39 +128,39 @@ bool VulkanDevice::isDeviceSuitable(
   return (features.geometryShader != 0U);  // there should be more requirements
 }
 
-bool VulkanDevice::findQueueFamilies(vk::SurfaceKHR surface) {
+bool VulkanDevice::findQueueFamilies(const vk::SurfaceKHR surface) {
   auto queueFamilies = m_physicalDevice.getQueueFamilyProperties();
 
   for (size_t idx = 0; idx < queueFamilies.size(); idx++) {
     const auto& queueFamily = queueFamilies[idx];
 
-    if ((queueFamily.queueFlags & vk::QueueFlagBits::eTransfer) &&
+    // Dedicated compute queue
+    if ((queueFamily.queueFlags & vk::QueueFlagBits::eCompute) &&
+        !(queueFamily.queueFlags & vk::QueueFlagBits::eGraphics)) {
+      m_queueFamilyIndices.compute = idx;
+    }
+
+    // Dedicated transfer queue
+    if (queueFamily.queueFlags & vk::QueueFlagBits::eTransfer &&
         !(queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) &&
         !(queueFamily.queueFlags & vk::QueueFlagBits::eCompute)) {
       m_queueFamilyIndices.transfer = idx;
     }
-
-    if ((queueFamily.queueFlags & vk::QueueFlagBits::eCompute) &&
-        !(queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) &&
-        !(queueFamily.queueFlags & vk::QueueFlagBits::eTransfer)) {
-      m_queueFamilyIndices.compute = idx;
-    }
   }
 
+  // Graphics and present. Also compute and transfer if it couldn't find
+  // dedicated queues for them
   for (size_t idx = 0; idx < queueFamilies.size(); idx++) {
     const auto& queueFamily = queueFamilies[idx];
 
-    if (!m_queueFamilyIndices.graphics.has_value()) {
-      if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) {
-        m_queueFamilyIndices.graphics = idx;
-      }
+    if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) {
+      m_queueFamilyIndices.graphics = idx;
     }
 
-    if (!m_queueFamilyIndices.present.has_value()) {
-      auto presentSupport = m_physicalDevice.getSurfaceSupportKHR(idx, surface);
-      if (presentSupport != 0U) {
-        m_queueFamilyIndices.present = idx;
-      }
+    const auto presentSupport =
+        m_physicalDevice.getSurfaceSupportKHR(idx, surface);
+    if (presentSupport != 0U) {
+      m_queueFamilyIndices.present = idx;
     }
 
     if (!m_queueFamilyIndices.compute.has_value() &&
@@ -171,6 +171,9 @@ bool VulkanDevice::findQueueFamilies(vk::SurfaceKHR surface) {
     if (!m_queueFamilyIndices.transfer.has_value() &&
         (queueFamily.queueFlags & vk::QueueFlagBits::eTransfer)) {
       m_queueFamilyIndices.transfer = idx;
+    }
+    if (m_queueFamilyIndices.isComplete()) {
+      return true;
     }
   }
 
