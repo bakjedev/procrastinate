@@ -34,6 +34,7 @@ class VulkanImage {
   static void transitionImageLayout(vk::Image image, vk::CommandBuffer cmd,
                                     vk::ImageLayout oldLayout,
                                     vk::ImageLayout newLayout);
+  void destroy();
 
  private:
   vk::Image m_image;
@@ -49,5 +50,4 @@ class VulkanImage {
 
   void create(const ImageInfo& info);
   void createView(vk::ImageAspectFlags aspectFlags);
-  void destroy();
 };

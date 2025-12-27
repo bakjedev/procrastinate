@@ -2,18 +2,21 @@
 
 #include <SDL3/SDL.h>
 
+#include <array>
 #include <cstdint>
 #include <memory>
-#include <array>
 
+#include "core/events.hpp"
+#include "core/window.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
+#include "imgui.h"
+#include "imgui_impl_sdl3.h"
+#include "imgui_impl_vulkan.h"
 #include "render/vk_descriptor.hpp"
 #include "render/vk_image.hpp"
-#include "core/window.hpp"
 #include "render/vk_instance.hpp"
 #include "resource/resource_manager.hpp"
-#include "core/events.hpp"
 #include "resource/types/shader_resource.hpp"
 #include "util/print.hpp"
 #include "util/vk_transient_cmd.hpp"
@@ -21,12 +24,17 @@
 #include "vk_pipeline.hpp"
 #include "vma/vma_usage.h"
 #include "vulkan/vulkan.hpp"
-#include "imgui.h"
-#include "imgui_impl_vulkan.h"
-#include "imgui_impl_sdl3.h"
 
-VulkanRenderer::VulkanRenderer(Window *window,
-                               ResourceManager &resourceManager, EventManager& eventManager) {
+#define MAX_INDIRECT_COMMANDS 65536
+
+VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
+                               EventManager& eventManager) {
+  // -----------------------------------------------------------
+  // SET REFERENCES
+  // -----------------------------------------------------------
+  m_window = window;
+  m_eventManager = &eventManager;
+
   // -----------------------------------------------------------
   // BASIC VULKAN OBJECTS
   // -----------------------------------------------------------
@@ -45,7 +53,8 @@ VulkanRenderer::VulkanRenderer(Window *window,
   // -----------------------------------------------------------
   auto extent = window->getWindowSize();
   m_swapChain = std::make_unique<VulkanSwapChain>(
-      m_device->get(), m_device->getPhysical(), m_surface->get(), vk::Extent2D{.width = extent.first, .height = extent.second});
+      m_device->get(), m_device->getPhysical(), m_surface->get(),
+      vk::Extent2D{.width = extent.first, .height = extent.second});
 
   // -----------------------------------------------------------
   // GET QUEUE FAMILIES FOR GRAPHICS, TRANSFER AND COMPUTE
@@ -70,12 +79,11 @@ VulkanRenderer::VulkanRenderer(Window *window,
       m_device->get());
 
   m_computePool = std::make_unique<VulkanCommandPool>(
-    CommandPoolInfo{
-      .queueFamilyIndex = computeQueueFamily,
-      .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-    },
-    m_device->get()
-  );
+      CommandPoolInfo{
+          .queueFamilyIndex = computeQueueFamily,
+          .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+      },
+      m_device->get());
 
   // -----------------------------------------------------------
   // LOAD AND CREATE GRAPHICS SHADERS
@@ -100,43 +108,34 @@ VulkanRenderer::VulkanRenderer(Window *window,
       .module = m_fragmentShader->get(),
       .pName = "main"};
 
-
   // -----------------------------------------------------------
   // Descriptor Set Layouts
   // -----------------------------------------------------------
   m_frameDescriptorSetLayout = std::make_unique<VulkanDescriptorSetLayout>(
-    m_device->get(),
-    std::vector{
-      vk::DescriptorSetLayoutBinding{
-        .binding = 0,
-        .descriptorType = vk::DescriptorType::eStorageBuffer,
-        .descriptorCount = 1,
-        .stageFlags = vk::ShaderStageFlagBits::eCompute
-      },
-      vk::DescriptorSetLayoutBinding{
-        .binding = 1,
-        .descriptorType = vk::DescriptorType::eStorageBuffer,
-        .descriptorCount = 1,
-        .stageFlags = vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eVertex
-      }
-    },
-    std::vector<vk::DescriptorBindingFlags>{},
-    vk::DescriptorSetLayoutCreateFlags{}
-  );
+      m_device->get(),
+      std::vector{vk::DescriptorSetLayoutBinding{
+                      .binding = 0,
+                      .descriptorType = vk::DescriptorType::eStorageBuffer,
+                      .descriptorCount = 1,
+                      .stageFlags = vk::ShaderStageFlagBits::eCompute},
+                  vk::DescriptorSetLayoutBinding{
+                      .binding = 1,
+                      .descriptorType = vk::DescriptorType::eStorageBuffer,
+                      .descriptorCount = 1,
+                      .stageFlags = vk::ShaderStageFlagBits::eCompute |
+                                    vk::ShaderStageFlagBits::eVertex}},
+      std::vector<vk::DescriptorBindingFlags>{},
+      vk::DescriptorSetLayoutCreateFlags{});
 
   m_staticDescriptorSetLayout = std::make_unique<VulkanDescriptorSetLayout>(
-    m_device->get(),
-    std::vector{
-      vk::DescriptorSetLayoutBinding{
-        .binding = 0,
-        .descriptorType = vk::DescriptorType::eStorageBuffer,
-        .descriptorCount = 1,
-        .stageFlags = vk::ShaderStageFlagBits::eCompute
-      }
-    },
-    std::vector<vk::DescriptorBindingFlags>{},
-    vk::DescriptorSetLayoutCreateFlags{}
-  );
+      m_device->get(),
+      std::vector{vk::DescriptorSetLayoutBinding{
+          .binding = 0,
+          .descriptorType = vk::DescriptorType::eStorageBuffer,
+          .descriptorCount = 1,
+          .stageFlags = vk::ShaderStageFlagBits::eCompute}},
+      std::vector<vk::DescriptorBindingFlags>{},
+      vk::DescriptorSetLayoutCreateFlags{});
 
   // -----------------------------------------------------------
   // CREATE GRAPHICS PIPELINE LAYOUT
@@ -149,7 +148,8 @@ VulkanRenderer::VulkanRenderer(Window *window,
       .size = sizeof(PushConstant)};
 
   pipelineLayoutInfo.pushConstants.push_back(pushConstantRange);
-  pipelineLayoutInfo.descriptorSets.push_back(m_frameDescriptorSetLayout->get());
+  pipelineLayoutInfo.descriptorSets.push_back(
+      m_frameDescriptorSetLayout->get());
 
   m_pipelineLayout = std::make_unique<VulkanPipelineLayout>(m_device->get(),
                                                             pipelineLayoutInfo);
@@ -165,6 +165,8 @@ VulkanRenderer::VulkanRenderer(Window *window,
   pipelineInfo.colorBlendAttachments = {colorBlend};
   pipelineInfo.frontFace = vk::FrontFace::eClockwise;
 
+  pipelineInfo.depthAttachmentFormat = vk::Format::eD32Sfloat;
+
   vk::VertexInputBindingDescription binding{};
   binding.binding = 0;
   binding.stride = sizeof(Vertex);
@@ -174,18 +176,24 @@ VulkanRenderer::VulkanRenderer(Window *window,
   positionAttr.location = 0;
   positionAttr.binding = 0;
   positionAttr.format = vk::Format::eR32G32B32Sfloat;
-  positionAttr.offset = 0;
+  positionAttr.offset = offsetof(Vertex, position);
 
   vk::VertexInputAttributeDescription colorAttr{};
   colorAttr.location = 1;
   colorAttr.binding = 0;
   colorAttr.format = vk::Format::eR32G32B32Sfloat;
-  colorAttr.offset = sizeof(glm::vec3);
+  colorAttr.offset = offsetof(Vertex, color);
+
+  vk::VertexInputAttributeDescription normalAttr{};
+  normalAttr.location = 2;
+  normalAttr.binding = 0;
+  normalAttr.format = vk::Format::eR32G32B32Sfloat;
+  normalAttr.offset = offsetof(Vertex, normal);
 
   pipelineInfo.vertexBindings.push_back(binding);
   pipelineInfo.vertexAttributes.push_back(positionAttr);
   pipelineInfo.vertexAttributes.push_back(colorAttr);
-
+  pipelineInfo.vertexAttributes.push_back(normalAttr);
 
   Util::println("Creating Graphics pipeline");
   m_pipeline = std::make_unique<VulkanPipeline>(m_device->get(), pipelineInfo);
@@ -209,34 +217,38 @@ VulkanRenderer::VulkanRenderer(Window *window,
   pipelineLayoutInfo.pushConstants.clear();
   pipelineLayoutInfo.descriptorSets.clear();
 
-  pipelineLayoutInfo.descriptorSets.push_back(m_staticDescriptorSetLayout->get());
-  pipelineLayoutInfo.descriptorSets.push_back(m_frameDescriptorSetLayout->get());
+  pipelineLayoutInfo.descriptorSets.push_back(
+      m_staticDescriptorSetLayout->get());
+  pipelineLayoutInfo.descriptorSets.push_back(
+      m_frameDescriptorSetLayout->get());
 
-  m_compPipelineLayout = std::make_unique<VulkanPipelineLayout>(m_device->get(),
-                                                            pipelineLayoutInfo);
+  m_compPipelineLayout = std::make_unique<VulkanPipelineLayout>(
+      m_device->get(), pipelineLayoutInfo);
   // -----------------------------------------------------------
   // CREATE COMPUTE PIPELINE
   // -----------------------------------------------------------
   ComputePipelineInfo compPipelineInfo{
-    .shaderStage = compStage,
-    .layout = m_compPipelineLayout->get(),
+      .shaderStage = compStage,
+      .layout = m_compPipelineLayout->get(),
   };
 
   Util::println("Creating Compute pipeline");
-  m_compPipeline = std::make_unique<VulkanPipeline>(m_device->get(), compPipelineInfo);
+  m_compPipeline =
+      std::make_unique<VulkanPipeline>(m_device->get(), compPipelineInfo);
 
   // -----------------------------------------------------------
   // CREATE DESCRIPTOR POOL
   // -----------------------------------------------------------
   DescriptorPoolInfo descriptorPoolInfo{};
-  descriptorPoolInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
+  descriptorPoolInfo.flags =
+      vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
   descriptorPoolInfo.maxSets = 1000;
   descriptorPoolInfo.poolSizes = {
-    {.type=vk::DescriptorType::eCombinedImageSampler, .descriptorCount=1},
-    {.type=vk::DescriptorType::eStorageBuffer, .descriptorCount=20}
-  };
+      {.type = vk::DescriptorType::eCombinedImageSampler, .descriptorCount = 1},
+      {.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = 20}};
 
-  m_descriptorPool = std::make_unique<VulkanDescriptorPool>(m_device->get(), descriptorPoolInfo);
+  m_descriptorPool = std::make_unique<VulkanDescriptorPool>(m_device->get(),
+                                                            descriptorPoolInfo);
 
   // -----------------------------------------------------------
   // CREATE FRAME RESOURCES
@@ -245,13 +257,31 @@ VulkanRenderer::VulkanRenderer(Window *window,
   for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
     m_frames.push_back(std::make_unique<VulkanFrame>(
         m_graphicsPool.get(), m_transferPool.get(), m_computePool.get(),
-        m_descriptorPool.get(), m_frameDescriptorSetLayout.get(), m_device->get(), m_allocator.get()));
+        m_descriptorPool.get(), m_frameDescriptorSetLayout.get(),
+        m_device->get(), m_allocator.get()));
   }
+
+  // -----------------------------------------------------------
+  // CREATE SHARED RESOURCES
+  // -----------------------------------------------------------
+  m_indirectBuffer = std::make_unique<VulkanBuffer>(
+      BufferInfo{.size = sizeof(vk::DrawIndexedIndirectCommand) *
+                         MAX_INDIRECT_COMMANDS,
+                 .usage = vk::BufferUsageFlagBits::eIndirectBuffer |
+                          vk::BufferUsageFlagBits::eTransferDst |
+                          vk::BufferUsageFlagBits::eStorageBuffer,
+                 .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
+                 .memoryFlags = {}},
+      m_allocator->get());
+
+  const auto [width, height] = m_window->getWindowSize();
+  recreateDepthImage(width, height);
 
   // -----------------------------------------------------------
   // ALLOCATE STATIC DESCRIPTOR SET
   // -----------------------------------------------------------
-  m_staticDescriptorSet = m_descriptorPool->allocate(m_staticDescriptorSetLayout->get());
+  m_staticDescriptorSet =
+      m_descriptorPool->allocate(m_staticDescriptorSetLayout->get());
 
   // -----------------------------------------------------------
   // WRITE TO DESCRIPTOR SETS
@@ -261,43 +291,38 @@ VulkanRenderer::VulkanRenderer(Window *window,
   std::vector<vk::DescriptorBufferInfo> bufferInfos;
   bufferInfos.reserve(m_frames.size() * 2);
 
-  for(const auto& frame : m_frames) {
-    bufferInfos.push_back({
-      .buffer = frame->indirectBuffer()->get(),
-      .offset = 0,
-      .range = vk::WholeSize
-    });
-    
+  for (const auto& frame : m_frames) {
+    bufferInfos.push_back({.buffer = m_indirectBuffer->get(),
+                           .offset = 0,
+                           .range = vk::WholeSize});
+
     const vk::WriteDescriptorSet write{
-      .dstSet = frame->descriptorSet(),
-      .dstBinding = 0,
-      .dstArrayElement = 0,
-      .descriptorCount = 1,
-      .descriptorType = vk::DescriptorType::eStorageBuffer,
-      .pBufferInfo = &bufferInfos.back()
-    };
+        .dstSet = frame->descriptorSet(),
+        .dstBinding = 0,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType = vk::DescriptorType::eStorageBuffer,
+        .pBufferInfo = &bufferInfos.back()};
 
     writes.push_back(write);
 
-    bufferInfos.push_back({
-      .buffer = frame->objectBuffer()->get(),
-      .offset = 0,
-      .range = vk::WholeSize
-    });
-    
+    bufferInfos.push_back({.buffer = frame->objectBuffer()->get(),
+                           .offset = 0,
+                           .range = vk::WholeSize});
+
     const vk::WriteDescriptorSet write2{
-      .dstSet = frame->descriptorSet(),
-      .dstBinding = 1,
-      .dstArrayElement = 0,
-      .descriptorCount = 1,
-      .descriptorType = vk::DescriptorType::eStorageBuffer,
-      .pBufferInfo = &bufferInfos.back()
-    };
+        .dstSet = frame->descriptorSet(),
+        .dstBinding = 1,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType = vk::DescriptorType::eStorageBuffer,
+        .pBufferInfo = &bufferInfos.back()};
 
     writes.push_back(write2);
   }
 
-  m_device->get().updateDescriptorSets(writes.size(), writes.data(), 0, nullptr);
+  m_device->get().updateDescriptorSets(writes.size(), writes.data(), 0,
+                                       nullptr);
 
   // -----------------------------------------------------------
   // CREATE FRAME SYNC OBJECTS
@@ -306,23 +331,16 @@ VulkanRenderer::VulkanRenderer(Window *window,
   m_renderFinishedSemaphores.resize(frameCount);
   for (uint32_t i = 0; i < frameCount; i++) {
     constexpr vk::SemaphoreCreateInfo semaphoreCreateInfo{};
-    m_renderFinishedSemaphores[i] = m_device->get().createSemaphoreUnique(semaphoreCreateInfo);
+    m_renderFinishedSemaphores[i] =
+        m_device->get().createSemaphoreUnique(semaphoreCreateInfo);
   }
-
-  // -----------------------------------------------------------
-  // SET REFERENCES
-  // -----------------------------------------------------------
-  m_window = window;
-  m_eventManager = &eventManager;
 
   // -----------------------------------------------------------
   // INITIALIZE ImGui
   // -----------------------------------------------------------
   auto format = m_swapChain->format();
   vk::PipelineRenderingCreateInfo renderingInfo{
-    .colorAttachmentCount = 1,
-    .pColorAttachmentFormats = &format
-  };
+      .colorAttachmentCount = 1, .pColorAttachmentFormats = &format};
 
   ImGui_ImplVulkan_InitInfo initInfo = {};
   initInfo.Instance = m_instance->get();
@@ -355,29 +373,26 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   for (const auto& event : m_eventManager->getEvents()) {
     switch (event.type) {
       case EventType::WindowResized: {
-        const auto& windowResize = std::get<WindowResizeData>(event.data);
-        Util::println("Got a window resize event");
-        m_swapChain->recreate({.width = windowResize.width, .height = windowResize.height});
+        recreateSwapchain();
         break;
       }
       default:
         break;
     }
   }
-    
+
   auto imageIndex = beginFrame().value_or(UINT32_MAX);
 
   if (imageIndex == UINT32_MAX) {
-    auto extent = m_window->getWindowSize();
-    Util::println("Failed to get the image index");
-    m_swapChain->recreate({.width=extent.first, .height=extent.second});
+    recreateSwapchain();
     return;
   }
 
-  auto &frame = m_frames[m_currentFrame];
+  auto& frame = m_frames[m_currentFrame];
 
   // if (!m_renderObjects.empty()) {
-  //   frame->objectBuffer()->writeRange(m_renderObjects.data(), sizeof(RenderObject) * m_renderObjects.size());
+  //   frame->objectBuffer()->writeRange(m_renderObjects.data(),
+  //   sizeof(RenderObject) * m_renderObjects.size());
   // }
   size_t writeOffset = 0;
   for (const auto& renderObject : m_renderObjects) {
@@ -391,21 +406,19 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   // for (const auto& id : m_renderObjects) {
   //   tempVector.push_back(m_objects.at(id));
   // }
-  // frame->objectBuffer()->writeRange(tempVector.data(), sizeof(RenderObject) * tempVector.size());
-
-
+  // frame->objectBuffer()->writeRange(tempVector.data(), sizeof(RenderObject) *
+  // tempVector.size());
 
   auto ccmd = frame->computeCmd();
   constexpr vk::CommandBufferBeginInfo beginInfo{};
   ccmd.begin(beginInfo);
 
-  auto descriptorSets = std::array{m_staticDescriptorSet, frame->descriptorSet()};
+  auto descriptorSets =
+      std::array{m_staticDescriptorSet, frame->descriptorSet()};
 
   ccmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-                          m_compPipelineLayout->get(),
-                          0, descriptorSets.size(),
-                          descriptorSets.data(),
-                          0, nullptr);
+                          m_compPipelineLayout->get(), 0, descriptorSets.size(),
+                          descriptorSets.data(), 0, nullptr);
 
   ccmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compPipeline->get());
   const uint32_t workgroups = (m_renderObjects.size() + 255) / 256;
@@ -421,6 +434,14 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
                                      vk::ImageLayout::eUndefined,
                                      vk::ImageLayout::eColorAttachmentOptimal);
 
+  const vk::RenderingAttachmentInfo depthAttachment{
+    .imageView = m_depthImage->view(),
+    .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+    .loadOp = vk::AttachmentLoadOp::eClear,
+    .storeOp = vk::AttachmentStoreOp::eDontCare,
+    .clearValue = vk::ClearValue{.depthStencil = {1.0f, 0}}};
+
+
   const vk::RenderingAttachmentInfo colorAttachment{
       .imageView = m_swapChain->imageViews()[imageIndex],
       .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
@@ -434,20 +455,22 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
                                .extent = m_swapChain->extent()},
       .layerCount = 1,
       .colorAttachmentCount = 1,
-      .pColorAttachments = &colorAttachment};
+      .pColorAttachments = &colorAttachment,
+      .pDepthAttachment = &depthAttachment};
 
   cmd.beginRendering(renderInfo);
   cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline->get());
   cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-                          m_pipelineLayout->get(),
-                          0, 1,
-                          &frame->descriptorSet(),
-                          0, nullptr);
+                         m_pipelineLayout->get(), 0, 1, &frame->descriptorSet(),
+                         0, nullptr);
 
   glm::mat4 view = glm::inverse(world);
-  float aspectRatio = static_cast<float>(m_window->getWindowSize().first) / static_cast<float>(m_window->getWindowSize().second);  // Screen aspect ratio
+  float aspectRatio =
+      static_cast<float>(m_window->getWindowSize().first) /
+      static_cast<float>(
+          m_window->getWindowSize().second);  // Screen aspect ratio
   float nearPlane = 0.1f;
-  float farPlane = 100.0f;
+  float farPlane = 1000.0f;
   glm::mat4 projection =
       glm::perspective(glm::radians(fov), aspectRatio, nearPlane, farPlane);
 
@@ -486,7 +509,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   //   cmd.drawIndexed(mesh.indexCount, 1, mesh.firstIndex, mesh.vertexOffset,
   //   0);
   // }
-  cmd.drawIndexedIndirect(frame->indirectBuffer()->get(), 0, m_renderObjects.size(),
+  cmd.drawIndexedIndirect(m_indirectBuffer->get(), 0, m_renderObjects.size(),
                           sizeof(vk::DrawIndexedIndirectCommand));
   cmd.endRendering();
 
@@ -507,15 +530,15 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   };
 
   vk::RenderingInfo imguiRenderInfo{
-      .renderArea = vk::Rect2D{.offset = {.x=0, .y=0}, .extent = m_swapChain->extent()},
+      .renderArea = vk::Rect2D{.offset = {.x = 0, .y = 0},
+                               .extent = m_swapChain->extent()},
       .layerCount = 1,
       .colorAttachmentCount = 1,
-      .pColorAttachments = &imguiColorAttachment
-  };
+      .pColorAttachments = &imguiColorAttachment};
 
   cmd.beginRendering(imguiRenderInfo);
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
-  cmd.endRendering();  
+  cmd.endRendering();
   VulkanImage::transitionImageLayout(m_swapChain->getImage(imageIndex), cmd,
                                      vk::ImageLayout::eColorAttachmentOptimal,
                                      vk::ImageLayout::ePresentSrcKHR);
@@ -525,7 +548,9 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   endFrame(imageIndex);
 }
 
-uint32_t VulkanRenderer::addMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, uint32_t firstIndex, int32_t vertexOffset) {
+uint32_t VulkanRenderer::addMesh(const std::vector<Vertex>& vertices,
+                                 const std::vector<uint32_t>& indices,
+                                 uint32_t firstIndex, int32_t vertexOffset) {
   const uint32_t meshID = m_meshInfos.size();
   m_vertices.insert(m_vertices.end(), vertices.begin(), vertices.end());
   m_indices.insert(m_indices.end(), indices.begin(), indices.end());
@@ -598,13 +623,13 @@ void VulkanRenderer::upload() {
   stagingIndexBuffer.write(m_indices.data());
 
   auto stagingMeshInfoBuffer = VulkanBuffer(
-    BufferInfo{.size = meshesSize,
-               .usage = vk::BufferUsageFlagBits::eTransferSrc,
-               .memoryUsage = VMA_MEMORY_USAGE_AUTO,
-               .memoryFlags =
-                   VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
-                   VMA_ALLOCATION_CREATE_MAPPED_BIT},
-    m_allocator->get());
+      BufferInfo{.size = meshesSize,
+                 .usage = vk::BufferUsageFlagBits::eTransferSrc,
+                 .memoryUsage = VMA_MEMORY_USAGE_AUTO,
+                 .memoryFlags =
+                     VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+                     VMA_ALLOCATION_CREATE_MAPPED_BIT},
+      m_allocator->get());
   stagingMeshInfoBuffer.write(m_meshInfos.data());
 
   auto cmd = Util::beginSingleTimeCommandBuffer(*m_transferPool);
@@ -664,19 +689,15 @@ void VulkanRenderer::upload() {
 
   // UPDATE MESH INFO DESCRIPTOR SET
   auto bufferInfo = vk::DescriptorBufferInfo{
-      .buffer = m_meshInfoBuffer->get(),
-      .offset = 0,
-      .range = vk::WholeSize
-  };
+      .buffer = m_meshInfoBuffer->get(), .offset = 0, .range = vk::WholeSize};
 
   const vk::WriteDescriptorSet write{
-    .dstSet = m_staticDescriptorSet,
-    .dstBinding = 0,
-    .dstArrayElement = 0,
-    .descriptorCount = 1,
-    .descriptorType = vk::DescriptorType::eStorageBuffer,
-    .pBufferInfo = &bufferInfo
-  };
+      .dstSet = m_staticDescriptorSet,
+      .dstBinding = 0,
+      .dstArrayElement = 0,
+      .descriptorCount = 1,
+      .descriptorType = vk::DescriptorType::eStorageBuffer,
+      .pBufferInfo = &bufferInfo};
   m_device->get().updateDescriptorSets(1, &write, 0, nullptr);
 
   if (m_device->queueFamilies().transfer !=
@@ -718,9 +739,7 @@ void VulkanRenderer::renderMesh(glm::mat4 model, const uint32_t meshID) {
   m_renderObjects.emplace_back(model, meshID);
 }
 
-void VulkanRenderer::clearMeshes() {
-  m_renderObjects.clear();
-}
+void VulkanRenderer::clearMeshes() { m_renderObjects.clear(); }
 
 int32_t VulkanRenderer::getVertexCount() const { return m_vertices.size(); }
 uint32_t VulkanRenderer::getIndexCount() const { return m_indices.size(); }
@@ -728,15 +747,14 @@ uint32_t VulkanRenderer::getIndexCount() const { return m_indices.size(); }
 std::optional<uint32_t> VulkanRenderer::beginFrame() {
   auto& frame = m_frames[m_currentFrame];
 
-  auto result = m_device->get().waitForFences(frame->inFlight(),
-                                              VK_TRUE, UINT64_MAX);
+  auto result =
+      m_device->get().waitForFences(frame->inFlight(), VK_TRUE, UINT64_MAX);
   if (result != vk::Result::eSuccess) {
     throw std::runtime_error("waitForFences failed: " + vk::to_string(result));
   }
 
   uint32_t imageIndex{};
-  result = m_swapChain->acquireNextImage(
-      frame->imageAvailable(), imageIndex);
+  result = m_swapChain->acquireNextImage(frame->imageAvailable(), imageIndex);
 
   if (result == vk::Result::eErrorOutOfDateKHR ||
       result == vk::Result::eSuboptimalKHR) {
@@ -749,61 +767,51 @@ std::optional<uint32_t> VulkanRenderer::beginFrame() {
 }
 
 void VulkanRenderer::endFrame(uint32_t imageIndex) {
-  auto &frame = m_frames[m_currentFrame];
+  auto& frame = m_frames[m_currentFrame];
 
   vk::SemaphoreSubmitInfo cSignalSemaphore{
-    .semaphore = frame->computeFinished(),
-    .stageMask = vk::PipelineStageFlagBits2::eAllCommands
-  };
+      .semaphore = frame->computeFinished(),
+      .stageMask = vk::PipelineStageFlagBits2::eAllCommands};
 
-  vk::CommandBufferSubmitInfo cCmdInfo {
-    .commandBuffer = frame->computeCmd()
-  };
+  vk::CommandBufferSubmitInfo cCmdInfo{.commandBuffer = frame->computeCmd()};
 
-  vk::SubmitInfo2 cSubmitInfo{
-    .waitSemaphoreInfoCount = 0,
-    .pWaitSemaphoreInfos = nullptr,
-    .commandBufferInfoCount = 1,
-    .pCommandBufferInfos = & cCmdInfo,
-    .signalSemaphoreInfoCount = 1,
-    .pSignalSemaphoreInfos = &cSignalSemaphore
-  };
+  vk::SubmitInfo2 cSubmitInfo{.waitSemaphoreInfoCount = 0,
+                              .pWaitSemaphoreInfos = nullptr,
+                              .commandBufferInfoCount = 1,
+                              .pCommandBufferInfos = &cCmdInfo,
+                              .signalSemaphoreInfoCount = 1,
+                              .pSignalSemaphoreInfos = &cSignalSemaphore};
 
   auto result = m_device->computeQueue().submit2(1, &cSubmitInfo, nullptr);
   if (result != vk::Result::eSuccess) {
-    throw std::runtime_error("compute submit2 failed: " + vk::to_string(result));
+    throw std::runtime_error("compute submit2 failed: " +
+                             vk::to_string(result));
   }
 
-  std::array<vk::SemaphoreSubmitInfo, 2> gWaitSemaphores {{
-    {
-      .semaphore = frame->computeFinished(),
-      .stageMask = vk::PipelineStageFlagBits2::eAllCommands
-    },
-    {
-      .semaphore = frame->imageAvailable(),
-      .stageMask = vk::PipelineStageFlagBits2::eAllCommands
-    }
-  }};
+  std::array<vk::SemaphoreSubmitInfo, 2> gWaitSemaphores{
+      {{.semaphore = frame->computeFinished(),
+        .stageMask = vk::PipelineStageFlagBits2::eAllCommands},
+       {.semaphore = frame->imageAvailable(),
+        .stageMask = vk::PipelineStageFlagBits2::eAllCommands}}};
 
   vk::SemaphoreSubmitInfo gSignalSemaphore{
       .semaphore = *m_renderFinishedSemaphores[imageIndex],
       .stageMask = vk::PipelineStageFlagBits2::eAllCommands};
 
-  vk::CommandBufferSubmitInfo gCmdInfo{
-    .commandBuffer = frame->graphicsCmd()
-  };
- 
-  vk::SubmitInfo2 gSubmitInfo{.waitSemaphoreInfoCount = gWaitSemaphores.size(),
-                             .pWaitSemaphoreInfos = gWaitSemaphores.data(),
-                             .commandBufferInfoCount = 1,
-                             .pCommandBufferInfos = &gCmdInfo,
-                             .signalSemaphoreInfoCount = 1,
-                             .pSignalSemaphoreInfos = &gSignalSemaphore};
+  vk::CommandBufferSubmitInfo gCmdInfo{.commandBuffer = frame->graphicsCmd()};
 
-  result = m_device->graphicsQueue().submit2(
-      1, &gSubmitInfo, frame->inFlight());
+  vk::SubmitInfo2 gSubmitInfo{.waitSemaphoreInfoCount = gWaitSemaphores.size(),
+                              .pWaitSemaphoreInfos = gWaitSemaphores.data(),
+                              .commandBufferInfoCount = 1,
+                              .pCommandBufferInfos = &gCmdInfo,
+                              .signalSemaphoreInfoCount = 1,
+                              .pSignalSemaphoreInfos = &gSignalSemaphore};
+
+  result =
+      m_device->graphicsQueue().submit2(1, &gSubmitInfo, frame->inFlight());
   if (result != vk::Result::eSuccess) {
-    throw std::runtime_error("graphics submit2 failed: " + vk::to_string(result));
+    throw std::runtime_error("graphics submit2 failed: " +
+                             vk::to_string(result));
   }
 
   result = m_swapChain->present(imageIndex, m_device->presentQueue(),
@@ -811,11 +819,29 @@ void VulkanRenderer::endFrame(uint32_t imageIndex) {
 
   if (result == vk::Result::eErrorOutOfDateKHR ||
       result == vk::Result::eSuboptimalKHR) {
-    auto extent = m_window->getWindowSize();
-    Util::println("Got an error in endframe");
-    m_swapChain->recreate({.width = extent.first, .height = extent.second});
+    recreateSwapchain();
     return;
   }
 
   m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+void VulkanRenderer::recreateSwapchain() {
+  const auto [width, height] = m_window->getWindowSize();
+  Util::println("Going to recreate swapchain and depth image with: {}, {}", width, height);
+
+  m_swapChain->recreate({.width = width, .height = height});
+
+  recreateDepthImage(width, height);
+}
+void VulkanRenderer::recreateDepthImage(const uint32_t width, const uint32_t height) {
+  m_depthImage = nullptr;
+
+  auto imageInfo = ImageInfo{
+    .width = width,
+    .height = height,
+    .format = vk::Format::eD32Sfloat,
+    .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
+    .aspectFlags = vk::ImageAspectFlagBits::eDepth,
+};
+  m_depthImage = std::make_unique<VulkanImage>(imageInfo, m_allocator->get());
 }

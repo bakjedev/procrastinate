@@ -29,7 +29,14 @@ MeshResource MeshResourceLoader::operator()(const std::string &path,
                        attrib.colors[(index.vertex_index * 3) + 1],
                        attrib.colors[(index.vertex_index * 3) + 2]};
 
-      vertices.emplace_back(pos, col);
+      auto nor = glm::vec3(0.0F);
+      if (!attrib.normals.empty()) {
+        nor = {attrib.normals[index.normal_index * 3],
+                       attrib.normals[(index.normal_index * 3) + 1],
+                       attrib.normals[(index.normal_index * 3) + 2]};
+      }
+
+      vertices.emplace_back(pos, col, nor);
       indices.push_back(static_cast<uint32_t>(vertices.size() - 1));
     }
   }

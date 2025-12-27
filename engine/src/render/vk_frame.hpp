@@ -33,10 +33,6 @@ class VulkanFrame {
   [[nodiscard]] vk::CommandBuffer transferCmd() const { return m_transferCmd; }
   [[nodiscard]] vk::CommandBuffer computeCmd() const { return m_computeCmd; }
 
-  [[nodiscard]] VulkanBuffer* indirectBuffer() const {
-    return m_indirectBuffer.get();
-  }
-  
   [[nodiscard]] VulkanBuffer* objectBuffer() const {
     return m_objectBuffer.get();
   }
@@ -66,9 +62,7 @@ class VulkanFrame {
   vk::UniqueFence m_inFlight;
   vk::UniqueSemaphore m_computeFinished;
 
-  std::unique_ptr<VulkanBuffer> m_indirectBuffer;
   std::unique_ptr<VulkanBuffer> m_objectBuffer;
-
   vk::DescriptorSet m_descriptorSet;
 
   vk::Device m_device;

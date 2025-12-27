@@ -19,10 +19,10 @@ struct RuntimeApplication {
     auto* cameraTransform = engine->getScene().addComponent<CTransform>(cameraEntity);
     auto* cameraComponent = engine->getScene().addComponent<CCamera>(cameraEntity);
     cameraTransform->world = glm::mat4(1.0F);
-    cameraComponent->fov = 90.0F;
+    cameraComponent->fov = 70.0F;
 
     auto rootPath = Files::getResourceRoot();
-    constexpr int gridSize = 30;
+    constexpr int gridSize = 100;
     for (int j{}; j < gridSize; ++j) {
       for (int i{}; i < gridSize; ++i) {
         const auto entity = engine->getScene().create();
@@ -64,20 +64,21 @@ struct RuntimeApplication {
     }
 
     auto& transform = engine->getScene().registry().get<CTransform>(static_cast<entt::entity>(cameraEntity));
+    constexpr float cameraSpeed = 50.0F;
     if (input.keyDown(KeyboardKey::W)) {
-      transform.world = glm::translate(transform.world, glm::vec3(0.0F, 0.0F, -deltaTime * 10.0F));
+      transform.world = glm::translate(transform.world, glm::vec3(0.0F, 0.0F, -deltaTime * cameraSpeed));
     } else if (input.keyDown(KeyboardKey::S)) {
-      transform.world = glm::translate(transform.world, glm::vec3(0.0F, 0.0F, deltaTime * 10.0F));
+      transform.world = glm::translate(transform.world, glm::vec3(0.0F, 0.0F, deltaTime * cameraSpeed));
     }
     if (input.keyDown(KeyboardKey::A)) {
-      transform.world = glm::translate(transform.world, glm::vec3(-deltaTime * 10.0F, 0.0F, 0.0F));
+      transform.world = glm::translate(transform.world, glm::vec3(-deltaTime * cameraSpeed, 0.0F, 0.0F));
     } else if (input.keyDown(KeyboardKey::D)) {
-      transform.world = glm::translate(transform.world, glm::vec3(deltaTime * 10.0F, 0.0F, 0.0F));
+      transform.world = glm::translate(transform.world, glm::vec3(deltaTime * cameraSpeed, 0.0F, 0.0F));
     }
     if (input.keyDown(KeyboardKey::Space)) {
-      transform.world = glm::translate(transform.world, glm::vec3(0.0F, -deltaTime * 10.0F, 0.0F));
+      transform.world = glm::translate(transform.world, glm::vec3(0.0F, -deltaTime * cameraSpeed, 0.0F));
     } else if (input.keyDown(KeyboardKey::LeftControl)) {
-      transform.world = glm::translate(transform.world, glm::vec3(0.0F, deltaTime * 10.0F, 0.0F));
+      transform.world = glm::translate(transform.world, glm::vec3(0.0F, deltaTime * cameraSpeed, 0.0F));
     }
   }
 

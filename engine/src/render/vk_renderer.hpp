@@ -14,6 +14,7 @@
 #include "render/vk_surface.hpp"
 #include "render/vk_swap_chain.hpp"
 #include "vk_buffer.hpp"
+#include "vk_image.hpp"
 
 class Window;
 
@@ -34,6 +35,7 @@ struct PushConstant {
 struct Vertex {
   glm::vec3 position;
   glm::vec3 color;
+  glm::vec3 normal;
 };
 
 class VulkanRenderer {
@@ -59,6 +61,9 @@ class VulkanRenderer {
  private:
   std::optional<uint32_t> beginFrame();
   void endFrame(uint32_t imageIndex);
+
+  void recreateSwapchain();
+  void recreateDepthImage(uint32_t width, uint32_t height);
 
   static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -102,6 +107,8 @@ class VulkanRenderer {
   std::unique_ptr<VulkanBuffer> m_indexBuffer;
   std::unique_ptr<VulkanBuffer> m_meshInfoBuffer;
 
+  std::unique_ptr<VulkanBuffer> m_indirectBuffer;
+  std::unique_ptr<VulkanImage> m_depthImage;
 
   Window* m_window = nullptr;
   EventManager* m_eventManager = nullptr;
