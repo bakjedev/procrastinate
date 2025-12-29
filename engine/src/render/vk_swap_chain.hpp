@@ -15,7 +15,7 @@ class VulkanSwapChain {
 
   [[nodiscard]] vk::SwapchainKHR get() const { return m_swapChain; }
   [[nodiscard]] uint32_t imageCount() const { return m_imageCount; }
-  [[nodiscard]] vk::Image getImage(uint32_t imageIndex) const {
+  [[nodiscard]] vk::Image getImage(const uint32_t imageIndex) const {
     return m_images.at(imageIndex);
   }
   [[nodiscard]] const std::vector<vk::Image>& images() const {
@@ -54,12 +54,12 @@ class VulkanSwapChain {
   uint32_t m_imageIndex{};
 
   void create();
-  void destroy();
+  void destroy() const;
 
   void getImages();
   void createImageViews();
 
-  vk::SurfaceCapabilitiesKHR getCapabilities();
+  vk::SurfaceCapabilitiesKHR getCapabilities() const;
   void chooseSurfaceFormat();
   void choosePresentMode();
 };

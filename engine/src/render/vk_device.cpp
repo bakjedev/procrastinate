@@ -4,12 +4,11 @@
 
 #include "util/print.hpp"
 
-VulkanDevice::VulkanDevice(vk::Instance instance, vk::SurfaceKHR surface) {
+VulkanDevice::VulkanDevice(const vk::Instance instance,
+                           const vk::SurfaceKHR surface) {
   pickPhysicalDevice(instance, surface);
   createDevice();
   getQueues();
-  Util::println(
-      "Picked physical device, created vulkan logical device, and got queues");
 }
 
 VulkanDevice::~VulkanDevice() { m_device.destroy(); }
@@ -44,8 +43,8 @@ void VulkanDevice::pickPhysicalDevice(vk::Instance instance,
         throw std::runtime_error("Failed to find Vulkan queue families");
       }
 
-      Util::println("Picked vulkan physical device ({})",
-                    properties.deviceName.data());
+      Util::println("Picked physical device: {}", properties.deviceName.data());
+
       break;
     }
   }
@@ -68,7 +67,7 @@ void VulkanDevice::createDevice() {
     queueCreateInfos.push_back(queueCreateInfo);
   }
 
-  std::vector deviceExtensions = {vk::KHRSwapchainExtensionName};
+  const std::vector deviceExtensions = {vk::KHRSwapchainExtensionName};
 
   m_enabledFeatures = {.pNext = m_enabledFeatures11};
   m_enabledFeatures11 = {.pNext = m_enabledFeatures12};
@@ -134,10 +133,10 @@ bool VulkanDevice::isDeviceSuitable(const vk::PhysicalDeviceProperties&) {
 }
 
 bool VulkanDevice::findQueueFamilies(const vk::SurfaceKHR surface) {
-  auto queueFamilies = m_physicalDevice.getQueueFamilyProperties();
+  const auto queueFamilies = m_physicalDevice.getQueueFamilyProperties();
 
   for (size_t idx = 0; idx < queueFamilies.size(); idx++) {
-    const auto& queueFamily = queueFamilies[idx];
+    const auto& queueFamily = queueFamilies.at(idx);
 
     // Dedicated compute queue
     if ((queueFamily.queueFlags & vk::QueueFlagBits::eCompute) &&
@@ -156,7 +155,7 @@ bool VulkanDevice::findQueueFamilies(const vk::SurfaceKHR surface) {
   // Graphics and present. Also compute and transfer if it couldn't find
   // dedicated queues for them
   for (size_t idx = 0; idx < queueFamilies.size(); idx++) {
-    const auto& queueFamily = queueFamilies[idx];
+    const auto& queueFamily = queueFamilies.at(idx);
 
     if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) {
       m_queueFamilyIndices.graphics = idx;

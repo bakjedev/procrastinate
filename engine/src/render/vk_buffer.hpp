@@ -26,7 +26,7 @@ class VulkanBuffer {
                         uint32_t offset);
 
   void* map();
-  void unmap();
+  void unmap() const;
 
   [[nodiscard]] void* getMappedData() const { return m_mappedData; };
   template <typename T>

@@ -13,14 +13,17 @@
 
 #define MAX_OBJECTS 10000
 
-VulkanFrame::VulkanFrame(VulkanCommandPool* graphicsPool,
-                         VulkanCommandPool* transferPool,
-                         VulkanCommandPool* computePool,
-                         VulkanDescriptorPool* descriptorPool,
-                         VulkanDescriptorSetLayout* descriptorLayout,
-                         vk::Device device, VulkanAllocator* allocator) {
+VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
+                         const VulkanCommandPool* transferPool,
+                         const VulkanCommandPool* computePool,
+                         const VulkanDescriptorPool* descriptorPool,
+                         const VulkanDescriptorSetLayout* descriptorLayout,
+                         const vk::Device device,
+                         const VulkanAllocator* allocator) {
+  // Set references
   m_device = device;
 
+  // Create per frame sync objects
   constexpr vk::SemaphoreCreateInfo semaphoreCreateInfo{};
   constexpr vk::FenceCreateInfo fenceCreateInfo{
       .flags = vk::FenceCreateFlagBits::eSignaled};
@@ -29,14 +32,12 @@ VulkanFrame::VulkanFrame(VulkanCommandPool* graphicsPool,
   m_inFlight = m_device.createFenceUnique(fenceCreateInfo);
   m_computeFinished = m_device.createSemaphoreUnique(semaphoreCreateInfo);
 
-  Util::println("Created frame sync objects");
-
+  // Allocate command buffers for graphics, transfer and compute.
   m_graphicsCmd = graphicsPool->allocate();
   m_transferCmd = transferPool->allocate();
   m_computeCmd = computePool->allocate();
 
-  Util::println("Allocated frame command buffers");
-
+  // Create render object buffer
   m_objectBuffer = std::make_unique<VulkanBuffer>(
       BufferInfo{
           .size = sizeof(RenderObject) * MAX_OBJECTS,
@@ -48,19 +49,10 @@ VulkanFrame::VulkanFrame(VulkanCommandPool* graphicsPool,
 
       },
       allocator->get());
-
   m_objectBuffer->map();
 
-  Util::println("Created frame object buffer");
-
+  // Allocate descriptor set with per frame descriptor set layout
   m_descriptorSet = descriptorPool->allocate(descriptorLayout->get());
-
-  Util::println("Allocated frame descriptor set");
-
-  Util::println("Created vulkan frame");
 }
 
-VulkanFrame::~VulkanFrame() {
-  m_objectBuffer->unmap();
-  Util::println("Destroyed vulkan frame");
-}
+VulkanFrame::~VulkanFrame() { m_objectBuffer->unmap(); }

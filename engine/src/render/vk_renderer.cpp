@@ -29,6 +29,7 @@
 
 VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
                                EventManager& eventManager) {
+  Util::println("Initializing renderer");
   // -----------------------------------------------------------
   // SET REFERENCES
   // -----------------------------------------------------------
@@ -51,10 +52,10 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
   // -----------------------------------------------------------
   // SWAPCHAIN
   // -----------------------------------------------------------
-  auto extent = window->getWindowSize();
+  auto [width, height] = window->getWindowSize();
   m_swapChain = std::make_unique<VulkanSwapChain>(
       m_device->get(), m_device->getPhysical(), m_surface->get(),
-      vk::Extent2D{.width = extent.first, .height = extent.second});
+      vk::Extent2D{.width = width, .height = height});
 
   // -----------------------------------------------------------
   // GET QUEUE FAMILIES FOR GRAPHICS, TRANSFER AND COMPUTE
@@ -142,7 +143,7 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
   // -----------------------------------------------------------
   PipelineLayoutInfo pipelineLayoutInfo{};
 
-  const vk::PushConstantRange pushConstantRange{
+  constexpr vk::PushConstantRange pushConstantRange{
       .stageFlags = vk::ShaderStageFlagBits::eVertex,
       .offset = 0,
       .size = sizeof(PushConstant)};
@@ -195,7 +196,6 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
   pipelineInfo.vertexAttributes.push_back(colorAttr);
   pipelineInfo.vertexAttributes.push_back(normalAttr);
 
-  Util::println("Creating Graphics pipeline");
   m_pipeline = std::make_unique<VulkanPipeline>(m_device->get(), pipelineInfo);
 
   // -----------------------------------------------------------
@@ -232,7 +232,6 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
       .layout = m_compPipelineLayout->get(),
   };
 
-  Util::println("Creating Compute pipeline");
   m_compPipeline =
       std::make_unique<VulkanPipeline>(m_device->get(), compPipelineInfo);
 
@@ -274,7 +273,6 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
                  .memoryFlags = {}},
       m_allocator->get());
 
-  const auto [width, height] = m_window->getWindowSize();
   recreateDepthImage(width, height);
 
   // -----------------------------------------------------------
@@ -355,8 +353,7 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
   initInfo.PipelineInfoMain.PipelineRenderingCreateInfo = renderingInfo;
 
   ImGui_ImplVulkan_Init(&initInfo);
-
-  Util::println("Created vulkan renderer");
+  Util::println("Initialized renderer");
 }
 
 VulkanRenderer::~VulkanRenderer() {
@@ -365,8 +362,6 @@ VulkanRenderer::~VulkanRenderer() {
   ImGui_ImplVulkan_Shutdown();
   ImGui_ImplSDL3_Shutdown();
   ImGui::DestroyContext();
-
-  Util::println("Destroyed vulkan renderer");
 }
 
 void VulkanRenderer::run(glm::mat4 world, float fov) {
@@ -749,7 +744,7 @@ std::optional<uint32_t> VulkanRenderer::beginFrame() {
   return imageIndex;
 }
 
-void VulkanRenderer::endFrame(uint32_t imageIndex) {
+auto VulkanRenderer::endFrame(uint32_t imageIndex) -> void {
   auto& frame = m_frames[m_currentFrame];
 
   vk::SemaphoreSubmitInfo cSignalSemaphore{
@@ -810,8 +805,6 @@ void VulkanRenderer::endFrame(uint32_t imageIndex) {
 }
 void VulkanRenderer::recreateSwapchain() {
   const auto [width, height] = m_window->getWindowSize();
-  Util::println("Going to recreate swapchain and depth image with: {}, {}",
-                width, height);
 
   m_swapChain->recreate({.width = width, .height = height});
 

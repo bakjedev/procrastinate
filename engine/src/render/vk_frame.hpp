@@ -20,11 +20,11 @@ struct RenderObject {
 
 class VulkanFrame {
  public:
-  VulkanFrame(VulkanCommandPool* graphicsPool, VulkanCommandPool* transferPool,
-              VulkanCommandPool* computePool,
-              VulkanDescriptorPool* descriptorPool,
-              VulkanDescriptorSetLayout* descriptorLayout, vk::Device device,
-              VulkanAllocator* allocator);
+  VulkanFrame(const VulkanCommandPool* graphicsPool,
+              const VulkanCommandPool* transferPool,
+              const VulkanCommandPool* computePool,
+              const VulkanDescriptorPool* descriptorPool,
+              const VulkanDescriptorSetLayout* descriptorLayout, vk::Device device, const VulkanAllocator* allocator);
   VulkanFrame(const VulkanFrame&) = delete;
   VulkanFrame(VulkanFrame&&) = delete;
   VulkanFrame& operator=(const VulkanFrame&) = delete;

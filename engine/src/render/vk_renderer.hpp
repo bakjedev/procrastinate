@@ -1,7 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <memory>
-#include <unordered_set>
 
 #include "render/vk_allocator.hpp"
 #include "render/vk_command_pool.hpp"

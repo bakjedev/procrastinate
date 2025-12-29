@@ -13,76 +13,22 @@ VulkanImage::VulkanImage(const ImageInfo &info, VmaAllocator allocator)
 
   create(info);
   createView(info.aspectFlags);
-  Util::println("Created vulkan image ({}x{}, format {})", info.width,
-                info.height, static_cast<int>(info.format));
 }
 
 VulkanImage::~VulkanImage() { destroy(); }
 
-void VulkanImage::create(const ImageInfo &info) {
-  vk::ImageCreateInfo imageInfo{
-      .imageType = vk::ImageType::e2D,
-      .format = info.format,
-      .extent =
-          vk::Extent3D{.width = info.width, .height = info.height, .depth = 1},
-      .mipLevels = 1,
-      .arrayLayers = 1,
-      .samples = vk::SampleCountFlagBits::e1,
-      .tiling = vk::ImageTiling::eOptimal,
-      .usage = info.usage,
-      .sharingMode = vk::SharingMode::eExclusive,
-      .initialLayout = vk::ImageLayout::eUndefined};
-
-  VmaAllocationCreateInfo allocInfo{};
-  allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-  allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
-
-  auto rawImageInfo = static_cast<VkImageCreateInfo>(imageInfo);
-
-  VkImage tempImage = VK_NULL_HANDLE;
-  VK_CHECK(vmaCreateImage(m_allocator, &rawImageInfo, &allocInfo, &tempImage,
-                          &m_allocation, nullptr));
-  m_image = tempImage;
-}
-
-void VulkanImage::createView(vk::ImageAspectFlags aspectFlags) {
-  vk::ImageViewCreateInfo viewInfo{
-      .image = m_image,
-      .viewType = vk::ImageViewType::e2D,
-      .format = m_format,
-      .subresourceRange = vk::ImageSubresourceRange{.aspectMask = aspectFlags,
-                                                    .baseMipLevel = 0,
-                                                    .levelCount = 1,
-                                                    .baseArrayLayer = 0,
-                                                    .layerCount = 1}};
-
-  m_imageView = m_device.createImageView(viewInfo);
-}
-
-void VulkanImage::destroy() {
-  if (m_imageView) {
-    m_device.destroyImageView(m_imageView);
-    m_imageView = nullptr;
-  }
-  if (m_image) {
-    vmaDestroyImage(m_allocator, static_cast<VkImage>(m_image), m_allocation);
-    m_image = nullptr;
-    m_allocation = VK_NULL_HANDLE;
-  }
-  Util::println("Destroyed vulkan image");
-}
-
-void VulkanImage::transitionLayout(vk::CommandBuffer cmd,
-                                   vk::ImageLayout oldLayout,
-                                   vk::ImageLayout newLayout) {
+void VulkanImage::transitionLayout(const vk::CommandBuffer cmd,
+                                   const vk::ImageLayout oldLayout,
+                                   const vk::ImageLayout newLayout) const {
   transitionImageLayout(m_image, cmd, oldLayout, newLayout);
 }
 
 // static
-void VulkanImage::transitionImageLayout(vk::Image image, vk::CommandBuffer cmd,
-                                        vk::ImageLayout oldLayout,
-                                        vk::ImageLayout newLayout) {
-  vk::ImageAspectFlags aspectMask =
+void VulkanImage::transitionImageLayout(const vk::Image image,
+                                        const vk::CommandBuffer cmd,
+                                        const vk::ImageLayout oldLayout,
+                                        const vk::ImageLayout newLayout) {
+  const vk::ImageAspectFlags aspectMask =
       (newLayout == vk::ImageLayout::eDepthAttachmentOptimal)
           ? vk::ImageAspectFlagBits::eDepth
           : vk::ImageAspectFlagBits::eColor;
@@ -135,8 +81,60 @@ void VulkanImage::transitionImageLayout(vk::Image image, vk::CommandBuffer cmd,
     throw std::runtime_error("Unsupported layout transition");
   }
 
-  vk::DependencyInfo depInfo{.imageMemoryBarrierCount = 1,
-                             .pImageMemoryBarriers = &barrier};
+  const vk::DependencyInfo depInfo{.imageMemoryBarrierCount = 1,
+                                   .pImageMemoryBarriers = &barrier};
 
   cmd.pipelineBarrier2(depInfo);
+}
+
+void VulkanImage::destroy() {
+  if (m_imageView) {
+    m_device.destroyImageView(m_imageView);
+    m_imageView = nullptr;
+  }
+  if (m_image) {
+    vmaDestroyImage(m_allocator, static_cast<VkImage>(m_image), m_allocation);
+    m_image = nullptr;
+    m_allocation = VK_NULL_HANDLE;
+  }
+}
+
+void VulkanImage::create(const ImageInfo &info) {
+  vk::ImageCreateInfo imageInfo{
+      .imageType = vk::ImageType::e2D,
+      .format = info.format,
+      .extent =
+          vk::Extent3D{.width = info.width, .height = info.height, .depth = 1},
+      .mipLevels = 1,
+      .arrayLayers = 1,
+      .samples = vk::SampleCountFlagBits::e1,
+      .tiling = vk::ImageTiling::eOptimal,
+      .usage = info.usage,
+      .sharingMode = vk::SharingMode::eExclusive,
+      .initialLayout = vk::ImageLayout::eUndefined};
+
+  VmaAllocationCreateInfo allocInfo{};
+  allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+  allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+
+  const auto rawImageInfo = static_cast<VkImageCreateInfo>(imageInfo);
+
+  VkImage tempImage = VK_NULL_HANDLE;
+  VK_CHECK(vmaCreateImage(m_allocator, &rawImageInfo, &allocInfo, &tempImage,
+                          &m_allocation, nullptr));
+  m_image = tempImage;
+}
+
+void VulkanImage::createView(const vk::ImageAspectFlags aspectFlags) {
+  const vk::ImageViewCreateInfo viewInfo{
+      .image = m_image,
+      .viewType = vk::ImageViewType::e2D,
+      .format = m_format,
+      .subresourceRange = vk::ImageSubresourceRange{.aspectMask = aspectFlags,
+                                                    .baseMipLevel = 0,
+                                                    .levelCount = 1,
+                                                    .baseArrayLayer = 0,
+                                                    .layerCount = 1}};
+
+  m_imageView = m_device.createImageView(viewInfo);
 }

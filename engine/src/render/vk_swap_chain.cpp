@@ -2,9 +2,10 @@
 
 #include "util/print.hpp"
 
-VulkanSwapChain::VulkanSwapChain(vk::Device device,
-                                 vk::PhysicalDevice physicalDevice,
-                                 vk::SurfaceKHR surface, vk::Extent2D extent)
+VulkanSwapChain::VulkanSwapChain(const vk::Device device,
+                                 const vk::PhysicalDevice physicalDevice,
+                                 const vk::SurfaceKHR surface,
+                                 const vk::Extent2D extent)
     : m_physicalDevice(physicalDevice),
       m_surface(surface),
       m_device(device),
@@ -14,8 +15,8 @@ VulkanSwapChain::VulkanSwapChain(vk::Device device,
 
 VulkanSwapChain::~VulkanSwapChain() { destroy(); }
 
-vk::Result VulkanSwapChain::acquireNextImage(vk::Semaphore signalSemaphore,
-                                             uint32_t& imageIndex) {
+vk::Result VulkanSwapChain::acquireNextImage(
+    const vk::Semaphore signalSemaphore, uint32_t& imageIndex) {
   const auto result = m_device.acquireNextImageKHR(
       m_swapChain, UINT64_MAX, signalSemaphore, nullptr, &m_imageIndex);
   imageIndex = m_imageIndex;
@@ -23,8 +24,8 @@ vk::Result VulkanSwapChain::acquireNextImage(vk::Semaphore signalSemaphore,
 }
 
 vk::Result VulkanSwapChain::present(const uint32_t imageIndex,
-                                    vk::Queue presentQueue,
-                                    vk::Semaphore waitSemaphore) const {
+                                    const vk::Queue presentQueue,
+                                    const vk::Semaphore waitSemaphore) const {
   vk::PresentInfoKHR presentInfo{};
   presentInfo.sType = vk::StructureType::ePresentInfoKHR;
   presentInfo.waitSemaphoreCount = 1;
@@ -38,6 +39,13 @@ vk::Result VulkanSwapChain::present(const uint32_t imageIndex,
   } catch (const vk::OutOfDateKHRError&) {
     return vk::Result::eErrorOutOfDateKHR;
   }
+}
+
+void VulkanSwapChain::recreate(vk::Extent2D extent) {
+  m_device.waitIdle();
+  destroy();
+  m_extent = extent;
+  create();
 }
 
 void VulkanSwapChain::create() {
@@ -83,24 +91,13 @@ void VulkanSwapChain::create() {
 
   getImages();
   createImageViews();
-
-  Util::println(
-      "Created vulkan swap chain, retrieved images, and created image views");
 }
 
-void VulkanSwapChain::destroy() {
+void VulkanSwapChain::destroy() const {
   for (const auto& view : m_imageViews) {
     m_device.destroyImageView(view);
   }
   m_device.destroySwapchainKHR(m_swapChain);
-  Util::println("Destroyed vulkan swap chain");
-}
-
-void VulkanSwapChain::recreate(vk::Extent2D extent) {
-  m_device.waitIdle();
-  destroy();
-  m_extent = extent;
-  create();
 }
 
 void VulkanSwapChain::getImages() {
@@ -131,12 +128,12 @@ void VulkanSwapChain::createImageViews() {
   }
 }
 
-vk::SurfaceCapabilitiesKHR VulkanSwapChain::getCapabilities() {
+vk::SurfaceCapabilitiesKHR VulkanSwapChain::getCapabilities() const {
   return m_physicalDevice.getSurfaceCapabilitiesKHR(m_surface);
 }
 
 void VulkanSwapChain::chooseSurfaceFormat() {
-  auto surfaceFormats = m_physicalDevice.getSurfaceFormatsKHR(m_surface);
+  const auto surfaceFormats = m_physicalDevice.getSurfaceFormatsKHR(m_surface);
 
   if (surfaceFormats.empty()) {
     throw std::runtime_error("Failed to find Vulkan surface formats");
@@ -155,7 +152,8 @@ void VulkanSwapChain::chooseSurfaceFormat() {
 }
 
 void VulkanSwapChain::choosePresentMode() {
-  auto presentModes = m_physicalDevice.getSurfacePresentModesKHR(m_surface);
+  const auto presentModes =
+      m_physicalDevice.getSurfacePresentModesKHR(m_surface);
 
   if (presentModes.empty()) {
     throw std::runtime_error("Failed to find present modes");

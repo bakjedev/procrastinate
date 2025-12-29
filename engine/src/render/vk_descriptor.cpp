@@ -5,36 +5,35 @@
 VulkanDescriptorPool::VulkanDescriptorPool(vk::Device device,
                                            const DescriptorPoolInfo &info)
     : m_device(device) {
-  vk::DescriptorPoolCreateInfo createInfo{
+  const vk::DescriptorPoolCreateInfo createInfo{
       .flags = info.flags,
       .maxSets = info.maxSets,
       .poolSizeCount = static_cast<uint32_t>(info.poolSizes.size()),
       .pPoolSizes = info.poolSizes.data()};
 
   m_descriptorPool = device.createDescriptorPool(createInfo);
-  Util::println("Created descriptor pool");
 }
 
 VulkanDescriptorPool::~VulkanDescriptorPool() {
   if (m_descriptorPool) {
     m_device.destroyDescriptorPool(m_descriptorPool);
   }
-  Util::println("Destroyed descriptor pool");
 }
 
 vk::DescriptorSet VulkanDescriptorPool::allocate(
-    vk::DescriptorSetLayout layout) {
-  vk::DescriptorSetAllocateInfo allocInfo{.descriptorPool = m_descriptorPool,
-                                          .descriptorSetCount = 1,
-                                          .pSetLayouts = &layout};
+    vk::DescriptorSetLayout layout) const {
+  const vk::DescriptorSetAllocateInfo allocInfo{
+      .descriptorPool = m_descriptorPool,
+      .descriptorSetCount = 1,
+      .pSetLayouts = &layout};
 
-  auto sets = m_device.allocateDescriptorSets(allocInfo);
-  return sets[0];
+  const auto sets = m_device.allocateDescriptorSets(allocInfo);
+  return sets.front();
 }
 
 std::vector<vk::DescriptorSet> VulkanDescriptorPool::allocate(
-    const std::vector<vk::DescriptorSetLayout> &layouts) {
-  vk::DescriptorSetAllocateInfo allocInfo{
+    const std::vector<vk::DescriptorSetLayout> &layouts) const {
+  const vk::DescriptorSetAllocateInfo allocInfo{
       .descriptorPool = m_descriptorPool,
       .descriptorSetCount = static_cast<uint32_t>(layouts.size()),
       .pSetLayouts = layouts.data()};
@@ -43,10 +42,10 @@ std::vector<vk::DescriptorSet> VulkanDescriptorPool::allocate(
 }
 
 VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(
-    vk::Device device,
+    const vk::Device device,
     const std::vector<vk::DescriptorSetLayoutBinding> &bindings,
     const std::vector<vk::DescriptorBindingFlags> &bindingFlags,
-    vk::DescriptorSetLayoutCreateFlags flags)
+    const vk::DescriptorSetLayoutCreateFlags flags)
     : m_device(device) {
   vk::DescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo;
   if (!bindingFlags.empty()) {
@@ -54,7 +53,7 @@ VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(
     bindingFlagsInfo.pBindingFlags = bindingFlags.data();
   }
 
-  vk::DescriptorSetLayoutCreateInfo createInfo{
+  const vk::DescriptorSetLayoutCreateInfo createInfo{
       .pNext = !bindingFlags.empty() ? &bindingFlagsInfo : nullptr,
       .flags = flags,
       .bindingCount = static_cast<uint32_t>(bindings.size()),

@@ -16,7 +16,7 @@ class VulkanCommandPool {
   ~VulkanCommandPool();
 
   [[nodiscard]] vk::CommandPool get() const { return m_commandPool; }
-  vk::CommandBuffer allocate(
+  [[nodiscard]] vk::CommandBuffer allocate(
       vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const;
   void free(vk::CommandBuffer commandBuffer) const;
   void reset() const;

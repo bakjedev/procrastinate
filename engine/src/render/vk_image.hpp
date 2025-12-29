@@ -29,7 +29,7 @@ class VulkanImage {
   [[nodiscard]] uint32_t height() const { return m_height; }
 
   void transitionLayout(vk::CommandBuffer cmd, vk::ImageLayout oldLayout,
-                        vk::ImageLayout newLayout);
+                        vk::ImageLayout newLayout) const;
 
   static void transitionImageLayout(vk::Image image, vk::CommandBuffer cmd,
                                     vk::ImageLayout oldLayout,

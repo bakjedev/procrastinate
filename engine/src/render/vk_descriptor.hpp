@@ -17,9 +17,9 @@ class VulkanDescriptorPool {
   VulkanDescriptorPool &operator=(VulkanDescriptorPool &&) = delete;
   ~VulkanDescriptorPool();
 
-  vk::DescriptorSet allocate(vk::DescriptorSetLayout layout);
+  vk::DescriptorSet allocate(vk::DescriptorSetLayout layout) const;
   std::vector<vk::DescriptorSet> allocate(
-      const std::vector<vk::DescriptorSetLayout> &layouts);
+      const std::vector<vk::DescriptorSetLayout> &layouts) const;
 
   vk::DescriptorPool get() const { return m_descriptorPool; }
 

@@ -4,10 +4,10 @@
 
 #include "vulkan/vulkan.hpp"
 
-VulkanPipelineLayout::VulkanPipelineLayout(vk::Device device,
+VulkanPipelineLayout::VulkanPipelineLayout(const vk::Device device,
                                            const PipelineLayoutInfo &info)
     : m_device(device) {
-  vk::PipelineLayoutCreateInfo createInfo{
+  const vk::PipelineLayoutCreateInfo createInfo{
       .setLayoutCount = static_cast<uint32_t>(info.descriptorSets.size()),
       .pSetLayouts = info.descriptorSets.data(),
       .pushConstantRangeCount =
@@ -23,7 +23,8 @@ VulkanPipelineLayout::~VulkanPipelineLayout() {
   }
 }
 
-VulkanPipeline::VulkanPipeline(vk::Device device, const PipelineInfo &info)
+VulkanPipeline::VulkanPipeline(const vk::Device device,
+                               const PipelineInfo &info)
     : m_device(device) {
   std::visit(
       [this](auto &&value) {
@@ -144,11 +145,11 @@ void VulkanPipeline::createGraphicsPipeline(const GraphicsPipelineInfo &info) {
 }
 
 void VulkanPipeline::createComputePipeline(const ComputePipelineInfo &info) {
-  vk::ComputePipelineCreateInfo createInfo{
+  const vk::ComputePipelineCreateInfo createInfo{
       .flags = {},
       .stage = info.shaderStage,
       .layout = info.layout,
   };
-  auto result = m_device.createComputePipelines(nullptr, createInfo);
+  const auto result = m_device.createComputePipelines(nullptr, createInfo);
   m_pipeline = result.value.front();
 }

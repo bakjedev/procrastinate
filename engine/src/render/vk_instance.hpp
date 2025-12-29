@@ -13,4 +13,9 @@ class VulkanInstance {
 
  private:
   vk::Instance m_instance;
+
+#ifndef NDEBUG
+  vk::detail::DispatchLoaderDynamic m_dynamicLoader;
+  vk::DebugUtilsMessengerEXT m_debugMessenger;
+#endif
 };

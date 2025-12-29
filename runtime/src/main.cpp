@@ -115,11 +115,15 @@ struct RuntimeApplication {
 };
 
 int main() {
-  Engine engine;
+  try {
+    Engine engine;
 
-  RuntimeApplication app{};
+    RuntimeApplication app{};
 
-  engine.run(app);
-
+    engine.run(app);
+  } catch (const std::exception& err) {
+    Util::println("Fatal error: {}", err.what());
+    return 1;
+  }
   return 0;
 }

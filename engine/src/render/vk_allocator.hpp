@@ -6,8 +6,8 @@
 
 class VulkanAllocator {
  public:
-  VulkanAllocator(vk::PhysicalDevice physicalDevice, vk::Device device,
-                  vk::Instance instance) {
+  VulkanAllocator(const vk::PhysicalDevice physicalDevice,
+                  const vk::Device device, const vk::Instance instance) {
     VmaAllocatorCreateInfo info = {};
     info.physicalDevice = physicalDevice;
     info.device = device;
@@ -15,13 +15,9 @@ class VulkanAllocator {
     info.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 
     VK_CHECK(vmaCreateAllocator(&info, &m_allocator));
-    Util::println("Created vulkan allocator");
   }
 
-  ~VulkanAllocator() {
-    vmaDestroyAllocator(m_allocator);
-    Util::println("Destroyed vulkan allocator");
-  }
+  ~VulkanAllocator() { vmaDestroyAllocator(m_allocator); }
 
   VulkanAllocator(const VulkanAllocator &) = delete;
   VulkanAllocator(VulkanAllocator &&) = delete;

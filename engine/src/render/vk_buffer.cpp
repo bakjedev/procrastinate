@@ -14,16 +14,16 @@ VulkanBuffer::~VulkanBuffer() { destroy(); }
 void VulkanBuffer::create(const BufferInfo& info) {
   vk::BufferCreateInfo bufferCreateInfo{.size = info.size, .usage = info.usage};
 
-  VmaAllocationCreateInfo vmaallocInfo = {};
-  vmaallocInfo.usage = info.memoryUsage;
-  vmaallocInfo.flags = info.memoryFlags;
+  VmaAllocationCreateInfo vmaAllocInfo = {};
+  vmaAllocInfo.usage = info.memoryUsage;
+  vmaAllocInfo.flags = info.memoryFlags;
 
-  auto rawBufferInfo = static_cast<VkBufferCreateInfo>(bufferCreateInfo);
+  const auto rawBufferInfo = static_cast<VkBufferCreateInfo>(bufferCreateInfo);
 
   VmaAllocationInfo allocationInfo;
 
   VkBuffer tempBuffer = VK_NULL_HANDLE;
-  VK_CHECK(vmaCreateBuffer(m_allocator, &rawBufferInfo, &vmaallocInfo,
+  VK_CHECK(vmaCreateBuffer(m_allocator, &rawBufferInfo, &vmaAllocInfo,
                            &tempBuffer, &m_allocation, &allocationInfo));
   m_buffer = tempBuffer;
   m_size = info.size;
@@ -41,7 +41,7 @@ void VulkanBuffer::write(const void* srcData) {
   unmap();
 }
 
-void VulkanBuffer::writeRange(const void* srcData, uint32_t rangeSize) {
+void VulkanBuffer::writeRange(const void* srcData, const uint32_t rangeSize) {
   if (m_mappedData != nullptr) {
     memcpy(m_mappedData, srcData, rangeSize);
     return;
@@ -52,8 +52,9 @@ void VulkanBuffer::writeRange(const void* srcData, uint32_t rangeSize) {
   unmap();
 }
 
-void VulkanBuffer::writeRangeOffset(const void* srcData, uint32_t rangeSize,
-                                    uint32_t offset) {
+void VulkanBuffer::writeRangeOffset(const void* srcData,
+                                    const uint32_t rangeSize,
+                                    const uint32_t offset) {
   if (m_mappedData != nullptr) {
     memcpy(static_cast<uint8_t*>(m_mappedData) + offset, srcData, rangeSize);
     return;
@@ -76,7 +77,7 @@ void* VulkanBuffer::map() {
   return data;
 }
 
-void VulkanBuffer::unmap() { vmaUnmapMemory(m_allocator, m_allocation); }
+void VulkanBuffer::unmap() const { vmaUnmapMemory(m_allocator, m_allocation); }
 
 void VulkanBuffer::destroy() {
   vmaDestroyBuffer(m_allocator, m_buffer, m_allocation);

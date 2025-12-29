@@ -4,7 +4,7 @@
 
 #include "util/print.hpp"
 
-VulkanSurface::VulkanSurface(SDL_Window* window, vk::Instance instance)
+VulkanSurface::VulkanSurface(SDL_Window* window, const vk::Instance instance)
     : m_instance(instance) {
   VkSurfaceKHR cSurface = VK_NULL_HANDLE;
 
@@ -13,10 +13,8 @@ VulkanSurface::VulkanSurface(SDL_Window* window, vk::Instance instance)
                              std::string(SDL_GetError()));
   }
   m_surface = cSurface;
-  Util::println("Created vulkan surface");
 }
 
 VulkanSurface::~VulkanSurface() {
   SDL_Vulkan_DestroySurface(m_instance, m_surface, nullptr);
-  Util::println("Destroyed vulkan surface");
 }
