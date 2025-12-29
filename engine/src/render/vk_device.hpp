@@ -29,7 +29,7 @@ class VulkanDevice {
     return m_physicalDevice;
   }
 
-  void waitIdle();
+  void waitIdle() const;
 
   [[nodiscard]] vk::Queue graphicsQueue() const { return m_graphicsQueue; }
   [[nodiscard]] vk::Queue computeQueue() const { return m_computeQueue; }
@@ -47,9 +47,16 @@ class VulkanDevice {
   vk::PhysicalDevice m_physicalDevice;
   vk::Device m_device;
   vk::PhysicalDeviceProperties m_properties;
-  vk::PhysicalDeviceFeatures m_features;
-  vk::PhysicalDeviceVulkan12Features m_features12;
-  vk::PhysicalDeviceVulkan13Features m_features13;
+
+  vk::PhysicalDeviceFeatures2 m_availableFeatures;
+  vk::PhysicalDeviceVulkan11Features m_availableFeatures11;
+  vk::PhysicalDeviceVulkan12Features m_availableFeatures12;
+  vk::PhysicalDeviceVulkan13Features m_availableFeatures13;
+
+  vk::PhysicalDeviceFeatures2 m_enabledFeatures;
+  vk::PhysicalDeviceVulkan11Features m_enabledFeatures11;
+  vk::PhysicalDeviceVulkan12Features m_enabledFeatures12;
+  vk::PhysicalDeviceVulkan13Features m_enabledFeatures13;
 
   QueueFamilyIndices m_queueFamilyIndices;
 
@@ -62,8 +69,7 @@ class VulkanDevice {
   void createDevice();
   void getQueues();
 
-  static bool isDeviceSuitable(const vk::PhysicalDeviceProperties& properties,
-                               const vk::PhysicalDeviceFeatures& features);
+  static bool isDeviceSuitable(const vk::PhysicalDeviceProperties& properties);
 
   bool findQueueFamilies(vk::SurfaceKHR surface);
 };

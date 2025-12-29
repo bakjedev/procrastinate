@@ -3,7 +3,6 @@
 #include <set>
 
 #include "util/print.hpp"
-#include "vk_device.hpp"
 
 VulkanDevice::VulkanDevice(vk::Instance instance, vk::SurfaceKHR surface) {
   pickPhysicalDevice(instance, surface);
@@ -15,31 +14,31 @@ VulkanDevice::VulkanDevice(vk::Instance instance, vk::SurfaceKHR surface) {
 
 VulkanDevice::~VulkanDevice() { m_device.destroy(); }
 
-void VulkanDevice::waitIdle() { m_device.waitIdle(); }
+void VulkanDevice::waitIdle() const { m_device.waitIdle(); }
 
 void VulkanDevice::pickPhysicalDevice(vk::Instance instance,
                                       vk::SurfaceKHR surface) {
-  auto devices = instance.enumeratePhysicalDevices();
+  const auto devices = instance.enumeratePhysicalDevices();
 
   if (devices.empty()) {
     throw std::runtime_error("Failed to find GPUs with Vulkan support");
   }
 
   for (const auto& device : devices) {
-    auto properties = device.getProperties();
-    auto features = device.getFeatures();
-    if (isDeviceSuitable(properties, features)) {
+    vk::PhysicalDeviceProperties properties{};
+    vk::PhysicalDeviceVulkan13Features features13{};
+    vk::PhysicalDeviceVulkan12Features features12{.pNext = &features13};
+    vk::PhysicalDeviceVulkan11Features features11{.pNext = &features12};
+    vk::PhysicalDeviceFeatures2 features{.pNext = &features11};
+    device.getProperties(&properties);
+    device.getFeatures2(&features);
+    if (isDeviceSuitable(properties)) {
       m_physicalDevice = device;
       m_properties = properties;
-      m_features = features;
-
-      m_features13.pNext = nullptr;
-      m_features12.pNext = &m_features13;
-
-      vk::PhysicalDeviceFeatures2 features2;
-      features2.pNext = &m_features12;
-
-      m_physicalDevice.getFeatures2(&features2);
+      m_availableFeatures = features;
+      m_availableFeatures12 = features12;
+      m_availableFeatures11 = features11;
+      m_availableFeatures13 = features13;
 
       if (!findQueueFamilies(surface)) {
         throw std::runtime_error("Failed to find Vulkan queue families");
@@ -62,50 +61,58 @@ void VulkanDevice::createDevice() {
   std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
 
   for (const uint32_t queueFamily : uniqueQueueFamilies) {
-    vk::DeviceQueueCreateInfo queueCreateInfo{
+    const vk::DeviceQueueCreateInfo queueCreateInfo{
         .queueFamilyIndex = queueFamily,
         .queueCount = 1,
         .pQueuePriorities = &queuePriority};
     queueCreateInfos.push_back(queueCreateInfo);
   }
 
-  std::vector deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+  std::vector deviceExtensions = {vk::KHRSwapchainExtensionName};
 
-  vk::PhysicalDeviceVulkan13Features enabled13Features{
-      .pNext = nullptr,
-      .synchronization2 = m_features13.synchronization2,
-      .dynamicRendering = m_features13.dynamicRendering};
+  m_enabledFeatures = {.pNext = m_enabledFeatures11};
+  m_enabledFeatures11 = {.pNext = m_enabledFeatures12};
+  m_enabledFeatures12 = {.pNext = m_enabledFeatures13};
+  m_enabledFeatures13 = {};
 
-  vk::PhysicalDeviceVulkan12Features enabled12Features{
-      .pNext = &enabled13Features,
-      .descriptorIndexing = m_features12.descriptorIndexing,
-      .descriptorBindingUniformBufferUpdateAfterBind =
-          m_features12.descriptorBindingUniformBufferUpdateAfterBind,
-      .descriptorBindingSampledImageUpdateAfterBind =
-          m_features12.descriptorBindingSampledImageUpdateAfterBind,
-      .descriptorBindingStorageImageUpdateAfterBind =
-          m_features12.descriptorBindingStorageImageUpdateAfterBind,
-      .descriptorBindingStorageBufferUpdateAfterBind =
-          m_features12.descriptorBindingStorageBufferUpdateAfterBind,
-      .descriptorBindingPartiallyBound =
-          m_features12.descriptorBindingPartiallyBound,
-      .descriptorBindingVariableDescriptorCount =
-          m_features12.descriptorBindingVariableDescriptorCount,
-      .runtimeDescriptorArray = m_features12.runtimeDescriptorArray,
-      .bufferDeviceAddress = m_features12.bufferDeviceAddress};
+  m_enabledFeatures.features.multiDrawIndirect =
+      m_availableFeatures.features.multiDrawIndirect;
 
-  vk::PhysicalDeviceFeatures2 deviceFeatures2{.pNext = &enabled12Features,
-                                              .features = m_features};
+  m_enabledFeatures11.shaderDrawParameters =
+      m_availableFeatures11.shaderDrawParameters;
+
+  m_enabledFeatures13.synchronization2 = m_availableFeatures13.synchronization2;
+  m_enabledFeatures13.dynamicRendering = m_availableFeatures13.dynamicRendering;
+
+  m_enabledFeatures12.descriptorIndexing =
+      m_availableFeatures12.descriptorIndexing;
+
+  m_enabledFeatures12.descriptorBindingUniformBufferUpdateAfterBind =
+      m_availableFeatures12.descriptorBindingUniformBufferUpdateAfterBind;
+  m_enabledFeatures12.descriptorBindingSampledImageUpdateAfterBind =
+      m_availableFeatures12.descriptorBindingSampledImageUpdateAfterBind;
+  m_enabledFeatures12.descriptorBindingStorageImageUpdateAfterBind =
+      m_availableFeatures12.descriptorBindingStorageImageUpdateAfterBind;
+  m_enabledFeatures12.descriptorBindingStorageBufferUpdateAfterBind =
+      m_availableFeatures12.descriptorBindingStorageBufferUpdateAfterBind;
+  m_enabledFeatures12.descriptorBindingPartiallyBound =
+      m_availableFeatures12.descriptorBindingPartiallyBound;
+  m_enabledFeatures12.descriptorBindingVariableDescriptorCount =
+      m_availableFeatures12.descriptorBindingVariableDescriptorCount;
+
+  m_enabledFeatures12.runtimeDescriptorArray =
+      m_availableFeatures12.runtimeDescriptorArray;
+  m_enabledFeatures12.bufferDeviceAddress =
+      m_availableFeatures12.bufferDeviceAddress;
 
   vk::DeviceCreateInfo deviceCreateInfo;
-  deviceCreateInfo.pNext = &deviceFeatures2;
+  deviceCreateInfo.pNext = &m_enabledFeatures;
   deviceCreateInfo.queueCreateInfoCount =
       static_cast<uint32_t>(queueCreateInfos.size());
   deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
   deviceCreateInfo.enabledExtensionCount =
       static_cast<uint32_t>(deviceExtensions.size());
   deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
-
   m_device = m_physicalDevice.createDevice(deviceCreateInfo);
 }
 
@@ -122,10 +129,8 @@ void VulkanDevice::getQueues() {
   }
 }
 
-bool VulkanDevice::isDeviceSuitable(
-    const vk::PhysicalDeviceProperties&,
-    const vk::PhysicalDeviceFeatures& features) {
-  return (features.geometryShader != 0U);  // there should be more requirements
+bool VulkanDevice::isDeviceSuitable(const vk::PhysicalDeviceProperties&) {
+  return true;  // there should be requirements
 }
 
 bool VulkanDevice::findQueueFamilies(const vk::SurfaceKHR surface) {
