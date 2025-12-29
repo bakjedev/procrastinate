@@ -41,10 +41,20 @@ struct RuntimeApplication {
             glm::vec3(-static_cast<float>(gridSize), 6.0F, -100.0F));
         transformComponent->world =
             glm::scale(transformComponent->world, glm::vec3(1.0F));
-        meshComponent->mesh = engine->getResourceManager().create<MeshResource>(
-            "firstmesh", MeshResourceLoader{},
-            (rootPath / "engine/assets/cylinder.obj").string(),
-            engine->getRenderer());
+
+        if ((i + j) % 2 == 0) {
+          meshComponent->mesh =
+              engine->getResourceManager().create<MeshResource>(
+                  "firstmesh", MeshResourceLoader{},
+                  (rootPath / "engine/assets/cylinder.obj").string(),
+                  engine->getRenderer());
+        } else {
+          meshComponent->mesh =
+              engine->getResourceManager().create<MeshResource>(
+                  "secondmesh", MeshResourceLoader{},
+                  (rootPath / "engine/assets/icosphere.obj").string(),
+                  engine->getRenderer());
+        }
       }
     }
   }
