@@ -7,12 +7,6 @@ struct VertexInput
     float3 normal : NORMAL;
 };
 
-struct PushConstants
-{
-    float4x4 view;
-    float4x4 proj;
-};
-
 [[vk::push_constant]]
 PushConstants pushConst;
 
