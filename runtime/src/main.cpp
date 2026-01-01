@@ -60,7 +60,10 @@ struct RuntimeApplication {
   }
 
   void update(float deltaTime) const {
+    auto& renderer = engine->getRenderer();
     auto& input = engine->getInput();
+
+    renderer.renderLine(glm::vec3(-1.0F, 3.0F, 0.0F), glm::vec3(1.0F, 3.0F, 0.0F), glm::vec3(1.0F, 0.5F, 0.0F));
 
     if (input.mouseButtonReleased(MouseButton::Left)) {
       Util::println("RELEASED");

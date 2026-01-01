@@ -52,11 +52,14 @@ class VulkanRenderer {
   uint32_t addMesh(const std::vector<Vertex> &vertices,
                    const std::vector<uint32_t> &indices, uint32_t firstIndex,
                    int32_t vertexOffset);
+
   void upload();
 
   void renderMesh(glm::mat4 model, uint32_t meshID);
   void clearMeshes();
 
+  void renderLine(const glm::vec3& pointA, const glm::vec3& pointB, const glm::vec3& color);
+  void clearLines();
   [[nodiscard]] int32_t getVertexCount() const;
   [[nodiscard]] uint32_t getIndexCount() const;
 
@@ -83,6 +86,9 @@ class VulkanRenderer {
   std::unique_ptr<VulkanShader> m_vertexShader;
   std::unique_ptr<VulkanShader> m_fragmentShader;
   std::unique_ptr<VulkanShader> m_computeShader;
+  
+  std::unique_ptr<VulkanShader> m_debugLineVert;
+  std::unique_ptr<VulkanShader> m_debugLineFrag;
 
   std::unique_ptr<VulkanDescriptorPool> m_descriptorPool;
 
@@ -92,6 +98,8 @@ class VulkanRenderer {
 
   std::unique_ptr<VulkanPipelineLayout> m_pipelineLayout;
   std::unique_ptr<VulkanPipeline> m_pipeline;
+  std::unique_ptr<VulkanPipelineLayout> m_debugLinePipelineLayout;
+  std::unique_ptr<VulkanPipeline> m_debugLinePipeline;
   std::unique_ptr<VulkanPipelineLayout> m_compPipelineLayout;
   std::unique_ptr<VulkanPipeline> m_compPipeline;
 
@@ -101,6 +109,8 @@ class VulkanRenderer {
   uint32_t m_currentFrame = 0;
 
   std::vector<RenderObject> m_renderObjects;
+
+  std::vector<DebugLineVertex> m_debugLineVertices;
 
   std::vector<Vertex> m_vertices;
   std::vector<uint32_t> m_indices;

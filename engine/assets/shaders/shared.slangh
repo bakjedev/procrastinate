@@ -1,8 +1,20 @@
+struct PushConstants
+{
+    float4x4 view;
+    float4x4 proj;
+};
+
 struct VertexOutput
 {
     float4 position : SV_Position;
     float3 color : COLOR0;
     float3 normal : NORMAL;
+};
+
+struct DebugLineVertexOutput
+{
+    float4 position : SV_Position;
+    float3 color : COLOR0;
 };
 
 struct DrawIndexedIndirectCommand {

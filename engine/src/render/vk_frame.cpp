@@ -12,6 +12,7 @@
 #include "vulkan/vulkan.hpp"
 
 #define MAX_OBJECTS 10000
+#define MAX_LINES 10000
 
 VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
                          const VulkanCommandPool* transferPool,
@@ -51,8 +52,20 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
       allocator->get());
   m_objectBuffer->map();
 
+  // Create debug line vertex buffer
+  m_debugLineVertexBuffer = std::make_unique<VulkanBuffer>(
+      BufferInfo{
+          .size = sizeof(DebugLineVertex) * 2 * MAX_LINES,
+          .usage = vk::BufferUsageFlagBits::eVertexBuffer,
+          .memoryUsage = VMA_MEMORY_USAGE_AUTO,
+          .memoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+      },
+      allocator->get()
+  );
+  m_debugLineVertexBuffer->map();
   // Allocate descriptor set with per frame descriptor set layout
   m_descriptorSet = descriptorPool->allocate(descriptorLayout->get());
 }
 
-VulkanFrame::~VulkanFrame() { m_objectBuffer->unmap(); }
+VulkanFrame::~VulkanFrame() { m_objectBuffer->unmap();
+m_debugLineVertexBuffer->unmap();}

@@ -18,6 +18,11 @@ struct RenderObject {
   int32_t padding[3];
 };
 
+struct DebugLineVertex {
+  glm::vec3 position;
+  glm::vec3 color;
+};
+  
 class VulkanFrame {
  public:
   VulkanFrame(const VulkanCommandPool* graphicsPool,
@@ -37,6 +42,10 @@ class VulkanFrame {
 
   [[nodiscard]] VulkanBuffer* objectBuffer() const {
     return m_objectBuffer.get();
+  }
+
+  [[nodiscard]] VulkanBuffer* debugLineVertexBuffer() const {
+    return m_debugLineVertexBuffer.get();
   }
 
   [[nodiscard]] vk::Semaphore imageAvailable() const {
@@ -63,5 +72,7 @@ class VulkanFrame {
   std::unique_ptr<VulkanBuffer> m_objectBuffer;
   vk::DescriptorSet m_descriptorSet;
 
+  std::unique_ptr<VulkanBuffer> m_debugLineVertexBuffer;
+  
   vk::Device m_device;
 };

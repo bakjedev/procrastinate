@@ -109,6 +109,26 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
       .module = m_fragmentShader->get(),
       .pName = "main"};
 
+  const auto debugLineVertCode = resourceManager.createFromFile<ShaderResource>(
+      "engine/assets/shaders/debug_line.vert.spv", ShaderResourceLoader{});
+  m_debugLineVert =
+      std::make_unique<VulkanShader>(m_device->get(), debugLineVertCode->code);
+
+  const auto debugLineFragCode = resourceManager.createFromFile<ShaderResource>(
+      "engine/assets/shaders/debug_line.frag.spv", ShaderResourceLoader{});
+  m_debugLineFrag =
+      std::make_unique<VulkanShader>(m_device->get(), debugLineFragCode->code);
+  
+  const vk::PipelineShaderStageCreateInfo debugLineVertStage{
+      .stage = vk::ShaderStageFlagBits::eVertex,
+      .module = m_debugLineVert->get(),
+      .pName = "main"};
+
+  const vk::PipelineShaderStageCreateInfo debugLineFragStage{
+      .stage = vk::ShaderStageFlagBits::eFragment,
+      .module = m_debugLineFrag->get(),
+      .pName = "main"};
+
   // -----------------------------------------------------------
   // Descriptor Set Layouts
   // -----------------------------------------------------------
@@ -139,7 +159,7 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
       vk::DescriptorSetLayoutCreateFlags{});
 
   // -----------------------------------------------------------
-  // CREATE GRAPHICS PIPELINE LAYOUT
+  // CREATE GRAPHICS PIPELINE LAYOUTS
   // -----------------------------------------------------------
   PipelineLayoutInfo pipelineLayoutInfo{};
 
@@ -155,48 +175,87 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
   m_pipelineLayout = std::make_unique<VulkanPipelineLayout>(m_device->get(),
                                                             pipelineLayoutInfo);
 
+    pipelineLayoutInfo.descriptorSets.clear();   
+  
+    m_debugLinePipelineLayout = std::make_unique<VulkanPipelineLayout>(m_device->get(), pipelineLayoutInfo);
+
   // -----------------------------------------------------------
   // CREATE GRAPHICS PIPELINE
   // -----------------------------------------------------------
-  GraphicsPipelineInfo pipelineInfo{};
-  pipelineInfo.shaderStages = {vertStage, fragStage};
-  pipelineInfo.colorAttachmentFormats = {m_swapChain->format()};
-  pipelineInfo.layout = m_pipelineLayout->get();
-  constexpr GraphicsPipelineInfo::ColorBlendAttachment colorBlend{};
-  pipelineInfo.colorBlendAttachments = {colorBlend};
-  pipelineInfo.frontFace = vk::FrontFace::eClockwise;
+  {
+      GraphicsPipelineInfo pipelineInfo{};
+      pipelineInfo.shaderStages = {vertStage, fragStage};
+      pipelineInfo.colorAttachmentFormats = {m_swapChain->format()};
+      pipelineInfo.layout = m_pipelineLayout->get();
+      pipelineInfo.colorBlendAttachments = {{}};
+      pipelineInfo.frontFace = vk::FrontFace::eClockwise;
 
-  pipelineInfo.depthAttachmentFormat = vk::Format::eD32Sfloat;
+      pipelineInfo.depthAttachmentFormat = vk::Format::eD32Sfloat;
 
-  vk::VertexInputBindingDescription binding{};
-  binding.binding = 0;
-  binding.stride = sizeof(Vertex);
-  binding.inputRate = vk::VertexInputRate::eVertex;
+      vk::VertexInputBindingDescription binding{};
+      binding.binding = 0;
+      binding.stride = sizeof(Vertex);
+      binding.inputRate = vk::VertexInputRate::eVertex;
 
-  vk::VertexInputAttributeDescription positionAttr{};
-  positionAttr.location = 0;
-  positionAttr.binding = 0;
-  positionAttr.format = vk::Format::eR32G32B32Sfloat;
-  positionAttr.offset = offsetof(Vertex, position);
+      vk::VertexInputAttributeDescription positionAttr{};
+      positionAttr.location = 0;
+      positionAttr.binding = 0;
+      positionAttr.format = vk::Format::eR32G32B32Sfloat;
+      positionAttr.offset = offsetof(Vertex, position);
 
-  vk::VertexInputAttributeDescription colorAttr{};
-  colorAttr.location = 1;
-  colorAttr.binding = 0;
-  colorAttr.format = vk::Format::eR32G32B32Sfloat;
-  colorAttr.offset = offsetof(Vertex, color);
+      vk::VertexInputAttributeDescription colorAttr{};
+      colorAttr.location = 1;
+      colorAttr.binding = 0;
+      colorAttr.format = vk::Format::eR32G32B32Sfloat;
+      colorAttr.offset = offsetof(Vertex, color);
 
-  vk::VertexInputAttributeDescription normalAttr{};
-  normalAttr.location = 2;
-  normalAttr.binding = 0;
-  normalAttr.format = vk::Format::eR32G32B32Sfloat;
-  normalAttr.offset = offsetof(Vertex, normal);
+      vk::VertexInputAttributeDescription normalAttr{};
+      normalAttr.location = 2;
+      normalAttr.binding = 0;
+      normalAttr.format = vk::Format::eR32G32B32Sfloat;
+      normalAttr.offset = offsetof(Vertex, normal);
 
-  pipelineInfo.vertexBindings.push_back(binding);
-  pipelineInfo.vertexAttributes.push_back(positionAttr);
-  pipelineInfo.vertexAttributes.push_back(colorAttr);
-  pipelineInfo.vertexAttributes.push_back(normalAttr);
+      pipelineInfo.vertexBindings.push_back(binding);
+      pipelineInfo.vertexAttributes.push_back(positionAttr);
+      pipelineInfo.vertexAttributes.push_back(colorAttr);
+      pipelineInfo.vertexAttributes.push_back(normalAttr);
 
-  m_pipeline = std::make_unique<VulkanPipeline>(m_device->get(), pipelineInfo);
+      m_pipeline = std::make_unique<VulkanPipeline>(m_device->get(), pipelineInfo);
+  }
+  // -----------------------------------------------------------
+  // CREATE DEBUG LINE GRAPHICS PIPELINE
+  // -----------------------------------------------------------
+  {
+      GraphicsPipelineInfo pipelineInfo{};
+      pipelineInfo.shaderStages = {debugLineVertStage, debugLineFragStage};
+      pipelineInfo.colorAttachmentFormats = {m_swapChain->format()};
+      pipelineInfo.layout = m_pipelineLayout->get();
+      pipelineInfo.colorBlendAttachments = {{}};
+      pipelineInfo.topology = vk::PrimitiveTopology::eLineList;
+
+      vk::VertexInputBindingDescription binding{};
+      binding.binding = 0;
+      binding.stride = sizeof(DebugLineVertex);
+      binding.inputRate = vk::VertexInputRate::eVertex;
+
+      vk::VertexInputAttributeDescription positionAttr{};
+      positionAttr.location = 0;
+      positionAttr.binding = 0;
+      positionAttr.format = vk::Format::eR32G32B32Sfloat;
+      positionAttr.offset = offsetof(Vertex, position);
+
+      vk::VertexInputAttributeDescription colorAttr{};
+      colorAttr.location = 1;
+      colorAttr.binding = 0;
+      colorAttr.format = vk::Format::eR32G32B32Sfloat;
+      colorAttr.offset = offsetof(Vertex, color);
+
+      pipelineInfo.vertexBindings.push_back(binding);
+      pipelineInfo.vertexAttributes.push_back(positionAttr);
+      pipelineInfo.vertexAttributes.push_back(colorAttr);
+
+      m_debugLinePipeline = std::make_unique<VulkanPipeline>(m_device->get(), pipelineInfo);
+  }
 
   // -----------------------------------------------------------
   // LOAD AND CREATE COMPUTE SHADER
@@ -365,6 +424,9 @@ VulkanRenderer::~VulkanRenderer() {
 }
 
 void VulkanRenderer::run(glm::mat4 world, float fov) {
+  // -----------------------------------------------------------
+  // Handle window resize event
+  // -----------------------------------------------------------
   for (const auto& event : m_eventManager->getEvents()) {
     switch (event.type) {
       case EventType::WindowResized: {
@@ -375,24 +437,35 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
         break;
     }
   }
+   
+  // -----------------------------------------------------------
+  // Begin frame
+  // -----------------------------------------------------------
 
-  auto imageIndex = beginFrame().value_or(UINT32_MAX);
+  const auto imageIndex = beginFrame().value_or(UINT32_MAX);
 
   if (imageIndex == UINT32_MAX) {
     recreateSwapchain();
     return;
   }
 
-  auto& frame = m_frames[m_currentFrame];
+  const auto& frame = m_frames[m_currentFrame];
 
+  // -----------------------------------------------------------
+  // Upload render objects
+  // -----------------------------------------------------------
   frame->objectBuffer()->writeRange(
       m_renderObjects.data(), sizeof(RenderObject) * m_renderObjects.size());
 
-  auto ccmd = frame->computeCmd();
+  frame->debugLineVertexBuffer()->writeRange(m_debugLineVertices.data(), sizeof(DebugLineVertex) * m_debugLineVertices.size());
+  // -----------------------------------------------------------
+  // Compute pass - create indirect draw commands
+  // -----------------------------------------------------------
+  const auto ccmd = frame->computeCmd();
   constexpr vk::CommandBufferBeginInfo beginInfo{};
   ccmd.begin(beginInfo);
 
-  auto descriptorSets =
+  const auto descriptorSets =
       std::array{m_staticDescriptorSet, frame->descriptorSet()};
 
   ccmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
@@ -405,7 +478,10 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
 
   ccmd.end();
 
-  auto cmd = frame->graphicsCmd();
+  // -----------------------------------------------------------
+  // Graphics pass - render meshes
+  // -----------------------------------------------------------
+  const auto cmd = frame->graphicsCmd();
 
   cmd.begin(beginInfo);
 
@@ -418,7 +494,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
       .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
       .loadOp = vk::AttachmentLoadOp::eClear,
       .storeOp = vk::AttachmentStoreOp::eDontCare,
-      .clearValue = vk::ClearValue{.depthStencil = {1.0f, 0}}};
+      .clearValue = vk::ClearValue{.depthStencil = {.depth=1.0f, .stencil=0}}};
 
   const vk::RenderingAttachmentInfo colorAttachment{
       .imageView = m_swapChain->imageViews()[imageIndex],
@@ -442,30 +518,30 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
                          m_pipelineLayout->get(), 0, 1, &frame->descriptorSet(),
                          0, nullptr);
 
-  glm::mat4 view = glm::inverse(world);
-  float aspectRatio =
+  const auto view = glm::inverse(world);
+  const float aspectRatio =
       static_cast<float>(m_window->getWindowSize().first) /
       static_cast<float>(
           m_window->getWindowSize().second);  // Screen aspect ratio
-  float nearPlane = 0.1f;
-  float farPlane = 1000.0f;
-  glm::mat4 projection =
+  constexpr float nearPlane = 0.1f;
+  constexpr float farPlane = 1000.0f;
+  const auto projection =
       glm::perspective(glm::radians(fov), aspectRatio, nearPlane, farPlane);
 
-  PushConstant pushConstant{
+  const PushConstant pushConstant{
       .view = view,
       .proj = projection,
   };
 
   cmd.pushConstants(m_pipelineLayout->get(), vk::ShaderStageFlagBits::eVertex,
                     0, sizeof(PushConstant), &pushConstant);
-  vk::DeviceSize offset = 0;
-  vk::Buffer vertexBuffer = m_vertexBuffer->get();
+  const vk::DeviceSize offset = 0;
+  const auto vertexBuffer = m_vertexBuffer->get();
   cmd.bindVertexBuffers(0, 1, &vertexBuffer, &offset);
-  vk::Buffer indexBuffer = m_indexBuffer->get();
+  const auto indexBuffer = m_indexBuffer->get();
   cmd.bindIndexBuffer(indexBuffer, 0, vk::IndexType::eUint32);
 
-  vk::Viewport viewport{
+  const vk::Viewport viewport{
       .x = 0.0F,
       .y = 0.0F,
       .width = static_cast<float>(m_swapChain->extent().width),
@@ -474,23 +550,51 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
       .maxDepth = 1.0F};
   cmd.setViewport(0, 1, &viewport);
 
-  vk::Rect2D scissor{.offset = {.x = 0, .y = 0},
+  const vk::Rect2D scissor{.offset = {.x = 0, .y = 0},
                      .extent = {.width = m_swapChain->extent().width,
                                 .height = m_swapChain->extent().height}};
   cmd.setScissor(0, 1, &scissor);
 
-  // --------------------------------------------------
-  // MAIN RENDER LOOP
-  // --------------------------------------------------
-
-  // for (const auto &mesh : m_meshes) {
-  //   cmd.drawIndexed(mesh.indexCount, 1, mesh.firstIndex, mesh.vertexOffset,
-  //   0);
-  // }
   cmd.drawIndexedIndirect(m_indirectBuffer->get(), 0, m_renderObjects.size(),
                           sizeof(vk::DrawIndexedIndirectCommand));
   cmd.endRendering();
 
+  // -----------------------------------------------------------
+  // Graphics pass - render debug lines
+  // -----------------------------------------------------------
+  const vk::RenderingAttachmentInfo debugLineColorAttachment{
+      .imageView = m_swapChain->imageViews()[imageIndex],
+      .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+      .loadOp = vk::AttachmentLoadOp::eLoad,
+      .storeOp = vk::AttachmentStoreOp::eStore,
+    };
+
+  const vk::RenderingInfo debugLineRenderInfo{
+      .renderArea = vk::Rect2D{.offset = {.x = 0, .y = 0},
+                               .extent = m_swapChain->extent()},
+      .layerCount = 1,
+      .colorAttachmentCount = 1,
+      .pColorAttachments = &debugLineColorAttachment};
+
+  cmd.beginRendering(debugLineRenderInfo);
+  cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_debugLinePipeline->get());
+
+  cmd.pushConstants(m_debugLinePipelineLayout->get(), vk::ShaderStageFlagBits::eVertex,
+                    0, sizeof(PushConstant), &pushConstant);
+  const auto debugLineVertexBuffer = frame->debugLineVertexBuffer()->get();
+  cmd.bindVertexBuffers(0, 1, &debugLineVertexBuffer, &offset);
+
+  cmd.setViewport(0, 1, &viewport);
+
+  cmd.setScissor(0, 1, &scissor);
+
+  cmd.draw(m_debugLineVertices.size(), 1, 0, 0);
+
+  cmd.endRendering();
+
+  // -----------------------------------------------------------
+  // ImGui pass
+  // -----------------------------------------------------------
   ImGui_ImplVulkan_NewFrame();
   ImGui_ImplSDL3_NewFrame();
   ImGui::NewFrame();
@@ -500,14 +604,14 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
 
   ImGui::Render();
 
-  vk::RenderingAttachmentInfo imguiColorAttachment{
+  const vk::RenderingAttachmentInfo imguiColorAttachment{
       .imageView = m_swapChain->imageViews()[imageIndex],
       .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
       .loadOp = vk::AttachmentLoadOp::eLoad,  // Load existing scene
       .storeOp = vk::AttachmentStoreOp::eStore,
   };
 
-  vk::RenderingInfo imguiRenderInfo{
+  const vk::RenderingInfo imguiRenderInfo{
       .renderArea = vk::Rect2D{.offset = {.x = 0, .y = 0},
                                .extent = m_swapChain->extent()},
       .layerCount = 1,
@@ -523,6 +627,9 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
 
   cmd.end();
 
+  // -----------------------------------------------------------
+  // End frame
+  // -----------------------------------------------------------
   endFrame(imageIndex);
 }
 
@@ -536,7 +643,18 @@ uint32_t VulkanRenderer::addMesh(const std::vector<Vertex>& vertices,
   return meshID;
 }
 
+void VulkanRenderer::renderLine(const glm::vec3& pointA, const glm::vec3& pointB, const glm::vec3& color) {
+    m_debugLineVertices.emplace_back(pointA, color);
+    m_debugLineVertices.emplace_back(pointB, color);
+}
+
+void VulkanRenderer::clearLines() {
+    m_debugLineVertices.clear();
+}
+
 void VulkanRenderer::upload() {
+    m_device->waitIdle();
+
   if (m_vertexBuffer) {
     m_vertexBuffer->destroy();
     m_vertexBuffer = nullptr;

@@ -34,6 +34,7 @@ void Engine::run(App& app) {
     m_eventManager->poll();
     m_window->update();
     m_input->update();
+    m_renderer->clearLines();
 
     app.update(deltaTime);
 
