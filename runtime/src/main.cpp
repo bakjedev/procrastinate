@@ -63,8 +63,121 @@ struct RuntimeApplication {
     auto& renderer = engine->getRenderer();
     auto& input = engine->getInput();
 
-    renderer.renderLine(glm::vec3(-1.0F, 3.0F, 0.0F), glm::vec3(1.0F, 3.0F, 0.0F), glm::vec3(1.0F, 0.5F, 0.0F));
+    // H
+    renderer.renderLine(glm::vec3(0.0F, -5.0F, 0.0F),
+                        glm::vec3(0.0F, -8.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(0.0F, -6.5F, 0.0F),
+                        glm::vec3(2.0F, -6.5F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(2.0F, -5.0F, 0.0F),
+                        glm::vec3(2.0F, -8.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
 
+    // E
+    renderer.renderLine(glm::vec3(3.0F, -5.0F, 0.0F),
+                        glm::vec3(4.0F, -5.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(3.0F, -6.0F, 0.0F),
+                        glm::vec3(4.0F, -6.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(3.0F, -7.0F, 0.0F),
+                        glm::vec3(4.0F, -7.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(3.0F, -5.0F, 0.0F),
+                        glm::vec3(3.0F, -7.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+
+    // L
+    renderer.renderLine(glm::vec3(5.0F, -5.0F, 0.0F),
+                        glm::vec3(5.0F, -7.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(5.0F, -5.0F, 0.0F),
+                        glm::vec3(6.0F, -5.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+
+    // L
+    renderer.renderLine(glm::vec3(7.0F, -5.0F, 0.0F),
+                        glm::vec3(7.0F, -7.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(7.0F, -5.0F, 0.0F),
+                        glm::vec3(8.0F, -5.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+
+    // O
+    renderer.renderLine(glm::vec3(9.0F, -5.0F, 0.0F),
+                        glm::vec3(11.0F, -5.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(9.0F, -7.0F, 0.0F),
+                        glm::vec3(11.0F, -7.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(9.0F, -5.0F, 0.0F),
+                        glm::vec3(9.0F, -7.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(11.0F, -5.0F, 0.0F),
+                        glm::vec3(11.0F, -7.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+
+    // W
+    renderer.renderLine(glm::vec3(13.0F, -7.0F, 0.0F),
+                        glm::vec3(14.0F, -5.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(14.0F, -5.0F, 0.0F),
+                        glm::vec3(15.0F, -7.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(15.0F, -7.0F, 0.0F),
+                        glm::vec3(16.0F, -5.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(16.0F, -5.0F, 0.0F),
+                        glm::vec3(17.0F, -7.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+
+    // O
+    renderer.renderLine(glm::vec3(18.0F, -5.0F, 0.0F),
+                        glm::vec3(20.0F, -5.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(18.0F, -7.0F, 0.0F),
+                        glm::vec3(20.0F, -7.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(18.0F, -5.0F, 0.0F),
+                        glm::vec3(18.0F, -7.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(20.0F, -5.0F, 0.0F),
+                        glm::vec3(20.0F, -7.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+
+    // R
+    renderer.renderLine(glm::vec3(21.0F, -5.0F, 0.0F),
+                        glm::vec3(21.0F, -7.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(21.0F, -7.0F, 0.0F),
+                        glm::vec3(22.0F, -7.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+
+    // L
+    renderer.renderLine(glm::vec3(23.0F, -5.0F, 0.0F),
+                        glm::vec3(23.0F, -7.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(23.0F, -5.0F, 0.0F),
+                        glm::vec3(24.0F, -5.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+
+    // D
+    renderer.renderLine(glm::vec3(25.0F, -5.0F, 0.0F),
+                        glm::vec3(25.0F, -7.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(25.0F, -5.0F, 0.0F),
+                        glm::vec3(26.0F, -5.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(26.0F, -5.0F, 0.0F),
+                        glm::vec3(26.5F, -6.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(25.0F, -7.0F, 0.0F),
+                        glm::vec3(26.0F, -7.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
+    renderer.renderLine(glm::vec3(26.0F, -7.0F, 0.0F),
+                        glm::vec3(26.5F, -6.0F, 0.0F),
+                        glm::vec3(1.0F, 0.5F, 0.0F));
     if (input.mouseButtonReleased(MouseButton::Left)) {
       Util::println("RELEASED");
     }
@@ -105,6 +218,14 @@ struct RuntimeApplication {
     } else if (input.keyDown(KeyboardKey::LeftControl)) {
       transform.world = glm::translate(
           transform.world, glm::vec3(0.0F, deltaTime * cameraSpeed, 0.0F));
+    }
+
+    if (input.keyDown(KeyboardKey::Left)) {
+      transform.world =
+          glm::rotate(transform.world, deltaTime, glm::vec3(0.0F, 1.0F, 0.0F));
+    } else if (input.keyDown(KeyboardKey::Right)) {
+      transform.world =
+          glm::rotate(transform.world, deltaTime, glm::vec3(0.0F, -1.0F, 0.0F));
     }
   }
 
