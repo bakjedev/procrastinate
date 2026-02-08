@@ -17,8 +17,9 @@ struct Frustum {
   Plane bottom;
   Plane top;
 
-  Plane near;
-  Plane far;
+  // These have plane suffixed because *windows*...
+  Plane nearPlane;
+  Plane farPlane;
 };
 
 inline Plane extractPlane(const glm::mat4& matrix, PlaneType type) {
@@ -62,8 +63,8 @@ inline Frustum extractFrustum(const glm::mat4& matrix) {
                  .right = extractPlane(matrix, PlaneType::Right),
                  .bottom = extractPlane(matrix, PlaneType::Bottom),
                  .top = extractPlane(matrix, PlaneType::Top),
-                 .near = extractPlane(matrix, PlaneType::Near),
-                 .far = extractPlane(matrix, PlaneType::Far)};
+                 .nearPlane = extractPlane(matrix, PlaneType::Near),
+                 .farPlane = extractPlane(matrix, PlaneType::Far)};
 }
 
 inline Halfspace checkPointForPlane(const Plane& plane,
@@ -80,8 +81,8 @@ inline bool checkPoint(const Frustum& frustum, const glm::vec3& point) {
          checkPointForPlane(frustum.right, point) == Halfspace::Inside &&
          checkPointForPlane(frustum.bottom, point) == Halfspace::Inside &&
          checkPointForPlane(frustum.top, point) == Halfspace::Inside &&
-         checkPointForPlane(frustum.near, point) == Halfspace::Inside &&
-         checkPointForPlane(frustum.far, point) == Halfspace::Inside;
+         checkPointForPlane(frustum.nearPlane, point) == Halfspace::Inside &&
+         checkPointForPlane(frustum.farPlane, point) == Halfspace::Inside;
 }
 
 inline glm::vec3 intersect3Planes(const Plane& plane1, const Plane& plane2,
