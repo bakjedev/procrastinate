@@ -8,11 +8,13 @@
 #include "render/vk_descriptor.hpp"
 #include "util/print.hpp"
 #include "vk_allocator.hpp"
+#include "vk_image.hpp"
 #include "vma/vma_usage.h"
 #include "vulkan/vulkan.hpp"
 
-#define MAX_OBJECTS 10000
-#define MAX_LINES 10000
+constexpr uint32_t MAX_INDIRECT_COMMANDS = 65536;
+constexpr uint32_t MAX_LINES = 10000;
+constexpr uint32_t MAX_OBJECTS = 10000;
 
 VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
                          const VulkanCommandPool* transferPool,
@@ -20,9 +22,10 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
                          const VulkanDescriptorPool* descriptorPool,
                          const VulkanDescriptorSetLayout* descriptorLayout,
                          const vk::Device device,
-                         const VulkanAllocator* allocator) {
+                         VulkanAllocator* allocator) {
   // Set references
   m_device = device;
+  m_allocator = allocator;
 
   // Create per frame sync objects
   constexpr vk::SemaphoreCreateInfo semaphoreCreateInfo{};
@@ -52,6 +55,16 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
       allocator->get());
   m_objectBuffer->map();
 
+  m_indirectBuffer = std::make_unique<VulkanBuffer>(
+      BufferInfo{.size = sizeof(vk::DrawIndexedIndirectCommand) *
+                         MAX_INDIRECT_COMMANDS,
+                 .usage = vk::BufferUsageFlagBits::eIndirectBuffer |
+                          vk::BufferUsageFlagBits::eTransferDst |
+                          vk::BufferUsageFlagBits::eStorageBuffer,
+                 .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
+                 .memoryFlags = {}},
+      allocator->get());
+
   // Create debug line vertex buffer
   m_debugLineVertexBuffer = std::make_unique<VulkanBuffer>(
       BufferInfo{.size = sizeof(DebugLineVertex) * 2 * MAX_LINES,
@@ -68,16 +81,9 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
       BufferInfo{.size = sizeof(uint32_t),
                  .usage = vk::BufferUsageFlagBits::eStorageBuffer |
                           vk::BufferUsageFlagBits::eTransferDst |
-                          vk::BufferUsageFlagBits::eTransferSrc,
+                          vk::BufferUsageFlagBits::eTransferSrc |
+                          vk::BufferUsageFlagBits::eIndirectBuffer,
                  .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
-                 .memoryFlags = {}},
-      allocator->get());
-
-  m_drawCountStaging = std::make_unique<VulkanBuffer>(
-      BufferInfo{.size = sizeof(uint32_t),
-                 .usage = vk::BufferUsageFlagBits::eStorageBuffer |
-                          vk::BufferUsageFlagBits::eTransferDst,
-                 .memoryUsage = VMA_MEMORY_USAGE_GPU_TO_CPU,
                  .memoryFlags = {}},
       allocator->get());
 
@@ -88,4 +94,17 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
 VulkanFrame::~VulkanFrame() {
   m_objectBuffer->unmap();
   m_debugLineVertexBuffer->unmap();
+}
+void VulkanFrame::recreateDepthImage(const uint32_t width,
+                                     const uint32_t height) {
+  m_depthImage = nullptr;
+
+  auto imageInfo = ImageInfo{
+      .width = width,
+      .height = height,
+      .format = vk::Format::eD32Sfloat,
+      .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
+      .aspectFlags = vk::ImageAspectFlagBits::eDepth,
+  };
+  m_depthImage = std::make_unique<VulkanImage>(imageInfo, m_allocator->get());
 }

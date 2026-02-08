@@ -7,6 +7,7 @@
 #include "render/vk_descriptor.hpp"
 #include "vulkan/vulkan.hpp"
 
+class VulkanImage;
 class VulkanCommandPool;
 class VulkanDescriptorPool;
 class VulkanDescriptorSetLayout;
@@ -30,7 +31,7 @@ class VulkanFrame {
               const VulkanCommandPool* computePool,
               const VulkanDescriptorPool* descriptorPool,
               const VulkanDescriptorSetLayout* descriptorLayout,
-              vk::Device device, const VulkanAllocator* allocator);
+              vk::Device device, VulkanAllocator* allocator);
   VulkanFrame(const VulkanFrame&) = delete;
   VulkanFrame(VulkanFrame&&) = delete;
   VulkanFrame& operator=(const VulkanFrame&) = delete;
@@ -41,15 +42,17 @@ class VulkanFrame {
   [[nodiscard]] vk::CommandBuffer transferCmd() const { return m_transferCmd; }
   [[nodiscard]] vk::CommandBuffer computeCmd() const { return m_computeCmd; }
 
+  [[nodiscard]] VulkanImage* depthImage() const { return m_depthImage.get(); }
+
   [[nodiscard]] VulkanBuffer* objectBuffer() const {
     return m_objectBuffer.get();
   }
 
-  [[nodiscard]] VulkanBuffer* drawCount() const { return m_drawCount.get(); }
-
-  [[nodiscard]] VulkanBuffer* drawCountStaging() const {
-    return m_drawCountStaging.get();
+  [[nodiscard]] VulkanBuffer* indirectBuffer() const {
+    return m_indirectBuffer.get();
   }
+
+  [[nodiscard]] VulkanBuffer* drawCount() const { return m_drawCount.get(); }
 
   [[nodiscard]] VulkanBuffer* debugLineVertexBuffer() const {
     return m_debugLineVertexBuffer.get();
@@ -67,6 +70,8 @@ class VulkanFrame {
 
   [[nodiscard]] vk::DescriptorSet& descriptorSet() { return m_descriptorSet; }
 
+  void recreateDepthImage(const uint32_t width, const uint32_t height);
+
  private:
   vk::CommandBuffer m_graphicsCmd;
   vk::CommandBuffer m_transferCmd;
@@ -76,12 +81,15 @@ class VulkanFrame {
   vk::UniqueFence m_inFlight;
   vk::UniqueSemaphore m_computeFinished;
 
+  std::unique_ptr<VulkanImage> m_depthImage;
+
   std::unique_ptr<VulkanBuffer> m_objectBuffer;
+  std::unique_ptr<VulkanBuffer> m_indirectBuffer;
   std::unique_ptr<VulkanBuffer> m_drawCount;
-  std::unique_ptr<VulkanBuffer> m_drawCountStaging;
   vk::DescriptorSet m_descriptorSet;
 
   std::unique_ptr<VulkanBuffer> m_debugLineVertexBuffer;
 
   vk::Device m_device;
+  VulkanAllocator* m_allocator;
 };

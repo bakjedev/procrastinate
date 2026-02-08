@@ -74,11 +74,11 @@ class VulkanRenderer {
   [[nodiscard]] uint32_t getIndexCount() const;
 
  private:
-  std::optional<uint32_t> beginFrame();
+  std::optional<uint32_t> beginFrame() const;
   void endFrame(uint32_t imageIndex);
 
   void recreateSwapchain();
-  void recreateDepthImage(uint32_t width, uint32_t height);
+  void recreateDepthImage(uint32_t width, uint32_t height) const;
 
   static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -118,8 +118,6 @@ class VulkanRenderer {
 
   uint32_t m_currentFrame = 0;
   float m_aspectRatio = 1.0F;
-  float m_nearPlane = 0.1F;
-  float m_farPlane = 1000.0F;
 
   std::vector<RenderObject> m_renderObjects;
 
@@ -131,9 +129,6 @@ class VulkanRenderer {
   std::unique_ptr<VulkanBuffer> m_vertexBuffer;
   std::unique_ptr<VulkanBuffer> m_indexBuffer;
   std::unique_ptr<VulkanBuffer> m_meshInfoBuffer;
-
-  std::unique_ptr<VulkanBuffer> m_indirectBuffer;
-  std::unique_ptr<VulkanImage> m_depthImage;
 
   Window *m_window = nullptr;
   EventManager *m_eventManager = nullptr;
