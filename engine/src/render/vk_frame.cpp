@@ -68,8 +68,17 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
   m_drawCount = std::make_unique<VulkanBuffer>(
       BufferInfo{.size = sizeof(uint32_t),
                  .usage = vk::BufferUsageFlagBits::eStorageBuffer |
-                 vk::BufferUsageFlagBits::eTransferDst,
+                 vk::BufferUsageFlagBits::eTransferDst |
+                 vk::BufferUsageFlagBits::eTransferSrc,
                  .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
+                 .memoryFlags = {}},
+      allocator->get());
+    
+  m_drawCountStaging = std::make_unique<VulkanBuffer>(
+      BufferInfo{.size = sizeof(uint32_t),
+                 .usage = vk::BufferUsageFlagBits::eStorageBuffer |
+                 vk::BufferUsageFlagBits::eTransferDst,
+                 .memoryUsage = VMA_MEMORY_USAGE_GPU_TO_CPU,
                  .memoryFlags = {}},
       allocator->get());
 

@@ -524,7 +524,36 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   const uint32_t workgroups = (m_renderObjects.size() + 255) / 256;
   ccmd.dispatch(workgroups, 1, 1);
 
+  vk::BufferMemoryBarrier2 barrier{
+      .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+      .srcAccessMask = vk::AccessFlagBits2::eShaderWrite,
+      .dstStageMask = vk::PipelineStageFlagBits2::eCopy,
+      .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
+      .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+      .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+      .buffer = frame->drawCount()->get(),
+      .offset = 0,
+      .size = sizeof(uint32_t)
+  };
+
+  vk::DependencyInfo dependencyInfo{
+      .bufferMemoryBarrierCount = 1,
+      .pBufferMemoryBarriers = &barrier
+  };
+
+  ccmd.pipelineBarrier2(dependencyInfo);
+
+  vk::BufferCopy copyRegion{
+      .size = sizeof(uint32_t)
+  };
+
+  ccmd.copyBuffer(frame->drawCount()->get(), frame->drawCountStaging()->get(), copyRegion);
   ccmd.end();
+
+  auto* mapped = static_cast<uint32_t*>(frame->drawCountStaging()->map());
+  auto drawCount = mapped[0];
+  frame->drawCountStaging()->unmap();
+  mapped = nullptr;
 
   // -----------------------------------------------------------
   // Graphics pass - render meshes
@@ -593,7 +622,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
                                 .height = m_swapChain->extent().height}};
   cmd.setScissor(0, 1, &scissor);
 
-  cmd.drawIndexedIndirect(m_indirectBuffer->get(), 0, m_renderObjects.size(),
+  cmd.drawIndexedIndirect(m_indirectBuffer->get(), 0, drawCount,
                           sizeof(vk::DrawIndexedIndirectCommand));
   cmd.endRendering();
 

@@ -48,6 +48,10 @@ class VulkanFrame {
     return m_drawCount.get();
   }
 
+  [[nodiscard]] VulkanBuffer* drawCountStaging() const {
+    return m_drawCountStaging.get();
+  }
+
   [[nodiscard]] VulkanBuffer* debugLineVertexBuffer() const {
     return m_debugLineVertexBuffer.get();
   }
@@ -75,6 +79,7 @@ class VulkanFrame {
 
   std::unique_ptr<VulkanBuffer> m_objectBuffer;
   std::unique_ptr<VulkanBuffer> m_drawCount;
+  std::unique_ptr<VulkanBuffer> m_drawCountStaging;
   vk::DescriptorSet m_descriptorSet;
 
   std::unique_ptr<VulkanBuffer> m_debugLineVertexBuffer;
