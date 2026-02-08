@@ -54,38 +54,38 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
 
   // Create debug line vertex buffer
   m_debugLineVertexBuffer = std::make_unique<VulkanBuffer>(
-      BufferInfo{
-          .size = sizeof(DebugLineVertex) * 2 * MAX_LINES,
-          .usage = vk::BufferUsageFlagBits::eVertexBuffer,
-          .memoryUsage = VMA_MEMORY_USAGE_AUTO,
-          .memoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
-      },
-      allocator->get()
-  );
+      BufferInfo{.size = sizeof(DebugLineVertex) * 2 * MAX_LINES,
+                 .usage = vk::BufferUsageFlagBits::eVertexBuffer,
+                 .memoryUsage = VMA_MEMORY_USAGE_AUTO,
+                 .memoryFlags =
+                     VMA_ALLOCATION_CREATE_MAPPED_BIT |
+                     VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT},
+      allocator->get());
   m_debugLineVertexBuffer->map();
 
   // Create draw count buffer
   m_drawCount = std::make_unique<VulkanBuffer>(
       BufferInfo{.size = sizeof(uint32_t),
                  .usage = vk::BufferUsageFlagBits::eStorageBuffer |
-                 vk::BufferUsageFlagBits::eTransferDst |
-                 vk::BufferUsageFlagBits::eTransferSrc,
+                          vk::BufferUsageFlagBits::eTransferDst |
+                          vk::BufferUsageFlagBits::eTransferSrc,
                  .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
                  .memoryFlags = {}},
       allocator->get());
-    
+
   m_drawCountStaging = std::make_unique<VulkanBuffer>(
       BufferInfo{.size = sizeof(uint32_t),
                  .usage = vk::BufferUsageFlagBits::eStorageBuffer |
-                 vk::BufferUsageFlagBits::eTransferDst,
+                          vk::BufferUsageFlagBits::eTransferDst,
                  .memoryUsage = VMA_MEMORY_USAGE_GPU_TO_CPU,
                  .memoryFlags = {}},
       allocator->get());
 
-  
   // Allocate descriptor set with per frame descriptor set layout
   m_descriptorSet = descriptorPool->allocate(descriptorLayout->get());
 }
 
-VulkanFrame::~VulkanFrame() { m_objectBuffer->unmap();
-m_debugLineVertexBuffer->unmap();}
+VulkanFrame::~VulkanFrame() {
+  m_objectBuffer->unmap();
+  m_debugLineVertexBuffer->unmap();
+}

@@ -119,7 +119,7 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
       "engine/assets/shaders/debug_line.frag.spv", ShaderResourceLoader{});
   m_debugLineFrag =
       std::make_unique<VulkanShader>(m_device->get(), debugLineFragCode->code);
-  
+
   const vk::PipelineShaderStageCreateInfo debugLineVertStage{
       .stage = vk::ShaderStageFlagBits::eVertex,
       .module = m_debugLineVert->get(),
@@ -135,18 +135,21 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
   // -----------------------------------------------------------
   m_frameDescriptorSetLayout = std::make_unique<VulkanDescriptorSetLayout>(
       m_device->get(),
-      std::vector{vk::DescriptorSetLayoutBinding{ // outputCommands
+      std::vector{vk::DescriptorSetLayoutBinding{
+                      // outputCommands
                       .binding = 0,
                       .descriptorType = vk::DescriptorType::eStorageBuffer,
                       .descriptorCount = 1,
                       .stageFlags = vk::ShaderStageFlagBits::eCompute},
-                  vk::DescriptorSetLayoutBinding{ // renderObjects
+                  vk::DescriptorSetLayoutBinding{
+                      // renderObjects
                       .binding = 1,
                       .descriptorType = vk::DescriptorType::eStorageBuffer,
                       .descriptorCount = 1,
                       .stageFlags = vk::ShaderStageFlagBits::eCompute |
                                     vk::ShaderStageFlagBits::eVertex},
-                  vk::DescriptorSetLayoutBinding{ // drawCount
+                  vk::DescriptorSetLayoutBinding{
+                      // drawCount
                       .binding = 2,
                       .descriptorType = vk::DescriptorType::eStorageBuffer,
                       .descriptorCount = 1,
@@ -157,12 +160,13 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
   m_staticDescriptorSetLayout = std::make_unique<VulkanDescriptorSetLayout>(
       m_device->get(),
       std::vector{
-          vk::DescriptorSetLayoutBinding{ // Mesh infos
-          .binding = 0,
-          .descriptorType = vk::DescriptorType::eStorageBuffer,
-          .descriptorCount = 1,
-          .stageFlags = vk::ShaderStageFlagBits::eCompute},
-  },
+          vk::DescriptorSetLayoutBinding{
+              // Mesh infos
+              .binding = 0,
+              .descriptorType = vk::DescriptorType::eStorageBuffer,
+              .descriptorCount = 1,
+              .stageFlags = vk::ShaderStageFlagBits::eCompute},
+      },
       std::vector<vk::DescriptorBindingFlags>{},
       vk::DescriptorSetLayoutCreateFlags{});
 
@@ -183,86 +187,89 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
   m_pipelineLayout = std::make_unique<VulkanPipelineLayout>(m_device->get(),
                                                             pipelineLayoutInfo);
 
-    pipelineLayoutInfo.descriptorSets.clear();   
-  
-    m_debugLinePipelineLayout = std::make_unique<VulkanPipelineLayout>(m_device->get(), pipelineLayoutInfo);
+  pipelineLayoutInfo.descriptorSets.clear();
+
+  m_debugLinePipelineLayout = std::make_unique<VulkanPipelineLayout>(
+      m_device->get(), pipelineLayoutInfo);
 
   // -----------------------------------------------------------
   // CREATE GRAPHICS PIPELINE
   // -----------------------------------------------------------
   {
-      GraphicsPipelineInfo pipelineInfo{};
-      pipelineInfo.shaderStages = {vertStage, fragStage};
-      pipelineInfo.colorAttachmentFormats = {m_swapChain->format()};
-      pipelineInfo.layout = m_pipelineLayout->get();
-      pipelineInfo.colorBlendAttachments = {{}};
-      pipelineInfo.frontFace = vk::FrontFace::eClockwise;
+    GraphicsPipelineInfo pipelineInfo{};
+    pipelineInfo.shaderStages = {vertStage, fragStage};
+    pipelineInfo.colorAttachmentFormats = {m_swapChain->format()};
+    pipelineInfo.layout = m_pipelineLayout->get();
+    pipelineInfo.colorBlendAttachments = {{}};
+    pipelineInfo.frontFace = vk::FrontFace::eClockwise;
 
-      pipelineInfo.depthAttachmentFormat = vk::Format::eD32Sfloat;
+    pipelineInfo.depthAttachmentFormat = vk::Format::eD32Sfloat;
 
-      vk::VertexInputBindingDescription binding{};
-      binding.binding = 0;
-      binding.stride = sizeof(Vertex);
-      binding.inputRate = vk::VertexInputRate::eVertex;
+    vk::VertexInputBindingDescription binding{};
+    binding.binding = 0;
+    binding.stride = sizeof(Vertex);
+    binding.inputRate = vk::VertexInputRate::eVertex;
 
-      vk::VertexInputAttributeDescription positionAttr{};
-      positionAttr.location = 0;
-      positionAttr.binding = 0;
-      positionAttr.format = vk::Format::eR32G32B32Sfloat;
-      positionAttr.offset = offsetof(Vertex, position);
+    vk::VertexInputAttributeDescription positionAttr{};
+    positionAttr.location = 0;
+    positionAttr.binding = 0;
+    positionAttr.format = vk::Format::eR32G32B32Sfloat;
+    positionAttr.offset = offsetof(Vertex, position);
 
-      vk::VertexInputAttributeDescription colorAttr{};
-      colorAttr.location = 1;
-      colorAttr.binding = 0;
-      colorAttr.format = vk::Format::eR32G32B32Sfloat;
-      colorAttr.offset = offsetof(Vertex, color);
+    vk::VertexInputAttributeDescription colorAttr{};
+    colorAttr.location = 1;
+    colorAttr.binding = 0;
+    colorAttr.format = vk::Format::eR32G32B32Sfloat;
+    colorAttr.offset = offsetof(Vertex, color);
 
-      vk::VertexInputAttributeDescription normalAttr{};
-      normalAttr.location = 2;
-      normalAttr.binding = 0;
-      normalAttr.format = vk::Format::eR32G32B32Sfloat;
-      normalAttr.offset = offsetof(Vertex, normal);
+    vk::VertexInputAttributeDescription normalAttr{};
+    normalAttr.location = 2;
+    normalAttr.binding = 0;
+    normalAttr.format = vk::Format::eR32G32B32Sfloat;
+    normalAttr.offset = offsetof(Vertex, normal);
 
-      pipelineInfo.vertexBindings.push_back(binding);
-      pipelineInfo.vertexAttributes.push_back(positionAttr);
-      pipelineInfo.vertexAttributes.push_back(colorAttr);
-      pipelineInfo.vertexAttributes.push_back(normalAttr);
+    pipelineInfo.vertexBindings.push_back(binding);
+    pipelineInfo.vertexAttributes.push_back(positionAttr);
+    pipelineInfo.vertexAttributes.push_back(colorAttr);
+    pipelineInfo.vertexAttributes.push_back(normalAttr);
 
-      m_pipeline = std::make_unique<VulkanPipeline>(m_device->get(), pipelineInfo);
+    m_pipeline =
+        std::make_unique<VulkanPipeline>(m_device->get(), pipelineInfo);
   }
   // -----------------------------------------------------------
   // CREATE DEBUG LINE GRAPHICS PIPELINE
   // -----------------------------------------------------------
   {
-      GraphicsPipelineInfo pipelineInfo{};
-      pipelineInfo.shaderStages = {debugLineVertStage, debugLineFragStage};
-      pipelineInfo.colorAttachmentFormats = {m_swapChain->format()};
-      pipelineInfo.layout = m_pipelineLayout->get();
-      pipelineInfo.colorBlendAttachments = {{}};
-      pipelineInfo.topology = vk::PrimitiveTopology::eLineList;
+    GraphicsPipelineInfo pipelineInfo{};
+    pipelineInfo.shaderStages = {debugLineVertStage, debugLineFragStage};
+    pipelineInfo.colorAttachmentFormats = {m_swapChain->format()};
+    pipelineInfo.layout = m_pipelineLayout->get();
+    pipelineInfo.colorBlendAttachments = {{}};
+    pipelineInfo.topology = vk::PrimitiveTopology::eLineList;
 
-      vk::VertexInputBindingDescription binding{};
-      binding.binding = 0;
-      binding.stride = sizeof(DebugLineVertex);
-      binding.inputRate = vk::VertexInputRate::eVertex;
+    vk::VertexInputBindingDescription binding{};
+    binding.binding = 0;
+    binding.stride = sizeof(DebugLineVertex);
+    binding.inputRate = vk::VertexInputRate::eVertex;
 
-      vk::VertexInputAttributeDescription positionAttr{};
-      positionAttr.location = 0;
-      positionAttr.binding = 0;
-      positionAttr.format = vk::Format::eR32G32B32Sfloat;
-      positionAttr.offset = offsetof(Vertex, position);
+    vk::VertexInputAttributeDescription positionAttr{};
+    positionAttr.location = 0;
+    positionAttr.binding = 0;
+    positionAttr.format = vk::Format::eR32G32B32Sfloat;
+    positionAttr.offset = offsetof(Vertex, position);
 
-      vk::VertexInputAttributeDescription colorAttr{};
-      colorAttr.location = 1;
-      colorAttr.binding = 0;
-      colorAttr.format = vk::Format::eR32G32B32Sfloat;
-      colorAttr.offset = offsetof(Vertex, color);
+    vk::VertexInputAttributeDescription colorAttr{};
+    colorAttr.location = 1;
+    colorAttr.binding = 0;
+    colorAttr.format = vk::Format::eR32G32B32Sfloat;
+    colorAttr.offset = offsetof(Vertex, color);
 
-      pipelineInfo.vertexBindings.push_back(binding);
-      pipelineInfo.vertexAttributes.push_back(positionAttr);
-      pipelineInfo.vertexAttributes.push_back(colorAttr);
+    pipelineInfo.vertexBindings.push_back(binding);
+    pipelineInfo.vertexAttributes.push_back(positionAttr);
+    pipelineInfo.vertexAttributes.push_back(colorAttr);
 
-      m_debugLinePipeline = std::make_unique<VulkanPipeline>(m_device->get(), pipelineInfo);
+    m_debugLinePipeline =
+        std::make_unique<VulkanPipeline>(m_device->get(), pipelineInfo);
   }
 
   // -----------------------------------------------------------
@@ -293,7 +300,7 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
       .stageFlags = vk::ShaderStageFlagBits::eCompute,
       .offset = 0,
       .size = sizeof(ComputePushConstant)};
-  
+
   pipelineLayoutInfo.pushConstants.push_back(computePushConstantRange);
 
   m_compPipelineLayout = std::make_unique<VulkanPipelineLayout>(
@@ -466,7 +473,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
         break;
     }
   }
-   
+
   // -----------------------------------------------------------
   // Begin frame
   // -----------------------------------------------------------
@@ -474,7 +481,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   const auto imageIndex = beginFrame().value_or(UINT32_MAX);
 
   if (imageIndex == UINT32_MAX) {
-      throw std::runtime_error("imageIndex is UINT32_MAX");
+    throw std::runtime_error("imageIndex is UINT32_MAX");
   }
 
   const auto& frame = m_frames[m_currentFrame];
@@ -485,14 +492,16 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   frame->objectBuffer()->writeRange(
       m_renderObjects.data(), sizeof(RenderObject) * m_renderObjects.size());
 
-  frame->debugLineVertexBuffer()->writeRange(m_debugLineVertices.data(), sizeof(DebugLineVertex) * m_debugLineVertices.size());
-  
+  frame->debugLineVertexBuffer()->writeRange(
+      m_debugLineVertices.data(),
+      sizeof(DebugLineVertex) * m_debugLineVertices.size());
+
   // -----------------------------------------------------------
   // Calculate view, projection and frustum
   // -----------------------------------------------------------
   const auto view = glm::inverse(world);
-  const auto projection =
-      glm::perspective(glm::radians(fov), m_aspectRatio, m_nearPlane, m_farPlane);
+  const auto projection = glm::perspective(glm::radians(fov), m_aspectRatio,
+                                           m_nearPlane, m_farPlane);
 
   const auto viewProj = projection * view;
   const auto frustum = extractFrustum(viewProj);
@@ -517,8 +526,9 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
       .frustum = frustum,
   };
 
-  ccmd.pushConstants(m_compPipelineLayout->get(), vk::ShaderStageFlagBits::eCompute,
-                    0, sizeof(ComputePushConstant), &computePushConstant);
+  ccmd.pushConstants(m_compPipelineLayout->get(),
+                     vk::ShaderStageFlagBits::eCompute, 0,
+                     sizeof(ComputePushConstant), &computePushConstant);
 
   ccmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compPipeline->get());
   const uint32_t workgroups = (m_renderObjects.size() + 255) / 256;
@@ -533,21 +543,17 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
       .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
       .buffer = frame->drawCount()->get(),
       .offset = 0,
-      .size = sizeof(uint32_t)
-  };
+      .size = sizeof(uint32_t)};
 
-  vk::DependencyInfo dependencyInfo{
-      .bufferMemoryBarrierCount = 1,
-      .pBufferMemoryBarriers = &barrier
-  };
+  vk::DependencyInfo dependencyInfo{.bufferMemoryBarrierCount = 1,
+                                    .pBufferMemoryBarriers = &barrier};
 
   ccmd.pipelineBarrier2(dependencyInfo);
 
-  vk::BufferCopy copyRegion{
-      .size = sizeof(uint32_t)
-  };
+  vk::BufferCopy copyRegion{.size = sizeof(uint32_t)};
 
-  ccmd.copyBuffer(frame->drawCount()->get(), frame->drawCountStaging()->get(), copyRegion);
+  ccmd.copyBuffer(frame->drawCount()->get(), frame->drawCountStaging()->get(),
+                  copyRegion);
   ccmd.end();
 
   auto* mapped = static_cast<uint32_t*>(frame->drawCountStaging()->map());
@@ -571,7 +577,8 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
       .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
       .loadOp = vk::AttachmentLoadOp::eClear,
       .storeOp = vk::AttachmentStoreOp::eDontCare,
-      .clearValue = vk::ClearValue{.depthStencil = {.depth=1.0f, .stencil=0}}};
+      .clearValue =
+          vk::ClearValue{.depthStencil = {.depth = 1.0f, .stencil = 0}}};
 
   const vk::RenderingAttachmentInfo colorAttachment{
       .imageView = m_swapChain->imageViews()[imageIndex],
@@ -595,7 +602,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
                          m_pipelineLayout->get(), 0, 1, &frame->descriptorSet(),
                          0, nullptr);
 
-    const PushConstant pushConstant{
+  const PushConstant pushConstant{
       .view = view,
       .proj = projection,
   };
@@ -618,8 +625,8 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   cmd.setViewport(0, 1, &viewport);
 
   const vk::Rect2D scissor{.offset = {.x = 0, .y = 0},
-                     .extent = {.width = m_swapChain->extent().width,
-                                .height = m_swapChain->extent().height}};
+                           .extent = {.width = m_swapChain->extent().width,
+                                      .height = m_swapChain->extent().height}};
   cmd.setScissor(0, 1, &scissor);
 
   cmd.drawIndexedIndirect(m_indirectBuffer->get(), 0, drawCount,
@@ -634,7 +641,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
       .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
       .loadOp = vk::AttachmentLoadOp::eLoad,
       .storeOp = vk::AttachmentStoreOp::eStore,
-    };
+  };
 
   const vk::RenderingInfo debugLineRenderInfo{
       .renderArea = vk::Rect2D{.offset = {.x = 0, .y = 0},
@@ -644,10 +651,12 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
       .pColorAttachments = &debugLineColorAttachment};
 
   cmd.beginRendering(debugLineRenderInfo);
-  cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_debugLinePipeline->get());
+  cmd.bindPipeline(vk::PipelineBindPoint::eGraphics,
+                   m_debugLinePipeline->get());
 
-  cmd.pushConstants(m_debugLinePipelineLayout->get(), vk::ShaderStageFlagBits::eVertex,
-                    0, sizeof(PushConstant), &pushConstant);
+  cmd.pushConstants(m_debugLinePipelineLayout->get(),
+                    vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstant),
+                    &pushConstant);
   const auto debugLineVertexBuffer = frame->debugLineVertexBuffer()->get();
   cmd.bindVertexBuffers(0, 1, &debugLineVertexBuffer, &offset);
 
@@ -702,25 +711,27 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
 
 uint32_t VulkanRenderer::addMesh(const std::vector<Vertex>& vertices,
                                  const std::vector<uint32_t>& indices,
-                                 uint32_t firstIndex, int32_t vertexOffset, const glm::vec3& bmin, const glm::vec3& bmax) {
+                                 uint32_t firstIndex, int32_t vertexOffset,
+                                 const glm::vec3& bmin, const glm::vec3& bmax) {
   const uint32_t meshID = m_meshInfos.size();
   m_vertices.insert(m_vertices.end(), vertices.begin(), vertices.end());
   m_indices.insert(m_indices.end(), indices.begin(), indices.end());
-  m_meshInfos.emplace_back(bmin, indices.size(), bmax, firstIndex, vertexOffset);
+  m_meshInfos.emplace_back(bmin, indices.size(), bmax, firstIndex,
+                           vertexOffset);
   return meshID;
 }
 
-void VulkanRenderer::renderLine(const glm::vec3& pointA, const glm::vec3& pointB, const glm::vec3& color) {
-    m_debugLineVertices.emplace_back(pointA, color);
-    m_debugLineVertices.emplace_back(pointB, color);
+void VulkanRenderer::renderLine(const glm::vec3& pointA,
+                                const glm::vec3& pointB,
+                                const glm::vec3& color) {
+  m_debugLineVertices.emplace_back(pointA, color);
+  m_debugLineVertices.emplace_back(pointB, color);
 }
 
-void VulkanRenderer::clearLines() {
-    m_debugLineVertices.clear();
-}
+void VulkanRenderer::clearLines() { m_debugLineVertices.clear(); }
 
 void VulkanRenderer::upload() {
-    m_device->waitIdle();
+  m_device->waitIdle();
 
   if (m_vertexBuffer) {
     m_vertexBuffer->destroy();
@@ -982,7 +993,8 @@ auto VulkanRenderer::endFrame(uint32_t imageIndex) -> void {
 
   if (result == vk::Result::eErrorOutOfDateKHR ||
       result == vk::Result::eSuboptimalKHR) {
-      throw std::runtime_error("Present result is either out of date or suboptimal");
+    throw std::runtime_error(
+        "Present result is either out of date or suboptimal");
   }
 
   m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;

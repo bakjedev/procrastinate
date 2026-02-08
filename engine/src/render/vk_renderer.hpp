@@ -59,14 +59,16 @@ class VulkanRenderer {
 
   uint32_t addMesh(const std::vector<Vertex> &vertices,
                    const std::vector<uint32_t> &indices, uint32_t firstIndex,
-                   int32_t vertexOffset, const glm::vec3& bmin, const glm::vec3& bmax);
+                   int32_t vertexOffset, const glm::vec3 &bmin,
+                   const glm::vec3 &bmax);
 
   void upload();
 
   void renderMesh(glm::mat4 model, uint32_t meshID);
   void clearMeshes();
 
-  void renderLine(const glm::vec3& pointA, const glm::vec3& pointB, const glm::vec3& color);
+  void renderLine(const glm::vec3 &pointA, const glm::vec3 &pointB,
+                  const glm::vec3 &color);
   void clearLines();
   [[nodiscard]] int32_t getVertexCount() const;
   [[nodiscard]] uint32_t getIndexCount() const;
@@ -94,7 +96,7 @@ class VulkanRenderer {
   std::unique_ptr<VulkanShader> m_vertexShader;
   std::unique_ptr<VulkanShader> m_fragmentShader;
   std::unique_ptr<VulkanShader> m_computeShader;
-  
+
   std::unique_ptr<VulkanShader> m_debugLineVert;
   std::unique_ptr<VulkanShader> m_debugLineFrag;
 
@@ -118,7 +120,7 @@ class VulkanRenderer {
   float m_aspectRatio = 1.0F;
   float m_nearPlane = 0.1F;
   float m_farPlane = 1000.0F;
-  
+
   std::vector<RenderObject> m_renderObjects;
 
   std::vector<DebugLineVertex> m_debugLineVertices;

@@ -22,14 +22,15 @@ struct DebugLineVertex {
   glm::vec3 position;
   glm::vec3 color;
 };
-  
+
 class VulkanFrame {
  public:
   VulkanFrame(const VulkanCommandPool* graphicsPool,
               const VulkanCommandPool* transferPool,
               const VulkanCommandPool* computePool,
               const VulkanDescriptorPool* descriptorPool,
-              const VulkanDescriptorSetLayout* descriptorLayout, vk::Device device, const VulkanAllocator* allocator);
+              const VulkanDescriptorSetLayout* descriptorLayout,
+              vk::Device device, const VulkanAllocator* allocator);
   VulkanFrame(const VulkanFrame&) = delete;
   VulkanFrame(VulkanFrame&&) = delete;
   VulkanFrame& operator=(const VulkanFrame&) = delete;
@@ -44,9 +45,7 @@ class VulkanFrame {
     return m_objectBuffer.get();
   }
 
-  [[nodiscard]] VulkanBuffer* drawCount() const {
-    return m_drawCount.get();
-  }
+  [[nodiscard]] VulkanBuffer* drawCount() const { return m_drawCount.get(); }
 
   [[nodiscard]] VulkanBuffer* drawCountStaging() const {
     return m_drawCountStaging.get();
@@ -83,6 +82,6 @@ class VulkanFrame {
   vk::DescriptorSet m_descriptorSet;
 
   std::unique_ptr<VulkanBuffer> m_debugLineVertexBuffer;
-  
+
   vk::Device m_device;
 };
