@@ -650,11 +650,11 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
 
 uint32_t VulkanRenderer::addMesh(const std::vector<Vertex>& vertices,
                                  const std::vector<uint32_t>& indices,
-                                 uint32_t firstIndex, int32_t vertexOffset) {
+                                 uint32_t firstIndex, int32_t vertexOffset, const glm::vec3& bmin, const glm::vec3& bmax) {
   const uint32_t meshID = m_meshInfos.size();
   m_vertices.insert(m_vertices.end(), vertices.begin(), vertices.end());
   m_indices.insert(m_indices.end(), indices.begin(), indices.end());
-  m_meshInfos.emplace_back(indices.size(), firstIndex, vertexOffset);
+  m_meshInfos.emplace_back(bmin, indices.size(), bmax, firstIndex, vertexOffset);
   return meshID;
 }
 

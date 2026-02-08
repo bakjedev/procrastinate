@@ -22,9 +22,12 @@ class ResourceManager;
 class EventManager;
 
 struct MeshInfo {
+  glm::vec3 bmin;
   uint32_t indexCount;
+  glm::vec3 bmax;
   uint32_t firstIndex;
   int32_t vertexOffset;
+  std::array<float, 3> pad;
 };
 
 struct PushConstant {
@@ -56,7 +59,7 @@ class VulkanRenderer {
 
   uint32_t addMesh(const std::vector<Vertex> &vertices,
                    const std::vector<uint32_t> &indices, uint32_t firstIndex,
-                   int32_t vertexOffset);
+                   int32_t vertexOffset, const glm::vec3& bmin, const glm::vec3& bmax);
 
   void upload();
 
