@@ -49,9 +49,12 @@ inline Plane extractPlane(const glm::mat4& matrix, PlaneType type) {
       break;
   }
 
-  float length = glm::length(glm::vec3(result));
-  return Plane{.normal = -glm::vec3(result) / length,
-               .distance = -result.w / length};
+  const auto normal = glm::vec3(result);
+  const float length = glm::length(normal);
+  const glm::vec3 normalized = normal / length;
+  const float distance = result.w / length;
+  return Plane{.normal = normalized,
+               .distance = distance};
 }
 
 inline Frustum extractFrustum(const glm::mat4& matrix) {

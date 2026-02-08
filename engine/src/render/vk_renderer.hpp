@@ -12,6 +12,7 @@
 #include "render/vk_shader.hpp"
 #include "render/vk_surface.hpp"
 #include "render/vk_swap_chain.hpp"
+#include "util/frustum.hpp"
 #include "vk_buffer.hpp"
 #include "vk_image.hpp"
 
@@ -29,6 +30,10 @@ struct MeshInfo {
 struct PushConstant {
   glm::mat4 view;
   glm::mat4 proj;
+};
+
+struct ComputePushConstant {
+  Frustum frustum;
 };
 
 struct Vertex {
@@ -107,7 +112,10 @@ class VulkanRenderer {
   std::vector<vk::UniqueSemaphore> m_renderFinishedSemaphores;
 
   uint32_t m_currentFrame = 0;
-
+  float m_aspectRatio = 1.0F;
+  float m_nearPlane = 0.1F;
+  float m_farPlane = 1000.0F;
+  
   std::vector<RenderObject> m_renderObjects;
 
   std::vector<DebugLineVertex> m_debugLineVertices;

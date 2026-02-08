@@ -5,6 +5,7 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <stdexcept>
 
 #include "core/events.hpp"
 #include "core/window.hpp"
@@ -281,6 +282,13 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
   pipelineLayoutInfo.descriptorSets.push_back(
       m_frameDescriptorSetLayout->get());
 
+  constexpr vk::PushConstantRange computePushConstantRange{
+      .stageFlags = vk::ShaderStageFlagBits::eCompute,
+      .offset = 0,
+      .size = sizeof(ComputePushConstant)};
+  
+  pipelineLayoutInfo.pushConstants.push_back(computePushConstantRange);
+
   m_compPipelineLayout = std::make_unique<VulkanPipelineLayout>(
       m_device->get(), pipelineLayoutInfo);
   // -----------------------------------------------------------
@@ -445,8 +453,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   const auto imageIndex = beginFrame().value_or(UINT32_MAX);
 
   if (imageIndex == UINT32_MAX) {
-    recreateSwapchain();
-    return;
+      throw std::runtime_error("imageIndex is UINT32_MAX");
   }
 
   const auto& frame = m_frames[m_currentFrame];
@@ -458,6 +465,17 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
       m_renderObjects.data(), sizeof(RenderObject) * m_renderObjects.size());
 
   frame->debugLineVertexBuffer()->writeRange(m_debugLineVertices.data(), sizeof(DebugLineVertex) * m_debugLineVertices.size());
+  
+  // -----------------------------------------------------------
+  // Calculate view, projection and frustum
+  // -----------------------------------------------------------
+  const auto view = glm::inverse(world);
+  const auto projection =
+      glm::perspective(glm::radians(fov), m_aspectRatio, m_nearPlane, m_farPlane);
+
+  const auto viewProj = projection * view;
+  const auto frustum = extractFrustum(viewProj);
+
   // -----------------------------------------------------------
   // Compute pass - create indirect draw commands
   // -----------------------------------------------------------
@@ -471,6 +489,13 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   ccmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
                           m_compPipelineLayout->get(), 0, descriptorSets.size(),
                           descriptorSets.data(), 0, nullptr);
+
+  const ComputePushConstant computePushConstant{
+      .frustum = frustum,
+  };
+
+  ccmd.pushConstants(m_compPipelineLayout->get(), vk::ShaderStageFlagBits::eCompute,
+                    0, sizeof(ComputePushConstant), &computePushConstant);
 
   ccmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compPipeline->get());
   const uint32_t workgroups = (m_renderObjects.size() + 255) / 256;
@@ -518,17 +543,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
                          m_pipelineLayout->get(), 0, 1, &frame->descriptorSet(),
                          0, nullptr);
 
-  const auto view = glm::inverse(world);
-  const float aspectRatio =
-      static_cast<float>(m_window->getWindowSize().first) /
-      static_cast<float>(
-          m_window->getWindowSize().second);  // Screen aspect ratio
-  constexpr float nearPlane = 0.1f;
-  constexpr float farPlane = 1000.0f;
-  const auto projection =
-      glm::perspective(glm::radians(fov), aspectRatio, nearPlane, farPlane);
-
-  const PushConstant pushConstant{
+    const PushConstant pushConstant{
       .view = view,
       .proj = projection,
   };
@@ -915,8 +930,7 @@ auto VulkanRenderer::endFrame(uint32_t imageIndex) -> void {
 
   if (result == vk::Result::eErrorOutOfDateKHR ||
       result == vk::Result::eSuboptimalKHR) {
-    recreateSwapchain();
-    return;
+      throw std::runtime_error("Present result is either out of date or suboptimal");
   }
 
   m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
@@ -927,6 +941,8 @@ void VulkanRenderer::recreateSwapchain() {
   m_swapChain->recreate({.width = width, .height = height});
 
   recreateDepthImage(width, height);
+
+  m_aspectRatio = static_cast<float>(width) / static_cast<float>(height);
 }
 void VulkanRenderer::recreateDepthImage(const uint32_t width,
                                         const uint32_t height) {
