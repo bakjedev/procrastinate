@@ -17,9 +17,12 @@ struct ComputePushConstants
 [[vk::push_constant]]
 ComputePushConstants pushConst;
 
+[[vk::binding(2, 1)]]
+RWStructuredBuffer<uint> drawCount;
+
 [shader("compute")]
 [numthreads(256, 1, 1)]
-void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID)
 {
     uint index = dispatchThreadID.x;
     uint count, stride;
@@ -31,9 +34,12 @@ void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     RenderObject obj = renderObjects[index];
     MeshInfo info = meshInfos[obj.meshID];
 
-    outputCommands[index].indexCount = info.indexCount;
-    outputCommands[index].instanceCount = 1;
-    outputCommands[index].firstIndex = info.firstIndex;
-    outputCommands[index].vertexOffset = info.vertexOffset;
-    outputCommands[index].firstInstance = index;
+    uint countedIndex;
+    InterlockedAdd(drawCount[0], 1, countedIndex);
+    
+    outputCommands[countedIndex].indexCount = info.indexCount;
+    outputCommands[countedIndex].instanceCount = 1;
+    outputCommands[countedIndex].firstIndex = info.firstIndex;
+    outputCommands[countedIndex].vertexOffset = info.vertexOffset;
+    outputCommands[countedIndex].firstInstance = index;
 }

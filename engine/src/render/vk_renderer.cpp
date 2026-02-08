@@ -135,27 +135,34 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
   // -----------------------------------------------------------
   m_frameDescriptorSetLayout = std::make_unique<VulkanDescriptorSetLayout>(
       m_device->get(),
-      std::vector{vk::DescriptorSetLayoutBinding{
+      std::vector{vk::DescriptorSetLayoutBinding{ // outputCommands
                       .binding = 0,
                       .descriptorType = vk::DescriptorType::eStorageBuffer,
                       .descriptorCount = 1,
                       .stageFlags = vk::ShaderStageFlagBits::eCompute},
-                  vk::DescriptorSetLayoutBinding{
+                  vk::DescriptorSetLayoutBinding{ // renderObjects
                       .binding = 1,
                       .descriptorType = vk::DescriptorType::eStorageBuffer,
                       .descriptorCount = 1,
                       .stageFlags = vk::ShaderStageFlagBits::eCompute |
-                                    vk::ShaderStageFlagBits::eVertex}},
+                                    vk::ShaderStageFlagBits::eVertex},
+                  vk::DescriptorSetLayoutBinding{ // drawCount
+                      .binding = 2,
+                      .descriptorType = vk::DescriptorType::eStorageBuffer,
+                      .descriptorCount = 1,
+                      .stageFlags = vk::ShaderStageFlagBits::eCompute}},
       std::vector<vk::DescriptorBindingFlags>{},
       vk::DescriptorSetLayoutCreateFlags{});
 
   m_staticDescriptorSetLayout = std::make_unique<VulkanDescriptorSetLayout>(
       m_device->get(),
-      std::vector{vk::DescriptorSetLayoutBinding{
+      std::vector{
+          vk::DescriptorSetLayoutBinding{ // Mesh infos
           .binding = 0,
           .descriptorType = vk::DescriptorType::eStorageBuffer,
           .descriptorCount = 1,
-          .stageFlags = vk::ShaderStageFlagBits::eCompute}},
+          .stageFlags = vk::ShaderStageFlagBits::eCompute},
+  },
       std::vector<vk::DescriptorBindingFlags>{},
       vk::DescriptorSetLayoutCreateFlags{});
 
@@ -352,9 +359,9 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
   // WRITE TO DESCRIPTOR SETS
   // -----------------------------------------------------------
   std::vector<vk::WriteDescriptorSet> writes;
-  writes.reserve(m_frames.size() * 2);
+  writes.reserve(m_frames.size() * 3);
   std::vector<vk::DescriptorBufferInfo> bufferInfos;
-  bufferInfos.reserve(m_frames.size() * 2);
+  bufferInfos.reserve(m_frames.size() * 3);
 
   for (const auto& frame : m_frames) {
     bufferInfos.push_back({.buffer = m_indirectBuffer->get(),
@@ -384,6 +391,20 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
         .pBufferInfo = &bufferInfos.back()};
 
     writes.push_back(write2);
+
+    bufferInfos.push_back({.buffer = frame->drawCount()->get(),
+                           .offset = 0,
+                           .range = vk::WholeSize});
+
+    const vk::WriteDescriptorSet write3{
+        .dstSet = frame->descriptorSet(),
+        .dstBinding = 2,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType = vk::DescriptorType::eStorageBuffer,
+        .pBufferInfo = &bufferInfos.back()};
+
+    writes.push_back(write3);
   }
 
   m_device->get().updateDescriptorSets(writes.size(), writes.data(), 0,
@@ -482,6 +503,8 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   const auto ccmd = frame->computeCmd();
   constexpr vk::CommandBufferBeginInfo beginInfo{};
   ccmd.begin(beginInfo);
+
+  ccmd.fillBuffer(frame->drawCount()->get(), 0, sizeof(uint32_t), 0);
 
   const auto descriptorSets =
       std::array{m_staticDescriptorSet, frame->descriptorSet()};

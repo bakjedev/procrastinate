@@ -63,6 +63,17 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
       allocator->get()
   );
   m_debugLineVertexBuffer->map();
+
+  // Create draw count buffer
+  m_drawCount = std::make_unique<VulkanBuffer>(
+      BufferInfo{.size = sizeof(uint32_t),
+                 .usage = vk::BufferUsageFlagBits::eStorageBuffer |
+                 vk::BufferUsageFlagBits::eTransferDst,
+                 .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
+                 .memoryFlags = {}},
+      allocator->get());
+
+  
   // Allocate descriptor set with per frame descriptor set layout
   m_descriptorSet = descriptorPool->allocate(descriptorLayout->get());
 }
