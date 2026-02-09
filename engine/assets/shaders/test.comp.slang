@@ -33,7 +33,7 @@ bool isOnFrustum(Frustum frustum, MeshInfo info, float4x4 world) {
         mul(world, float4(info.bmax.x, info.bmax.y, info.bmax.z, 1.0)).xyz,
     };
 
-    Plane planes[6] = {frustum.left, frustum.right, frustum.bottom, frustum.top, frustum.near, frustum.top};
+    Plane planes[6] = {frustum.left, frustum.right, frustum.bottom, frustum.top, frustum.near, frustum.far};
 
     for (int i = 0; i < 6; i++) {
         bool allOutside = true;
