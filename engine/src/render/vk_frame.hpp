@@ -3,11 +3,10 @@
 #include <memory>
 
 #include "glm/glm.hpp"
-#include "render/vk_buffer.hpp"
-#include "render/vk_descriptor.hpp"
 #include "vulkan/vulkan.hpp"
 
 class VulkanImage;
+class VulkanBuffer;
 class VulkanCommandPool;
 class VulkanDescriptorPool;
 class VulkanDescriptorSetLayout;
@@ -16,7 +15,7 @@ class VulkanAllocator;
 struct RenderObject {
   glm::mat4 model;
   uint32_t meshID;
-  int32_t padding[3];
+  std::array<int32_t, 3> pad;
 };
 
 struct DebugLineVertex {

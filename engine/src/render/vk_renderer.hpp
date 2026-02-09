@@ -1,25 +1,29 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <memory>
+#include <optional>
+#include <vulkan/vulkan.hpp>
 
-#include "render/vk_allocator.hpp"
-#include "render/vk_command_pool.hpp"
-#include "render/vk_descriptor.hpp"
-#include "render/vk_device.hpp"
-#include "render/vk_frame.hpp"
-#include "render/vk_instance.hpp"
-#include "render/vk_pipeline.hpp"
-#include "render/vk_shader.hpp"
-#include "render/vk_surface.hpp"
-#include "render/vk_swap_chain.hpp"
 #include "util/frustum.hpp"
-#include "vk_buffer.hpp"
-#include "vk_image.hpp"
 
+struct DebugLineVertex;
+struct RenderObject;
+class VulkanFrame;
+class VulkanBuffer;
+class VulkanPipeline;
+class VulkanPipelineLayout;
+class VulkanDescriptorSetLayout;
+class VulkanDescriptorPool;
+class VulkanShader;
+class VulkanCommandPool;
+class VulkanSwapChain;
+class VulkanAllocator;
 class Window;
-
 class ResourceManager;
 class EventManager;
+class VulkanInstance;
+class VulkanSurface;
+class VulkanDevice;
 
 struct MeshInfo {
   glm::vec3 bmin;
@@ -74,7 +78,7 @@ class VulkanRenderer {
   [[nodiscard]] uint32_t getIndexCount() const;
 
  private:
-  std::optional<uint32_t> beginFrame() const;
+  [[nodiscard]] std::optional<uint32_t> beginFrame() const;
   void endFrame(uint32_t imageIndex);
 
   void recreateSwapchain();

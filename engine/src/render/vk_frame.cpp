@@ -6,8 +6,8 @@
 
 #include "render/vk_command_pool.hpp"
 #include "render/vk_descriptor.hpp"
-#include "util/print.hpp"
 #include "vk_allocator.hpp"
+#include "vk_buffer.hpp"
 #include "vk_image.hpp"
 #include "vma/vma_usage.h"
 #include "vulkan/vulkan.hpp"
@@ -21,8 +21,7 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
                          const VulkanCommandPool* computePool,
                          const VulkanDescriptorPool* descriptorPool,
                          const VulkanDescriptorSetLayout* descriptorLayout,
-                         const vk::Device device,
-                         VulkanAllocator* allocator) {
+                         const vk::Device device, VulkanAllocator* allocator) {
   // Set references
   m_device = device;
   m_allocator = allocator;

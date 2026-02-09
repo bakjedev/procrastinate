@@ -104,7 +104,8 @@ void VulkanDevice::createDevice() {
   m_enabledFeatures12.bufferDeviceAddress =
       m_availableFeatures12.bufferDeviceAddress;
 
-  m_enabledFeatures12.drawIndirectCount = m_availableFeatures12.drawIndirectCount;
+  m_enabledFeatures12.drawIndirectCount =
+      m_availableFeatures12.drawIndirectCount;
   vk::DeviceCreateInfo deviceCreateInfo;
   deviceCreateInfo.pNext = &m_enabledFeatures;
   deviceCreateInfo.queueCreateInfoCount =
