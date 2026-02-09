@@ -6,6 +6,9 @@
 #include <optional>
 #include <vector>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
 namespace Files {
 
 inline std::filesystem::path getExecutablePath() {
