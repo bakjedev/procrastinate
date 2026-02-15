@@ -522,15 +522,12 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   ccmd.fillBuffer(frame->drawCount()->get(), 0, sizeof(uint32_t), 0);
 
   VulkanBarriers::bufferBarrier(
-    ccmd,
-    VulkanBarriers::BufferInfo{
-        .buffer = frame->drawCount()->get(),
-        .size = sizeof(uint32_t)
-    },
-    VulkanBarriers::BufferUsageBit::CopyDestination,
-    VulkanBarriers::BufferUsageBit::RWCompute
-  );
-  
+      ccmd,
+      VulkanBarriers::BufferInfo{.buffer = frame->drawCount()->get(),
+                                 .size = sizeof(uint32_t)},
+      VulkanBarriers::BufferUsageBit::CopyDestination,
+      VulkanBarriers::BufferUsageBit::RWCompute);
+
   const auto descriptorSets =
       std::array{m_staticDescriptorSet, frame->descriptorSet()};
 
@@ -551,26 +548,20 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   ccmd.dispatch(workgroups, 1, 1);
 
   VulkanBarriers::bufferBarrierRelease(
-    ccmd,
-    VulkanBarriers::BufferInfo{
-        .buffer = frame->drawCount()->get(),
-        .size = sizeof(uint32_t)
-    },
-    VulkanBarriers::BufferUsageBit::RWCompute,
-    m_device->queueFamilies().compute.value(),
-    m_device->queueFamilies().graphics.value()
-  );
+      ccmd,
+      VulkanBarriers::BufferInfo{.buffer = frame->drawCount()->get(),
+                                 .size = sizeof(uint32_t)},
+      VulkanBarriers::BufferUsageBit::RWCompute,
+      m_device->queueFamilies().compute.value(),
+      m_device->queueFamilies().graphics.value());
 
   VulkanBarriers::bufferBarrierRelease(
-    ccmd,
-    VulkanBarriers::BufferInfo{
-        .buffer = frame->indirectBuffer()->get(),
-        .size = vk::WholeSize
-    },
-    VulkanBarriers::BufferUsageBit::RWCompute,
-    m_device->queueFamilies().compute.value(),
-    m_device->queueFamilies().graphics.value()
-  );
+      ccmd,
+      VulkanBarriers::BufferInfo{.buffer = frame->indirectBuffer()->get(),
+                                 .size = vk::WholeSize},
+      VulkanBarriers::BufferUsageBit::RWCompute,
+      m_device->queueFamilies().compute.value(),
+      m_device->queueFamilies().graphics.value());
 
   ccmd.end();
 
@@ -586,27 +577,21 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
                                      vk::ImageLayout::eColorAttachmentOptimal);
 
   VulkanBarriers::bufferBarrierAcquire(
-    cmd,
-    VulkanBarriers::BufferInfo{
-        .buffer = frame->drawCount()->get(),
-        .size = sizeof(uint32_t)
-    },
-    VulkanBarriers::BufferUsageBit::IndirectDraw,
-    m_device->queueFamilies().compute.value(),
-    m_device->queueFamilies().graphics.value()
-  );
+      cmd,
+      VulkanBarriers::BufferInfo{.buffer = frame->drawCount()->get(),
+                                 .size = sizeof(uint32_t)},
+      VulkanBarriers::BufferUsageBit::IndirectDraw,
+      m_device->queueFamilies().compute.value(),
+      m_device->queueFamilies().graphics.value());
 
   VulkanBarriers::bufferBarrierAcquire(
-    cmd,
-    VulkanBarriers::BufferInfo{
-        .buffer = frame->indirectBuffer()->get(),
-        .size = vk::WholeSize
-    },
-    VulkanBarriers::BufferUsageBit::IndirectDraw,
-    m_device->queueFamilies().compute.value(),
-    m_device->queueFamilies().graphics.value()
-  );
-  
+      cmd,
+      VulkanBarriers::BufferInfo{.buffer = frame->indirectBuffer()->get(),
+                                 .size = vk::WholeSize},
+      VulkanBarriers::BufferUsageBit::IndirectDraw,
+      m_device->queueFamilies().compute.value(),
+      m_device->queueFamilies().graphics.value());
+
   const vk::RenderingAttachmentInfo depthAttachment{
       .imageView = frame->depthImage()->view(),
       .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,

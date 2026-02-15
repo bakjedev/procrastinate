@@ -133,8 +133,9 @@ void VulkanDevice::getQueues() {
   }
 }
 
-bool VulkanDevice::isDeviceSuitable(const vk::PhysicalDeviceProperties& properties) {
-  return properties.limits.maxPushConstantsSize >= 96; // Frustum is 96 bytes
+bool VulkanDevice::isDeviceSuitable(
+    const vk::PhysicalDeviceProperties& properties) {
+  return properties.limits.maxPushConstantsSize >= 96;  // Frustum is 96 bytes
 }
 
 bool VulkanDevice::findQueueFamilies(const vk::SurfaceKHR surface) {

@@ -43,7 +43,8 @@ class VulkanDevice {
     return m_queueFamilyIndices;
   }
   [[nodiscard]] bool separateComputeQueue() const {
-    return m_queueFamilyIndices.compute.value() != m_queueFamilyIndices.graphics.value();
+    return m_queueFamilyIndices.compute.value() !=
+           m_queueFamilyIndices.graphics.value();
   }
 
  private:
