@@ -42,6 +42,9 @@ class VulkanDevice {
   [[nodiscard]] const QueueFamilyIndices& queueFamilies() const {
     return m_queueFamilyIndices;
   }
+  [[nodiscard]] bool separateComputeQueue() const {
+    return m_queueFamilyIndices.compute.value() != m_queueFamilyIndices.graphics.value();
+  }
 
  private:
   vk::PhysicalDevice m_physicalDevice;

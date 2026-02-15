@@ -1,6 +1,7 @@
 #include "vk_renderer.hpp"
 
 #include <SDL3/SDL.h>
+#include <vulkan/vulkan_core.h>
 
 #include <array>
 #include <cstdint>
@@ -14,6 +15,7 @@
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_vulkan.h"
+#include "render/vk_barriers.hpp"
 #include "render/vk_buffer.hpp"
 #include "render/vk_descriptor.hpp"
 #include "render/vk_device.hpp"
@@ -519,21 +521,16 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
 
   ccmd.fillBuffer(frame->drawCount()->get(), 0, sizeof(uint32_t), 0);
 
-  const vk::BufferMemoryBarrier2 fillBarrier{
-      .srcStageMask = vk::PipelineStageFlagBits2::eClear,
-      .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
-      .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-      .dstAccessMask =
-          vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite,
-      .buffer = frame->drawCount()->get(),
-      .offset = 0,
-      .size = sizeof(uint32_t)};
-
-  const vk::DependencyInfo fillDep{.bufferMemoryBarrierCount = 1,
-                                   .pBufferMemoryBarriers = &fillBarrier};
-
-  ccmd.pipelineBarrier2(fillDep);
-
+  VulkanBarriers::bufferBarrier(
+    ccmd,
+    VulkanBarriers::BufferInfo{
+        .buffer = frame->drawCount()->get(),
+        .size = sizeof(uint32_t)
+    },
+    VulkanBarriers::BufferUsageBit::CopyDestination,
+    VulkanBarriers::BufferUsageBit::RWCompute
+  );
+  
   const auto descriptorSets =
       std::array{m_staticDescriptorSet, frame->descriptorSet()};
 
@@ -553,34 +550,27 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   const uint32_t workgroups = (m_renderObjects.size() + 255) / 256;
   ccmd.dispatch(workgroups, 1, 1);
 
-  const vk::BufferMemoryBarrier2 releaseDrawCount{
-      .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-      .srcAccessMask = vk::AccessFlagBits2::eShaderWrite,
-      .dstStageMask = vk::PipelineStageFlagBits2::eNone,
-      .dstAccessMask = vk::AccessFlagBits2::eNone,
-      .srcQueueFamilyIndex = m_device->queueFamilies().compute.value(),
-      .dstQueueFamilyIndex = m_device->queueFamilies().graphics.value(),
-      .buffer = frame->drawCount()->get(),
-      .offset = 0,
-      .size = sizeof(uint32_t)};
+  VulkanBarriers::bufferBarrierRelease(
+    ccmd,
+    VulkanBarriers::BufferInfo{
+        .buffer = frame->drawCount()->get(),
+        .size = sizeof(uint32_t)
+    },
+    VulkanBarriers::BufferUsageBit::RWCompute,
+    m_device->queueFamilies().compute.value(),
+    m_device->queueFamilies().graphics.value()
+  );
 
-  const vk::BufferMemoryBarrier2 releaseIndirect{
-      .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-      .srcAccessMask = vk::AccessFlagBits2::eShaderWrite,
-      .dstStageMask = vk::PipelineStageFlagBits2::eNone,
-      .dstAccessMask = vk::AccessFlagBits2::eNone,
-      .srcQueueFamilyIndex = m_device->queueFamilies().compute.value(),
-      .dstQueueFamilyIndex = m_device->queueFamilies().graphics.value(),
-      .buffer = frame->indirectBuffer()->get(),
-      .offset = 0,
-      .size = VK_WHOLE_SIZE};
-
-  const std::array releaseBarriers = {releaseDrawCount, releaseIndirect};
-  const vk::DependencyInfo releaseDep{
-      .bufferMemoryBarrierCount = releaseBarriers.size(),
-      .pBufferMemoryBarriers = releaseBarriers.data()};
-
-  ccmd.pipelineBarrier2(releaseDep);
+  VulkanBarriers::bufferBarrierRelease(
+    ccmd,
+    VulkanBarriers::BufferInfo{
+        .buffer = frame->indirectBuffer()->get(),
+        .size = vk::WholeSize
+    },
+    VulkanBarriers::BufferUsageBit::RWCompute,
+    m_device->queueFamilies().compute.value(),
+    m_device->queueFamilies().graphics.value()
+  );
 
   ccmd.end();
 
@@ -595,35 +585,28 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
                                      vk::ImageLayout::eUndefined,
                                      vk::ImageLayout::eColorAttachmentOptimal);
 
-  const vk::BufferMemoryBarrier2 acquireDrawCount{
-      .srcStageMask = vk::PipelineStageFlagBits2::eNone,
-      .srcAccessMask = vk::AccessFlagBits2::eNone,
-      .dstStageMask = vk::PipelineStageFlagBits2::eDrawIndirect,
-      .dstAccessMask = vk::AccessFlagBits2::eIndirectCommandRead,
-      .srcQueueFamilyIndex = m_device->queueFamilies().compute.value(),
-      .dstQueueFamilyIndex = m_device->queueFamilies().graphics.value(),
-      .buffer = frame->drawCount()->get(),
-      .offset = 0,
-      .size = sizeof(uint32_t)};
+  VulkanBarriers::bufferBarrierAcquire(
+    cmd,
+    VulkanBarriers::BufferInfo{
+        .buffer = frame->drawCount()->get(),
+        .size = sizeof(uint32_t)
+    },
+    VulkanBarriers::BufferUsageBit::IndirectDraw,
+    m_device->queueFamilies().compute.value(),
+    m_device->queueFamilies().graphics.value()
+  );
 
-  const vk::BufferMemoryBarrier2 acquireIndirect{
-      .srcStageMask = vk::PipelineStageFlagBits2::eNone,
-      .srcAccessMask = vk::AccessFlagBits2::eNone,
-      .dstStageMask = vk::PipelineStageFlagBits2::eDrawIndirect,
-      .dstAccessMask = vk::AccessFlagBits2::eIndirectCommandRead,
-      .srcQueueFamilyIndex = m_device->queueFamilies().compute.value(),
-      .dstQueueFamilyIndex = m_device->queueFamilies().graphics.value(),
-      .buffer = frame->indirectBuffer()->get(),
-      .offset = 0,
-      .size = VK_WHOLE_SIZE};
-
-  const std::array acquireBarriers = {acquireDrawCount, acquireIndirect};
-  const vk::DependencyInfo acquireDep{
-      .bufferMemoryBarrierCount = acquireBarriers.size(),
-      .pBufferMemoryBarriers = acquireBarriers.data()};
-
-  cmd.pipelineBarrier2(acquireDep);
-
+  VulkanBarriers::bufferBarrierAcquire(
+    cmd,
+    VulkanBarriers::BufferInfo{
+        .buffer = frame->indirectBuffer()->get(),
+        .size = vk::WholeSize
+    },
+    VulkanBarriers::BufferUsageBit::IndirectDraw,
+    m_device->queueFamilies().compute.value(),
+    m_device->queueFamilies().graphics.value()
+  );
+  
   const vk::RenderingAttachmentInfo depthAttachment{
       .imageView = frame->depthImage()->view(),
       .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
@@ -1000,7 +983,7 @@ auto VulkanRenderer::endFrame(uint32_t imageIndex) -> void {
 
   const vk::SemaphoreSubmitInfo cSignalSemaphore{
       .semaphore = frame->computeFinished(),
-      .stageMask = vk::PipelineStageFlagBits2::eAllCommands};
+      .stageMask = vk::PipelineStageFlagBits2::eComputeShader};
 
   const vk::CommandBufferSubmitInfo cCmdInfo{.commandBuffer =
                                                  frame->computeCmd()};
@@ -1020,9 +1003,9 @@ auto VulkanRenderer::endFrame(uint32_t imageIndex) -> void {
 
   std::array<vk::SemaphoreSubmitInfo, 2> gWaitSemaphores{
       {{.semaphore = frame->computeFinished(),
-        .stageMask = vk::PipelineStageFlagBits2::eAllCommands},
+        .stageMask = vk::PipelineStageFlagBits2::eVertexShader},
        {.semaphore = frame->imageAvailable(),
-        .stageMask = vk::PipelineStageFlagBits2::eAllCommands}}};
+        .stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput}}};
 
   const vk::SemaphoreSubmitInfo gSignalSemaphore{
       .semaphore = *m_renderFinishedSemaphores.at(imageIndex),

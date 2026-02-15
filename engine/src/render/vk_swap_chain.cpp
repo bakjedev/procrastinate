@@ -164,7 +164,10 @@ void VulkanSwapChain::choosePresentMode() {
     {
       m_presentMode = presentMode;
       return;
+    } else if (presentMode == vk::PresentModeKHR::eFifo) {
+      m_presentMode = presentMode;
+      return;
     }
   }
-  m_presentMode = vk::PresentModeKHR::eFifo;
+  m_presentMode = vk::PresentModeKHR::eImmediate;
 }

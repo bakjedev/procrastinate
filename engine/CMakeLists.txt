@@ -30,6 +30,7 @@ target_sources(engine PRIVATE
         src/render/vk_shader.cpp
         src/render/vk_descriptor.cpp
         src/render/vk_pipeline.cpp
+        src/render/vk_barriers.cpp
 )
 
 target_compile_options(engine PRIVATE
