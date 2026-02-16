@@ -10,12 +10,15 @@ class VulkanInstance {
   VulkanInstance &operator=(VulkanInstance &&) = delete;
   ~VulkanInstance();
   [[nodiscard]] vk::Instance get() const { return m_instance; }
+  [[nodiscard]] vk::detail::DispatchLoaderDynamic &getDynamicLoader() {
+    return m_dynamicLoader;
+  }
 
  private:
   vk::Instance m_instance;
 
-#ifndef NDEBUG
   vk::detail::DispatchLoaderDynamic m_dynamicLoader;
+#ifndef NDEBUG
   vk::DebugUtilsMessengerEXT m_debugMessenger;
 #endif
 };

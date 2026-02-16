@@ -519,6 +519,10 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   constexpr vk::CommandBufferBeginInfo beginInfo{};
   ccmd.begin(beginInfo);
 
+  constexpr vk::DebugUtilsLabelEXT labelInfo1{.pLabelName =
+                                                  "FrustumGPUDrivenPass"};
+  ccmd.beginDebugUtilsLabelEXT(labelInfo1, m_instance->getDynamicLoader());
+
   ccmd.fillBuffer(frame->drawCount()->get(), 0, sizeof(uint32_t), 0);
 
   VulkanBarriers::bufferBarrier(
@@ -563,6 +567,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
       m_device->queueFamilies().compute.value(),
       m_device->queueFamilies().graphics.value());
 
+  ccmd.endDebugUtilsLabelEXT(m_instance->getDynamicLoader());
   ccmd.end();
 
   // -----------------------------------------------------------
@@ -571,6 +576,9 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   const auto cmd = frame->graphicsCmd();
 
   cmd.begin(beginInfo);
+
+  constexpr vk::DebugUtilsLabelEXT labelInfo2{.pLabelName = "MeshPass"};
+  cmd.beginDebugUtilsLabelEXT(labelInfo2, m_instance->getDynamicLoader());
 
   VulkanImage::transitionImageLayout(m_swapChain->getImage(imageIndex), cmd,
                                      vk::ImageLayout::eUndefined,
@@ -654,9 +662,14 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
       m_renderObjects.size(), sizeof(vk::DrawIndexedIndirectCommand));
   cmd.endRendering();
 
+  cmd.endDebugUtilsLabelEXT(m_instance->getDynamicLoader());
+
   // -----------------------------------------------------------
   // Graphics pass - render debug lines
   // -----------------------------------------------------------
+  constexpr vk::DebugUtilsLabelEXT labelInfo3{.pLabelName = "DebugLinesPass"};
+  cmd.beginDebugUtilsLabelEXT(labelInfo3, m_instance->getDynamicLoader());
+
   const vk::RenderingAttachmentInfo debugLineColorAttachment{
       .imageView = m_swapChain->imageViews().at(imageIndex),
       .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
@@ -689,9 +702,15 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
 
   cmd.endRendering();
 
+  cmd.endDebugUtilsLabelEXT(m_instance->getDynamicLoader());
+
   // -----------------------------------------------------------
   // ImGui pass
   // -----------------------------------------------------------
+
+  constexpr vk::DebugUtilsLabelEXT labelInfo4{.pLabelName = "ImGuiPass"};
+  cmd.beginDebugUtilsLabelEXT(labelInfo4, m_instance->getDynamicLoader());
+
   ImGui_ImplVulkan_NewFrame();
   ImGui_ImplSDL3_NewFrame();
   ImGui::NewFrame();
@@ -721,6 +740,8 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   VulkanImage::transitionImageLayout(m_swapChain->getImage(imageIndex), cmd,
                                      vk::ImageLayout::eColorAttachmentOptimal,
                                      vk::ImageLayout::ePresentSrcKHR);
+
+  cmd.endDebugUtilsLabelEXT(m_instance->getDynamicLoader());
 
   cmd.end();
 

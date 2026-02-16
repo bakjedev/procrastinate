@@ -26,6 +26,7 @@ VulkanInstance::VulkanInstance() {
     throw std::runtime_error("Failed to get SDL Vulkan extensions");
   }
 
+  extensions.reserve(sdlInstanceExtensionCount);
   for (uint32_t i = 0; i < sdlInstanceExtensionCount; i++) {
     extensions.push_back(sdlInstanceExtensions[i]);
   }
@@ -38,8 +39,8 @@ VulkanInstance::VulkanInstance() {
       .engineVersion = 1,
       .apiVersion = VK_API_VERSION_1_3};
 
-#ifndef NDEBUG
   extensions.push_back(vk::EXTDebugUtilsExtensionName);
+#ifndef NDEBUG
   layers.push_back("VK_LAYER_KHRONOS_validation");
 #endif
 
@@ -54,13 +55,13 @@ VulkanInstance::VulkanInstance() {
 
   m_instance = vk::createInstance(instanceCreateInfo);
 
-#ifndef NDEBUG
-  vk::detail::DynamicLoader dynamicLoader;
+  const vk::detail::DynamicLoader dynamicLoader;
   const auto vkGetInstanceProcAddr =
       dynamicLoader.getProcAddress<PFN_vkGetInstanceProcAddr>(
           "vkGetInstanceProcAddr");
   m_dynamicLoader.init(vkGetInstanceProcAddr);
   m_dynamicLoader.init(m_instance);
+#ifndef NDEBUG
 
   constexpr vk::DebugUtilsMessengerCreateInfoEXT debugInfo{
       .messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
