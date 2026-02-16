@@ -551,22 +551,6 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   const uint32_t workgroups = (m_renderObjects.size() + 255) / 256;
   ccmd.dispatch(workgroups, 1, 1);
 
-  VulkanBarriers::bufferBarrierRelease(
-      ccmd,
-      VulkanBarriers::BufferInfo{.buffer = frame->drawCount()->get(),
-                                 .size = sizeof(uint32_t)},
-      VulkanBarriers::BufferUsageBit::RWCompute,
-      m_device->queueFamilies().compute.value(),
-      m_device->queueFamilies().graphics.value());
-
-  VulkanBarriers::bufferBarrierRelease(
-      ccmd,
-      VulkanBarriers::BufferInfo{.buffer = frame->indirectBuffer()->get(),
-                                 .size = vk::WholeSize},
-      VulkanBarriers::BufferUsageBit::RWCompute,
-      m_device->queueFamilies().compute.value(),
-      m_device->queueFamilies().graphics.value());
-
   ccmd.endDebugUtilsLabelEXT(m_instance->getDynamicLoader());
   ccmd.end();
 
@@ -583,22 +567,6 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   VulkanImage::transitionImageLayout(m_swapChain->getImage(imageIndex), cmd,
                                      vk::ImageLayout::eUndefined,
                                      vk::ImageLayout::eColorAttachmentOptimal);
-
-  VulkanBarriers::bufferBarrierAcquire(
-      cmd,
-      VulkanBarriers::BufferInfo{.buffer = frame->drawCount()->get(),
-                                 .size = sizeof(uint32_t)},
-      VulkanBarriers::BufferUsageBit::IndirectDraw,
-      m_device->queueFamilies().compute.value(),
-      m_device->queueFamilies().graphics.value());
-
-  VulkanBarriers::bufferBarrierAcquire(
-      cmd,
-      VulkanBarriers::BufferInfo{.buffer = frame->indirectBuffer()->get(),
-                                 .size = vk::WholeSize},
-      VulkanBarriers::BufferUsageBit::IndirectDraw,
-      m_device->queueFamilies().compute.value(),
-      m_device->queueFamilies().graphics.value());
 
   const vk::RenderingAttachmentInfo depthAttachment{
       .imageView = frame->depthImage()->view(),
