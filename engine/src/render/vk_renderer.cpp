@@ -423,17 +423,6 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
                                        nullptr);
 
   // -----------------------------------------------------------
-  // CREATE FRAME SYNC OBJECTS
-  // -----------------------------------------------------------
-  const auto frameCount = m_swapChain->imageCount();
-  m_renderFinishedSemaphores.resize(frameCount);
-  for (uint32_t i = 0; i < frameCount; i++) {
-    constexpr vk::SemaphoreCreateInfo semaphoreCreateInfo{};
-    m_renderFinishedSemaphores.at(i) =
-        m_device->get().createSemaphoreUnique(semaphoreCreateInfo);
-  }
-
-  // -----------------------------------------------------------
   // INITIALIZE ImGui
   // -----------------------------------------------------------
   auto format = m_swapChain->format();
@@ -977,12 +966,12 @@ auto VulkanRenderer::endFrame(uint32_t imageIndex) -> void {
 
   std::array<vk::SemaphoreSubmitInfo, 2> gWaitSemaphores{
       {{.semaphore = frame->computeFinished(),
-        .stageMask = vk::PipelineStageFlagBits2::eVertexShader},
+        .stageMask = vk::PipelineStageFlagBits2::eDrawIndirect},
        {.semaphore = frame->imageAvailable(),
         .stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput}}};
 
   const vk::SemaphoreSubmitInfo gSignalSemaphore{
-      .semaphore = *m_renderFinishedSemaphores.at(imageIndex),
+      .semaphore = frame->renderFinished(),
       .stageMask = vk::PipelineStageFlagBits2::eAllCommands};
 
   const vk::CommandBufferSubmitInfo gCmdInfo{.commandBuffer =
@@ -1004,7 +993,7 @@ auto VulkanRenderer::endFrame(uint32_t imageIndex) -> void {
   }
 
   result = m_swapChain->present(imageIndex, m_device->presentQueue(),
-                                *m_renderFinishedSemaphores.at(imageIndex));
+                                frame->renderFinished());
 
   if (result == vk::Result::eErrorOutOfDateKHR ||
       result == vk::Result::eSuboptimalKHR) {

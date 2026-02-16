@@ -33,6 +33,7 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
 
   m_imageAvailable = m_device.createSemaphoreUnique(semaphoreCreateInfo);
   m_inFlight = m_device.createFenceUnique(fenceCreateInfo);
+  m_renderFinished = m_device.createSemaphoreUnique(semaphoreCreateInfo);
   m_computeFinished = m_device.createSemaphoreUnique(semaphoreCreateInfo);
 
   // Allocate command buffers for graphics, transfer and compute.
