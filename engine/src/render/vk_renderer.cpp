@@ -298,16 +298,6 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
       .module = m_computeShader->get(),
       .pName = "main"};
 
-  const auto zeroCompCode = resourceManager.createFromFile<ShaderResource>(
-      "engine/assets/shaders/zero.comp.spv", ShaderResourceLoader{});
-  m_zeroComputeShader =
-      std::make_unique<VulkanShader>(m_device->get(), zeroCompCode->code);
-
-  const vk::PipelineShaderStageCreateInfo zeroCompStage{
-    .stage = vk::ShaderStageFlagBits::eCompute,
-    .module = m_zeroComputeShader->get(),
-    .pName = "main"};
-
   // -----------------------------------------------------------
   // CREATE COMPUTE PIPELINE LAYOUT (DESCRIPTOR SET LAYOUT)
   // -----------------------------------------------------------
@@ -328,15 +318,6 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
 
   m_compPipelineLayout = std::make_unique<VulkanPipelineLayout>(
       m_device->get(), pipelineLayoutInfo);
-
-  pipelineLayoutInfo.pushConstants.clear();
-  pipelineLayoutInfo.descriptorSets.clear();
-
-  pipelineLayoutInfo.descriptorSets.push_back(
-    m_frameDescriptorSetLayout->get());
-
-  m_zeroCompPipelineLayout = std::make_unique<VulkanPipelineLayout>(
-      m_device->get(), pipelineLayoutInfo);
   // -----------------------------------------------------------
   // CREATE COMPUTE PIPELINE
   // -----------------------------------------------------------
@@ -347,15 +328,6 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
 
   m_compPipeline =
       std::make_unique<VulkanPipeline>(m_device->get(), compPipelineInfo);
-
-
-  ComputePipelineInfo zeroCompPipelineInfo{
-    .shaderStage = zeroCompStage,
-    .layout = m_zeroCompPipelineLayout->get(),
-};
-
-  m_zeroCompPipeline =
-      std::make_unique<VulkanPipeline>(m_device->get(), zeroCompPipelineInfo);
 
   // -----------------------------------------------------------
   // CREATE DESCRIPTOR POOL
@@ -551,27 +523,14 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
                                                   "FrustumGPUDrivenPass"};
   ccmd.beginDebugUtilsLabelEXT(labelInfo1, m_instance->getDynamicLoader());
 
-  // ccmd.fillBuffer(frame->drawCount()->get(), 0, sizeof(uint32_t), 0);
-  //
-  // VulkanBarriers::bufferBarrier(
-  //     ccmd,
-  //     VulkanBarriers::BufferInfo{.buffer = frame->drawCount()->get(),
-  //                                .size = sizeof(uint32_t)},
-  //     VulkanBarriers::BufferUsageBit::CopyDestination,
-  //     VulkanBarriers::BufferUsageBit::RWCompute);
-
-  ccmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-                        m_zeroCompPipelineLayout->get(), 0, 1,
-                        &frame->descriptorSet(), 0, nullptr);
-
-  ccmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_zeroCompPipeline->get());
-  ccmd.dispatch(1, 1, 1);
+  ccmd.fillBuffer(frame->drawCount()->get(), 0, sizeof(uint32_t), 0);
 
   VulkanBarriers::bufferBarrier(
-    ccmd,
-    VulkanBarriers::BufferInfo{.buffer = frame->drawCount()->get(), .size = sizeof(uint32_t)},
-    VulkanBarriers::BufferUsageBit::RWCompute,
-    VulkanBarriers::BufferUsageBit::RWCompute);
+      ccmd,
+      VulkanBarriers::BufferInfo{.buffer = frame->drawCount()->get(),
+                                 .size = sizeof(uint32_t)},
+      VulkanBarriers::BufferUsageBit::CopyDestination,
+      VulkanBarriers::BufferUsageBit::RWCompute);
 
   const auto descriptorSets =
       std::array{m_staticDescriptorSet, frame->descriptorSet()};

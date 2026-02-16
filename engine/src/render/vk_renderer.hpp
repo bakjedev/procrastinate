@@ -100,7 +100,6 @@ class VulkanRenderer {
   std::unique_ptr<VulkanShader> m_vertexShader;
   std::unique_ptr<VulkanShader> m_fragmentShader;
   std::unique_ptr<VulkanShader> m_computeShader;
-  std::unique_ptr<VulkanShader> m_zeroComputeShader;
 
   std::unique_ptr<VulkanShader> m_debugLineVert;
   std::unique_ptr<VulkanShader> m_debugLineFrag;
@@ -117,8 +116,6 @@ class VulkanRenderer {
   std::unique_ptr<VulkanPipeline> m_debugLinePipeline;
   std::unique_ptr<VulkanPipelineLayout> m_compPipelineLayout;
   std::unique_ptr<VulkanPipeline> m_compPipeline;
-  std::unique_ptr<VulkanPipelineLayout> m_zeroCompPipelineLayout;
-  std::unique_ptr<VulkanPipeline> m_zeroCompPipeline;
 
   std::vector<std::unique_ptr<VulkanFrame>> m_frames;
   std::vector<vk::UniqueSemaphore> m_renderFinishedSemaphores;
