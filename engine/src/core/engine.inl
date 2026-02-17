@@ -1,18 +1,15 @@
 #pragma once
 
+#include <chrono>
+
 #include "ecs/components/camera_component.hpp"
 #include "ecs/components/mesh_component.hpp"
 #include "ecs/components/transform_component.hpp"
-#ifndef ENGINE_HPP_INCLUDED
-#include "engine.hpp"  // for lsp
-#endif
-
-#include <chrono>
-
 #include "ecs/scene.hpp"
 #include "events.hpp"
 #include "input/input.hpp"
 #include "render/vk_renderer.hpp"
+#include "tracy/Tracy.hpp"
 #include "window.hpp"
 
 template <Application App>
@@ -26,6 +23,8 @@ void Engine::run(App& app) {
   constexpr float fixedDt = 1.0F / 60.0F;
 
   while (!m_window->shouldQuit()) {
+    ZoneScopedN("EngineLoop");
+
     auto currentTime = clock::now();
     float deltaTime =
         std::chrono::duration<float>(currentTime - lastTime).count();
@@ -64,6 +63,7 @@ void Engine::run(App& app) {
       app.render();
       m_renderer->run(transform.world, camera.fov);
     }
+    FrameMark;
   }
 
   app.shutdown();

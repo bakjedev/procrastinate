@@ -1,7 +1,5 @@
 #pragma once
 
-#define ENGINE_HPP_INCLUDED  // for LSP
-
 #include <memory>
 
 class EventManager;

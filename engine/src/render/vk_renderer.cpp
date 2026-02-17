@@ -27,6 +27,7 @@
 #include "render/vk_swap_chain.hpp"
 #include "resource/resource_manager.hpp"
 #include "resource/types/shader_resource.hpp"
+#include "tracy/Tracy.hpp"
 #include "util/print.hpp"
 #include "util/vk_transient_cmd.hpp"
 #include "vk_allocator.hpp"
@@ -459,6 +460,8 @@ VulkanRenderer::~VulkanRenderer() {
 }
 
 void VulkanRenderer::run(glm::mat4 world, float fov) {
+  ZoneScopedN("RenderLoop");
+
   // -----------------------------------------------------------
   // Handle window resize event
   // -----------------------------------------------------------
@@ -488,6 +491,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   // -----------------------------------------------------------
   // Upload render objects
   // -----------------------------------------------------------
+  ZoneNamedN(objectszone, "UploadObjects", true);
   frame->objectBuffer()->writeRange(
       m_renderObjects.data(), sizeof(RenderObject) * m_renderObjects.size());
 
@@ -498,6 +502,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   // -----------------------------------------------------------
   // Calculate view, projection and frustum
   // -----------------------------------------------------------
+  ZoneNamedN(matrixzone, "Matrices", true);
   const auto view = glm::inverse(world);
   const auto projection =
       glm::perspective(glm::radians(fov), m_aspectRatio, NEAR_PLANE_DISTANCE,
@@ -509,6 +514,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   // -----------------------------------------------------------
   // Compute pass - create indirect draw commands
   // -----------------------------------------------------------
+  ZoneNamedN(computezone, "ComputePass", true);
   const auto ccmd = frame->computeCmd();
   constexpr vk::CommandBufferBeginInfo beginInfo{};
   ccmd.begin(beginInfo);
@@ -551,6 +557,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   // -----------------------------------------------------------
   // Graphics pass - render meshes
   // -----------------------------------------------------------
+  ZoneNamedN(graphicsmesheszone, "MeshPass", true);
   const auto cmd = frame->graphicsCmd();
 
   cmd.begin(beginInfo);
@@ -629,6 +636,8 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   // -----------------------------------------------------------
   // Graphics pass - render debug lines
   // -----------------------------------------------------------
+  ZoneNamedN(graphicslineszone, "DebugLinesPass", true);
+
   constexpr vk::DebugUtilsLabelEXT labelInfo3{.pLabelName = "DebugLinesPass"};
   cmd.beginDebugUtilsLabelEXT(labelInfo3, m_instance->getDynamicLoader());
 
@@ -669,6 +678,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   // -----------------------------------------------------------
   // ImGui pass
   // -----------------------------------------------------------
+  ZoneNamedN(imguizone, "ImGui", true);
 
   constexpr vk::DebugUtilsLabelEXT labelInfo4{.pLabelName = "ImGuiPass"};
   cmd.beginDebugUtilsLabelEXT(labelInfo4, m_instance->getDynamicLoader());
@@ -710,7 +720,8 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   // -----------------------------------------------------------
   // End frame
   // -----------------------------------------------------------
-  endFrame(imageIndex);
+  ZoneNamedN(endzone, "Endzone", true);
+ endFrame(imageIndex);
 }
 
 uint32_t VulkanRenderer::addMesh(const std::vector<Vertex>& vertices,
@@ -925,6 +936,7 @@ int32_t VulkanRenderer::getVertexCount() const {
 uint32_t VulkanRenderer::getIndexCount() const { return m_indices.size(); }
 
 std::optional<uint32_t> VulkanRenderer::beginFrame() const {
+  ZoneScopedN("VulkanRenderer::beginFrame");
   const auto& frame = m_frames.at(m_currentFrame);
 
   auto result =
@@ -947,6 +959,7 @@ std::optional<uint32_t> VulkanRenderer::beginFrame() const {
 }
 
 auto VulkanRenderer::endFrame(const uint32_t imageIndex) -> void {
+  ZoneScopedN("VulkanRenderer::endFrame");
   auto& frame = m_frames.at(m_currentFrame);
 
   const vk::SemaphoreSubmitInfo cSignalSemaphore{
