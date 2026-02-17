@@ -71,9 +71,11 @@ struct StageAccess {
 
 void bufferBarrier(vk::CommandBuffer cmd, const BufferInfo& buffer,
                    BufferUsageBit oldUsage, BufferUsageBit newUsage);
+
 void bufferBarrierRelease(vk::CommandBuffer cmd, const BufferInfo& buffer,
                           BufferUsageBit oldUsage, uint32_t srcFamily,
                           uint32_t dstFamily);
+
 void bufferBarrierAcquire(vk::CommandBuffer cmd, const BufferInfo& buffer,
                           BufferUsageBit newUsage, uint32_t srcFamily,
                           uint32_t dstFamily);

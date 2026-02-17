@@ -350,9 +350,8 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
   m_frames.reserve(MAX_FRAMES_IN_FLIGHT);
   for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
     m_frames.push_back(std::make_unique<VulkanFrame>(
-        m_graphicsPool.get(), m_transferPool.get(), m_computePool.get(),
-        m_descriptorPool.get(), m_frameDescriptorSetLayout.get(),
-        m_device->get(), m_allocator.get()));
+        m_graphicsPool.get(), m_computePool.get(), m_descriptorPool.get(),
+        m_frameDescriptorSetLayout.get(), m_device->get(), m_allocator.get()));
   }
 
   // -----------------------------------------------------------

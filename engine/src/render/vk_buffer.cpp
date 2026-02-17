@@ -12,7 +12,10 @@ VulkanBuffer::VulkanBuffer(const BufferInfo& info, VmaAllocator allocator)
 VulkanBuffer::~VulkanBuffer() { destroy(); }
 
 void VulkanBuffer::create(const BufferInfo& info) {
-  vk::BufferCreateInfo bufferCreateInfo{.size = info.size, .usage = info.usage, .sharingMode = vk::SharingMode::eConcurrent};
+  vk::BufferCreateInfo bufferCreateInfo{
+      .size = info.size,
+      .usage = info.usage,
+      .sharingMode = vk::SharingMode::eConcurrent};
 
   VmaAllocationCreateInfo vmaAllocInfo = {};
   vmaAllocInfo.usage = info.memoryUsage;

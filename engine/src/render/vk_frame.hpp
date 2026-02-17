@@ -2,7 +2,6 @@
 
 #include <memory>
 
-#include "glm/glm.hpp"
 #include "vulkan/vulkan.hpp"
 
 class VulkanImage;
@@ -12,21 +11,9 @@ class VulkanDescriptorPool;
 class VulkanDescriptorSetLayout;
 class VulkanAllocator;
 
-struct RenderObject {
-  glm::mat4 model;
-  uint32_t meshID;
-  std::array<int32_t, 3> pad;
-};
-
-struct DebugLineVertex {
-  glm::vec3 position;
-  glm::vec3 color;
-};
-
 class VulkanFrame {
  public:
   VulkanFrame(const VulkanCommandPool* graphicsPool,
-              const VulkanCommandPool* transferPool,
               const VulkanCommandPool* computePool,
               const VulkanDescriptorPool* descriptorPool,
               const VulkanDescriptorSetLayout* descriptorLayout,
@@ -38,7 +25,6 @@ class VulkanFrame {
   ~VulkanFrame();
 
   [[nodiscard]] vk::CommandBuffer graphicsCmd() const { return m_graphicsCmd; }
-  [[nodiscard]] vk::CommandBuffer transferCmd() const { return m_transferCmd; }
   [[nodiscard]] vk::CommandBuffer computeCmd() const { return m_computeCmd; }
 
   [[nodiscard]] VulkanImage* depthImage() const { return m_depthImage.get(); }
@@ -77,7 +63,6 @@ class VulkanFrame {
 
  private:
   vk::CommandBuffer m_graphicsCmd;
-  vk::CommandBuffer m_transferCmd;
   vk::CommandBuffer m_computeCmd;
 
   vk::UniqueSemaphore m_imageAvailable;

@@ -1,23 +1,18 @@
 
 #include "render/vk_frame.hpp"
 
-#include <memory>
-#include <vulkan/vulkan_structs.hpp>
-
 #include "render/vk_command_pool.hpp"
 #include "render/vk_descriptor.hpp"
 #include "vk_allocator.hpp"
 #include "vk_buffer.hpp"
 #include "vk_image.hpp"
-#include "vma/vma_usage.h"
-#include "vulkan/vulkan.hpp"
+#include "vk_renderer.hpp"
 
 constexpr uint32_t MAX_INDIRECT_COMMANDS = 65536;
 constexpr uint32_t MAX_LINES = 10000;
 constexpr uint32_t MAX_OBJECTS = 10000;
 
 VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
-                         const VulkanCommandPool* transferPool,
                          const VulkanCommandPool* computePool,
                          const VulkanDescriptorPool* descriptorPool,
                          const VulkanDescriptorSetLayout* descriptorLayout,
@@ -38,7 +33,6 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
 
   // Allocate command buffers for graphics, transfer and compute.
   m_graphicsCmd = graphicsPool->allocate();
-  m_transferCmd = transferPool->allocate();
   m_computeCmd = computePool->allocate();
 
   // Create render object buffer

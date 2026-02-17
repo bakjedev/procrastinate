@@ -49,6 +49,17 @@ struct Vertex {
   glm::vec3 normal;
 };
 
+struct RenderObject {
+  glm::mat4 model;
+  uint32_t meshID;
+  std::array<int32_t, 3> pad;
+};
+
+struct DebugLineVertex {
+  glm::vec3 position;
+  glm::vec3 color;
+};
+
 class VulkanRenderer {
  public:
   explicit VulkanRenderer(Window *window, ResourceManager &resourceManager,
