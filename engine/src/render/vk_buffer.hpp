@@ -10,9 +10,12 @@ struct BufferInfo {
   VmaAllocationCreateFlags memoryFlags{};
 };
 
+class VulkanDevice;
+
 class VulkanBuffer {
  public:
-  explicit VulkanBuffer(const BufferInfo& info, VmaAllocator allocator);
+  explicit VulkanBuffer(const BufferInfo& info, VmaAllocator allocator,
+                        VulkanDevice* device);
   VulkanBuffer(const VulkanBuffer&) = delete;
   VulkanBuffer(VulkanBuffer&&) = delete;
   VulkanBuffer& operator=(const VulkanBuffer&) = delete;
@@ -46,4 +49,5 @@ class VulkanBuffer {
   uint32_t m_size = 0;
   void* m_mappedData = nullptr;
   VmaAllocator m_allocator;
+  VulkanDevice* m_device;
 };

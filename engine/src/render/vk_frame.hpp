@@ -10,6 +10,7 @@ class VulkanCommandPool;
 class VulkanDescriptorPool;
 class VulkanDescriptorSetLayout;
 class VulkanAllocator;
+class VulkanDevice;
 
 class VulkanFrame {
  public:
@@ -17,7 +18,7 @@ class VulkanFrame {
               const VulkanCommandPool* computePool,
               const VulkanDescriptorPool* descriptorPool,
               const VulkanDescriptorSetLayout* descriptorLayout,
-              vk::Device device, VulkanAllocator* allocator);
+              VulkanDevice* device, VulkanAllocator* allocator);
   VulkanFrame(const VulkanFrame&) = delete;
   VulkanFrame(VulkanFrame&&) = delete;
   VulkanFrame& operator=(const VulkanFrame&) = delete;
@@ -53,10 +54,6 @@ class VulkanFrame {
     return m_computeFinished.get();
   }
 
-  [[nodiscard]] vk::Semaphore renderFinished() const {
-    return m_renderFinished.get();
-  }
-
   [[nodiscard]] vk::DescriptorSet& descriptorSet() { return m_descriptorSet; }
 
   void recreateDepthImage(const uint32_t width, const uint32_t height);
@@ -67,7 +64,6 @@ class VulkanFrame {
 
   vk::UniqueSemaphore m_imageAvailable;
   vk::UniqueFence m_inFlight;
-  vk::UniqueSemaphore m_renderFinished;
   vk::UniqueSemaphore m_computeFinished;
 
   std::unique_ptr<VulkanImage> m_depthImage;
@@ -79,6 +75,6 @@ class VulkanFrame {
 
   std::unique_ptr<VulkanBuffer> m_debugLineVertexBuffer;
 
-  vk::Device m_device;
+  VulkanDevice* m_device;
   VulkanAllocator* m_allocator;
 };

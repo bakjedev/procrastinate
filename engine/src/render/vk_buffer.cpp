@@ -1,21 +1,34 @@
 #include "vk_buffer.hpp"
 
 #include <cstring>
+#include <unordered_set>
 
 #include "util/vk_check.hpp"
+#include "vk_device.hpp"
 
-VulkanBuffer::VulkanBuffer(const BufferInfo& info, VmaAllocator allocator)
-    : m_allocator(allocator) {
+VulkanBuffer::VulkanBuffer(const BufferInfo& info, VmaAllocator allocator,
+                           VulkanDevice* device)
+    : m_allocator(allocator), m_device(device) {
   create(info);
 }
 
 VulkanBuffer::~VulkanBuffer() { destroy(); }
 
 void VulkanBuffer::create(const BufferInfo& info) {
+  const std::unordered_set uniqueQueueFamilies{
+      m_device->queueFamilies().graphics.value(),
+      m_device->queueFamilies().compute.value(),
+      m_device->queueFamilies().present.value(),
+      m_device->queueFamilies().transfer.value()};
+  const std::vector queueFamilies(uniqueQueueFamilies.begin(),
+                                  uniqueQueueFamilies.end());
+
   vk::BufferCreateInfo bufferCreateInfo{
       .size = info.size,
       .usage = info.usage,
-      .sharingMode = vk::SharingMode::eConcurrent};
+      .sharingMode = vk::SharingMode::eConcurrent,
+      .queueFamilyIndexCount = static_cast<uint32_t>(queueFamilies.size()),
+      .pQueueFamilyIndices = queueFamilies.data()};
 
   VmaAllocationCreateInfo vmaAllocInfo = {};
   vmaAllocInfo.usage = info.memoryUsage;

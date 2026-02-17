@@ -348,12 +348,18 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
   // CREATE FRAME RESOURCES
   // -----------------------------------------------------------
   m_frames.reserve(MAX_FRAMES_IN_FLIGHT);
-  for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+  for (uint32_t i{}; i < MAX_FRAMES_IN_FLIGHT; i++) {
     m_frames.push_back(std::make_unique<VulkanFrame>(
         m_graphicsPool.get(), m_computePool.get(), m_descriptorPool.get(),
-        m_frameDescriptorSetLayout.get(), m_device->get(), m_allocator.get()));
+        m_frameDescriptorSetLayout.get(), m_device.get(), m_allocator.get()));
   }
 
+  const auto swapchainImageCount = m_swapChain->imageCount();
+  for (uint32_t i{}; i < swapchainImageCount; i++) {
+    constexpr vk::SemaphoreCreateInfo semaphoreCreateInfo{};
+    m_submitSemaphores.push_back(
+        m_device->get().createSemaphoreUnique(semaphoreCreateInfo));
+  }
   // -----------------------------------------------------------
   // CREATE SHARED RESOURCES
   // -----------------------------------------------------------
@@ -756,7 +762,7 @@ void VulkanRenderer::upload() {
                           vk::BufferUsageFlagBits::eTransferDst,
                  .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
                  .memoryFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT},
-      m_allocator->get());
+      m_allocator->get(), m_device.get());
 
   m_indexBuffer = std::make_unique<VulkanBuffer>(
       BufferInfo{.size = indicesSize,
@@ -764,7 +770,7 @@ void VulkanRenderer::upload() {
                           vk::BufferUsageFlagBits::eTransferDst,
                  .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
                  .memoryFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT},
-      m_allocator->get());
+      m_allocator->get(), m_device.get());
 
   m_meshInfoBuffer = std::make_unique<VulkanBuffer>(
       BufferInfo{.size = meshesSize,
@@ -772,7 +778,7 @@ void VulkanRenderer::upload() {
                           vk::BufferUsageFlagBits::eTransferDst,
                  .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
                  .memoryFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT},
-      m_allocator->get());
+      m_allocator->get(), m_device.get());
 
   auto stagingVertexBuffer = VulkanBuffer(
       BufferInfo{.size = verticesSize,
@@ -781,7 +787,7 @@ void VulkanRenderer::upload() {
                  .memoryFlags =
                      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
                      VMA_ALLOCATION_CREATE_MAPPED_BIT},
-      m_allocator->get());
+      m_allocator->get(), m_device.get());
   stagingVertexBuffer.write(m_vertices.data());
 
   auto stagingIndexBuffer = VulkanBuffer(
@@ -791,7 +797,7 @@ void VulkanRenderer::upload() {
                  .memoryFlags =
                      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
                      VMA_ALLOCATION_CREATE_MAPPED_BIT},
-      m_allocator->get());
+      m_allocator->get(), m_device.get());
   stagingIndexBuffer.write(m_indices.data());
 
   auto stagingMeshInfoBuffer = VulkanBuffer(
@@ -801,7 +807,7 @@ void VulkanRenderer::upload() {
                  .memoryFlags =
                      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
                      VMA_ALLOCATION_CREATE_MAPPED_BIT},
-      m_allocator->get());
+      m_allocator->get(), m_device.get());
   stagingMeshInfoBuffer.write(m_meshInfos.data());
 
   auto cmd = Util::beginSingleTimeCommandBuffer(*m_transferPool);
@@ -940,7 +946,7 @@ std::optional<uint32_t> VulkanRenderer::beginFrame() const {
   return imageIndex;
 }
 
-auto VulkanRenderer::endFrame(uint32_t imageIndex) -> void {
+auto VulkanRenderer::endFrame(const uint32_t imageIndex) -> void {
   auto& frame = m_frames.at(m_currentFrame);
 
   const vk::SemaphoreSubmitInfo cSignalSemaphore{
@@ -970,7 +976,7 @@ auto VulkanRenderer::endFrame(uint32_t imageIndex) -> void {
         .stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput}}};
 
   const vk::SemaphoreSubmitInfo gSignalSemaphore{
-      .semaphore = frame->renderFinished(),
+      .semaphore = m_submitSemaphores.at(imageIndex).get(),
       .stageMask = vk::PipelineStageFlagBits2::eAllCommands};
 
   const vk::CommandBufferSubmitInfo gCmdInfo{.commandBuffer =
@@ -992,7 +998,7 @@ auto VulkanRenderer::endFrame(uint32_t imageIndex) -> void {
   }
 
   result = m_swapChain->present(imageIndex, m_device->presentQueue(),
-                                frame->renderFinished());
+                                m_submitSemaphores.at(imageIndex).get());
 
   if (result == vk::Result::eErrorOutOfDateKHR ||
       result == vk::Result::eSuboptimalKHR) {

@@ -3,6 +3,7 @@
 
 #include "render/vk_command_pool.hpp"
 #include "render/vk_descriptor.hpp"
+#include "render/vk_device.hpp"
 #include "vk_allocator.hpp"
 #include "vk_buffer.hpp"
 #include "vk_image.hpp"
@@ -16,7 +17,7 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
                          const VulkanCommandPool* computePool,
                          const VulkanDescriptorPool* descriptorPool,
                          const VulkanDescriptorSetLayout* descriptorLayout,
-                         const vk::Device device, VulkanAllocator* allocator) {
+                         VulkanDevice* device, VulkanAllocator* allocator) {
   // Set references
   m_device = device;
   m_allocator = allocator;
@@ -26,10 +27,10 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
   constexpr vk::FenceCreateInfo fenceCreateInfo{
       .flags = vk::FenceCreateFlagBits::eSignaled};
 
-  m_imageAvailable = m_device.createSemaphoreUnique(semaphoreCreateInfo);
-  m_inFlight = m_device.createFenceUnique(fenceCreateInfo);
-  m_renderFinished = m_device.createSemaphoreUnique(semaphoreCreateInfo);
-  m_computeFinished = m_device.createSemaphoreUnique(semaphoreCreateInfo);
+  const auto internalDevice = m_device->get();
+  m_imageAvailable = internalDevice.createSemaphoreUnique(semaphoreCreateInfo);
+  m_inFlight = internalDevice.createFenceUnique(fenceCreateInfo);
+  m_computeFinished = internalDevice.createSemaphoreUnique(semaphoreCreateInfo);
 
   // Allocate command buffers for graphics, transfer and compute.
   m_graphicsCmd = graphicsPool->allocate();
@@ -46,7 +47,7 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
                          VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
 
       },
-      allocator->get());
+      allocator->get(), m_device);
   m_objectBuffer->map();
 
   m_indirectBuffer = std::make_unique<VulkanBuffer>(
@@ -57,7 +58,7 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
                           vk::BufferUsageFlagBits::eStorageBuffer,
                  .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
                  .memoryFlags = {}},
-      allocator->get());
+      allocator->get(), m_device);
 
   // Create debug line vertex buffer
   m_debugLineVertexBuffer = std::make_unique<VulkanBuffer>(
@@ -67,7 +68,7 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
                  .memoryFlags =
                      VMA_ALLOCATION_CREATE_MAPPED_BIT |
                      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT},
-      allocator->get());
+      allocator->get(), m_device);
   m_debugLineVertexBuffer->map();
 
   // Create draw count buffer
@@ -79,7 +80,7 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
                           vk::BufferUsageFlagBits::eIndirectBuffer,
                  .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
                  .memoryFlags = {}},
-      allocator->get());
+      allocator->get(), m_device);
 
   // Allocate descriptor set with per frame descriptor set layout
   m_descriptorSet = descriptorPool->allocate(descriptorLayout->get());

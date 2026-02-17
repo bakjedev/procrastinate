@@ -128,7 +128,9 @@ class VulkanRenderer {
   std::unique_ptr<VulkanPipelineLayout> m_compPipelineLayout;
   std::unique_ptr<VulkanPipeline> m_compPipeline;
 
+  // https://docs.vulkan.org/guide/latest/swapchain_semaphore_reuse.html
   std::vector<std::unique_ptr<VulkanFrame>> m_frames;
+  std::vector<vk::UniqueSemaphore> m_submitSemaphores;
 
   uint32_t m_currentFrame = 0;
   float m_aspectRatio = 1.0F;
