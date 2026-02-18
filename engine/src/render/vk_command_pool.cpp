@@ -11,10 +11,10 @@ VulkanCommandPool::~VulkanCommandPool() { destroy(); }
 
 vk::CommandBuffer VulkanCommandPool::allocate(const vk::CommandBufferLevel level) const
 {
-  const vk::CommandBufferAllocateInfo allocateInfo{
+  const vk::CommandBufferAllocateInfo allocate_info{
       .commandPool = command_pool_, .level = level, .commandBufferCount = 1};
 
-  const auto buffers = device_.allocateCommandBuffers(allocateInfo);
+  const auto buffers = device_.allocateCommandBuffers(allocate_info);
   return buffers.front();
 }
 
@@ -27,9 +27,9 @@ void VulkanCommandPool::reset() const { device_.resetCommandPool(command_pool_, 
 
 void VulkanCommandPool::create(const CommandPoolInfo& info)
 {
-  const vk::CommandPoolCreateInfo createInfo{.flags = info.flags, .queueFamilyIndex = info.queue_family_index};
+  const vk::CommandPoolCreateInfo create_info{.flags = info.flags, .queueFamilyIndex = info.queue_family_index};
 
-  command_pool_ = device_.createCommandPool(createInfo);
+  command_pool_ = device_.createCommandPool(create_info);
 }
 
 void VulkanCommandPool::destroy() const { device_.destroyCommandPool(command_pool_); }

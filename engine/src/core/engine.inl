@@ -17,32 +17,32 @@ void Engine::run(App& app)
 {
   app.init(*this);
 
-  using clock = std::chrono::steady_clock;
+  using Clock = std::chrono::steady_clock;
 
-  auto lastTime = clock::now();
+  auto last_time = Clock::now();
   float accumulator = 0.0F;
-  constexpr float fixedDt = 1.0F / 60.0F;
+  constexpr float fixed_dt = 1.0F / 60.0F;
 
   while (!window_->ShouldQuit())
   {
     ZoneScopedN("EngineLoop");
 
-    auto currentTime = clock::now();
-    float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
-    lastTime = currentTime;
+    const auto current_time = Clock::now();
+    const float delta_time = std::chrono::duration<float>(current_time - last_time).count();
+    last_time = current_time;
 
     event_manager_->poll();
     window_->update();
     input_->update();
     renderer_->ClearLines();
 
-    app.update(deltaTime);
+    app.update(delta_time);
 
-    accumulator += deltaTime;
-    while (accumulator >= fixedDt)
+    accumulator += delta_time;
+    while (accumulator >= fixed_dt)
     {
-      app.fixedUpdate(fixedDt);
-      accumulator -= fixedDt;
+      app.fixedUpdate(fixed_dt);
+      accumulator -= fixed_dt;
     }
 
     renderer_->ClearMeshes();
@@ -54,17 +54,17 @@ void Engine::run(App& app)
       renderer_->RenderMesh(transform.world, mesh.mesh->renderer_id);
     }
 
-    const auto cameraView = scene_->registry().view<CCamera, CTransform>();
-    entt::entity cameraEntity = entt::null;
-    auto it = cameraView.begin();
-    if (it != cameraView.end())
+    const auto camera_view = scene_->registry().view<CCamera, CTransform>();
+    entt::entity camera_entity = entt::null;
+    auto it = camera_view.begin();
+    if (it != camera_view.end())
     {
-      cameraEntity = *it;
+      camera_entity = *it;
     }
-    if (cameraEntity != entt::null)
+    if (camera_entity != entt::null)
     {
-      const auto& camera = cameraView.get<CCamera>(cameraEntity);
-      const auto& transform = cameraView.get<CTransform>(cameraEntity);
+      const auto& camera = camera_view.get<CCamera>(camera_entity);
+      const auto& transform = camera_view.get<CTransform>(camera_entity);
       app.render();
       renderer_->run(transform.world, camera.fov);
     }

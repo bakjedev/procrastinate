@@ -6,7 +6,7 @@
 class VulkanSwapChain
 {
 public:
-  VulkanSwapChain(vk::Device device, vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface, vk::Extent2D extent);
+  VulkanSwapChain(vk::Device device, vk::PhysicalDevice physical_device, vk::SurfaceKHR surface, vk::Extent2D extent);
   VulkanSwapChain(const VulkanSwapChain&) = delete;
   VulkanSwapChain(VulkanSwapChain&&) = delete;
   VulkanSwapChain& operator=(const VulkanSwapChain&) = delete;
@@ -23,10 +23,10 @@ public:
 
   [[nodiscard]] vk::Format format() const { return surface_format_.format; }
 
-  vk::Result acquireNextImage(vk::Semaphore signalSemaphore, uint32_t& imageIndex);
-  vk::Result present(uint32_t imageIndex, vk::Queue presentQueue, vk::Semaphore waitSemaphore) const;
+  vk::Result AcquireNextImage(vk::Semaphore signalSemaphore, uint32_t& imageIndex);
+  vk::Result Present(uint32_t imageIndex, vk::Queue presentQueue, vk::Semaphore waitSemaphore) const;
 
-  void recreate(vk::Extent2D extent);
+  void Recreate(vk::Extent2D extent);
 
 private:
   vk::SwapchainKHR swap_chain_;

@@ -11,7 +11,7 @@ void Input::update()
   mouse_delta_x_ = 0.0F;
   mouse_delta_y_ = 0.0F;
 
-  for (const auto& event: event_manager_->getEvents())
+  for (const auto& event: event_manager_->GetEvents())
   {
     switch (event.type)
     {

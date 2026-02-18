@@ -6,13 +6,13 @@
 
 VulkanSurface::VulkanSurface(SDL_Window* window, const vk::Instance instance) : instance_(instance)
 {
-  VkSurfaceKHR cSurface = VK_NULL_HANDLE;
+  VkSurfaceKHR c_surface = VK_NULL_HANDLE;
 
-  if (!SDL_Vulkan_CreateSurface(window, instance_, nullptr, &cSurface))
+  if (!SDL_Vulkan_CreateSurface(window, instance_, nullptr, &c_surface))
   {
     throw std::runtime_error("Failed to create SDL Vulkan surface" + std::string(SDL_GetError()));
   }
-  surface_ = cSurface;
+  surface_ = c_surface;
 }
 
 VulkanSurface::~VulkanSurface() { SDL_Vulkan_DestroySurface(instance_, surface_, nullptr); }

@@ -2,8 +2,8 @@
 
 #include "vulkan/vulkan.hpp"
 
-void vulkan_barriers::BufferBarrier(vk::CommandBuffer cmd, const BufferInfo& buffer, BufferUsageBit old_usage,
-                                    BufferUsageBit new_usage)
+void vulkan_barriers::BufferBarrier(const vk::CommandBuffer cmd, const BufferInfo& buffer,
+                                    const BufferUsageBit old_usage, const BufferUsageBit new_usage)
 {
   vk::BufferMemoryBarrier2 barrier{};
 
@@ -19,8 +19,9 @@ void vulkan_barriers::BufferBarrier(vk::CommandBuffer cmd, const BufferInfo& buf
   cmd.pipelineBarrier2(dependency);
 }
 
-void vulkan_barriers::BufferBarrierRelease(vk::CommandBuffer cmd, const BufferInfo& buffer, BufferUsageBit old_usage,
-                                           uint32_t src_family, uint32_t dst_family)
+void vulkan_barriers::BufferBarrierRelease(const vk::CommandBuffer cmd, const BufferInfo& buffer,
+                                           const BufferUsageBit old_usage, const uint32_t src_family,
+                                           const uint32_t dst_family)
 {
   vk::BufferMemoryBarrier2 barrier{};
 
@@ -37,8 +38,9 @@ void vulkan_barriers::BufferBarrierRelease(vk::CommandBuffer cmd, const BufferIn
   cmd.pipelineBarrier2(dependency);
 }
 
-void vulkan_barriers::BufferBarrierAcquire(vk::CommandBuffer cmd, const BufferInfo& buffer, BufferUsageBit new_usage,
-                                           uint32_t src_family, uint32_t dst_family)
+void vulkan_barriers::BufferBarrierAcquire(const vk::CommandBuffer cmd, const BufferInfo& buffer,
+                                           const BufferUsageBit new_usage, const uint32_t src_family,
+                                           const uint32_t dst_family)
 {
   vk::BufferMemoryBarrier2 barrier{};
 
@@ -55,7 +57,7 @@ void vulkan_barriers::BufferBarrierAcquire(vk::CommandBuffer cmd, const BufferIn
   cmd.pipelineBarrier2(dependency);
 }
 
-vulkan_barriers::StageAccess vulkan_barriers::BufferUsage(BufferUsageBit usage)
+vulkan_barriers::StageAccess vulkan_barriers::BufferUsage(const BufferUsageBit usage)
 {
   vk::PipelineStageFlags2 stage{};
   vk::AccessFlags2 access{};

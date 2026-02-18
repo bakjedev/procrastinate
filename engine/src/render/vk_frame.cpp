@@ -9,9 +9,9 @@
 #include "vk_image.hpp"
 #include "vk_renderer.hpp"
 
-constexpr uint32_t MAX_INDIRECT_COMMANDS = 65536;
-constexpr uint32_t MAX_LINES = 10000;
-constexpr uint32_t MAX_OBJECTS = 10000;
+constexpr uint32_t kMaxIndirectCommands = 65536;
+constexpr uint32_t kMaxLines = 10000;
+constexpr uint32_t kMaxObjects = 10000;
 
 VulkanFrame::VulkanFrame(const VulkanCommandPool* graphics_pool, const VulkanCommandPool* compute_pool,
                          const VulkanDescriptorPool* descriptor_pool,
@@ -19,13 +19,13 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphics_pool, const VulkanCom
                          VulkanAllocator* allocator) : device_(device), allocator_(allocator)
 {
   // Create per frame sync objects
-  constexpr vk::SemaphoreCreateInfo semaphoreCreateInfo{};
-  constexpr vk::FenceCreateInfo fenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled};
+  constexpr vk::SemaphoreCreateInfo semaphore_create_info{};
+  constexpr vk::FenceCreateInfo fence_create_info{.flags = vk::FenceCreateFlagBits::eSignaled};
 
-  const auto internalDevice = device_->get();
-  image_available_ = internalDevice.createSemaphoreUnique(semaphoreCreateInfo);
-  in_flight_ = internalDevice.createFenceUnique(fenceCreateInfo);
-  compute_finished_ = internalDevice.createSemaphoreUnique(semaphoreCreateInfo);
+  const auto internal_device = device_->get();
+  image_available_ = internal_device.createSemaphoreUnique(semaphore_create_info);
+  in_flight_ = internal_device.createFenceUnique(fence_create_info);
+  compute_finished_ = internal_device.createSemaphoreUnique(semaphore_create_info);
 
   // Allocate command buffers for graphics, transfer and compute.
   graphics_cmd_ = graphics_pool->allocate();
@@ -34,7 +34,7 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphics_pool, const VulkanCom
   // Create render object buffer
   object_buffer_ = std::make_unique<VulkanBuffer>(
       BufferInfo{
-          .size = sizeof(RenderObject) * MAX_OBJECTS,
+          .size = sizeof(RenderObject) * kMaxObjects,
           .usage = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
           .memoryUsage = VMA_MEMORY_USAGE_AUTO,
           .memoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
@@ -44,7 +44,7 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphics_pool, const VulkanCom
   object_buffer_->map();
 
   indirect_buffer_ = std::make_unique<VulkanBuffer>(
-      BufferInfo{.size = sizeof(vk::DrawIndexedIndirectCommand) * MAX_INDIRECT_COMMANDS,
+      BufferInfo{.size = sizeof(vk::DrawIndexedIndirectCommand) * kMaxIndirectCommands,
                  .usage = vk::BufferUsageFlagBits::eIndirectBuffer | vk::BufferUsageFlagBits::eTransferDst |
                           vk::BufferUsageFlagBits::eStorageBuffer,
                  .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
@@ -53,7 +53,7 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphics_pool, const VulkanCom
 
   // Create debug line vertex buffer
   debug_line_vertex_buffer_ =
-      std::make_unique<VulkanBuffer>(BufferInfo{.size = sizeof(DebugLineVertex) * 2 * MAX_LINES,
+      std::make_unique<VulkanBuffer>(BufferInfo{.size = sizeof(DebugLineVertex) * 2 * kMaxLines,
                                                 .usage = vk::BufferUsageFlagBits::eVertexBuffer,
                                                 .memoryUsage = VMA_MEMORY_USAGE_AUTO,
                                                 .memoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT |
@@ -83,27 +83,27 @@ void VulkanFrame::RecreateFrameImages(const uint32_t width, const uint32_t heigh
 {
   depth_image_ = nullptr;
 
-  const ImageInfo depthImageInfo{
+  const ImageInfo depth_image_info{
       .width = width,
       .height = height,
       .format = vk::Format::eD32Sfloat,
       .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
       .aspect_flags = vk::ImageAspectFlagBits::eDepth,
   };
-  depth_image_ = std::make_unique<VulkanImage>(depthImageInfo, allocator_->get());
+  depth_image_ = std::make_unique<VulkanImage>(depth_image_info, allocator_->get());
 
   visibility_image_ = nullptr;
-  const ImageInfo visibilityImageInfo{
+  const ImageInfo visibility_image_info{
       .width = width,
       .height = height,
       .format = vk::Format::eR32Uint,
       .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
       .aspect_flags = vk::ImageAspectFlagBits::eColor,
   };
-  visibility_image_ = std::make_unique<VulkanImage>(visibilityImageInfo, allocator_->get());
+  visibility_image_ = std::make_unique<VulkanImage>(visibility_image_info, allocator_->get());
 
   render_image_ = nullptr;
-  const ImageInfo renderImageInfo{
+  const ImageInfo render_image_info{
       .width = width,
       .height = height,
       .format = vk::Format::eB8G8R8A8Unorm,
@@ -111,5 +111,5 @@ void VulkanFrame::RecreateFrameImages(const uint32_t width, const uint32_t heigh
                vk::ImageUsageFlagBits::eStorage,
       .aspect_flags = vk::ImageAspectFlagBits::eColor,
   };
-  render_image_ = std::make_unique<VulkanImage>(renderImageInfo, allocator_->get());
+  render_image_ = std::make_unique<VulkanImage>(render_image_info, allocator_->get());
 }

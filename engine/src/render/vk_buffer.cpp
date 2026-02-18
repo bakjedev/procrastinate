@@ -6,7 +6,7 @@
 #include "util/vk_check.hpp"
 #include "vk_device.hpp"
 
-VulkanBuffer::VulkanBuffer(const BufferInfo& info, VmaAllocator allocator, VulkanDevice* device) :
+VulkanBuffer::VulkanBuffer(const BufferInfo& info, const VmaAllocator allocator, VulkanDevice* device) :
     allocator_(allocator), device_(device)
 {
   Create(info);
@@ -16,30 +16,31 @@ VulkanBuffer::~VulkanBuffer() { Destroy(); }
 
 void VulkanBuffer::Create(const BufferInfo& info)
 {
-  const std::unordered_set uniqueQueueFamilies{
+  const std::unordered_set unique_queue_families{
       device_->QueueFamilies().graphics.value(), device_->QueueFamilies().compute.value(),
       device_->QueueFamilies().present.value(), device_->QueueFamilies().transfer.value()};
-  const std::vector queueFamilies(uniqueQueueFamilies.begin(), uniqueQueueFamilies.end());
+  const std::vector queue_families(unique_queue_families.begin(), unique_queue_families.end());
 
-  vk::BufferCreateInfo bufferCreateInfo{.size = info.size,
-                                        .usage = info.usage,
-                                        .sharingMode = vk::SharingMode::eConcurrent,
-                                        .queueFamilyIndexCount = static_cast<uint32_t>(queueFamilies.size()),
-                                        .pQueueFamilyIndices = queueFamilies.data()};
+  vk::BufferCreateInfo buffer_create_info{.size = info.size,
+                                          .usage = info.usage,
+                                          .sharingMode = vk::SharingMode::eConcurrent,
+                                          .queueFamilyIndexCount = static_cast<uint32_t>(queue_families.size()),
+                                          .pQueueFamilyIndices = queue_families.data()};
 
-  VmaAllocationCreateInfo vmaAllocInfo = {};
-  vmaAllocInfo.usage = info.memoryUsage;
-  vmaAllocInfo.flags = info.memoryFlags;
+  VmaAllocationCreateInfo vma_alloc_info = {};
+  vma_alloc_info.usage = info.memoryUsage;
+  vma_alloc_info.flags = info.memoryFlags;
 
-  const auto rawBufferInfo = static_cast<VkBufferCreateInfo>(bufferCreateInfo);
+  const auto raw_buffer_info = static_cast<VkBufferCreateInfo>(buffer_create_info);
 
-  VmaAllocationInfo allocationInfo;
+  VmaAllocationInfo allocation_info;
 
-  VkBuffer tempBuffer = VK_NULL_HANDLE;
-  VK_CHECK(vmaCreateBuffer(allocator_, &rawBufferInfo, &vmaAllocInfo, &tempBuffer, &allocation_, &allocationInfo));
-  buffer_ = tempBuffer;
+  VkBuffer temp_buffer = VK_NULL_HANDLE;
+  VK_CHECK(
+      vmaCreateBuffer(allocator_, &raw_buffer_info, &vma_alloc_info, &temp_buffer, &allocation_, &allocation_info));
+  buffer_ = temp_buffer;
   size_ = info.size;
-  mapped_data_ = allocationInfo.pMappedData;
+  mapped_data_ = allocation_info.pMappedData;
 }
 
 void VulkanBuffer::Write(const void* src_data)

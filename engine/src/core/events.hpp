@@ -52,7 +52,7 @@ class EventManager
 public:
   void poll();
 
-  [[nodiscard]] const std::vector<Event>& getEvents() const;
+  [[nodiscard]] const std::vector<Event>& GetEvents() const;
 
 private:
   std::vector<Event> events_;

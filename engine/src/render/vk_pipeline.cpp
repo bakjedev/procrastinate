@@ -6,13 +6,13 @@
 
 VulkanPipelineLayout::VulkanPipelineLayout(const vk::Device device, const PipelineLayoutInfo &info) : device_(device)
 {
-  const vk::PipelineLayoutCreateInfo createInfo{
+  const vk::PipelineLayoutCreateInfo create_info{
       .setLayoutCount = static_cast<uint32_t>(info.descriptor_sets.size()),
       .pSetLayouts = info.descriptor_sets.data(),
       .pushConstantRangeCount = static_cast<uint32_t>(info.push_constants.size()),
       .pPushConstantRanges = info.push_constants.data()};
 
-  layout_ = device.createPipelineLayout(createInfo);
+  layout_ = device.createPipelineLayout(create_info);
 }
 
 VulkanPipelineLayout::~VulkanPipelineLayout()
@@ -51,14 +51,14 @@ VulkanPipeline::~VulkanPipeline()
 
 void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineInfo &info)
 {
-  vk::PipelineVertexInputStateCreateInfo vertexInput{
+  vk::PipelineVertexInputStateCreateInfo vertex_input{
       .vertexBindingDescriptionCount = static_cast<uint32_t>(info.vertex_bindings.size()),
       .pVertexBindingDescriptions = info.vertex_bindings.data(),
       .vertexAttributeDescriptionCount = static_cast<uint32_t>(info.vertex_attributes.size()),
       .pVertexAttributeDescriptions = info.vertex_attributes.data(),
   };
 
-  vk::PipelineInputAssemblyStateCreateInfo inputAssembly{
+  vk::PipelineInputAssemblyStateCreateInfo input_assembly{
       .topology = info.topology,
       .primitiveRestartEnable = VK_FALSE,
   };
@@ -80,7 +80,7 @@ void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineInfo &info)
       .rasterizationSamples = info.samples,
   };
 
-  vk::PipelineDepthStencilStateCreateInfo depthStencil{
+  vk::PipelineDepthStencilStateCreateInfo depth_stencil{
       .depthTestEnable = info.depth_test ? VK_TRUE : VK_FALSE,
       .depthWriteEnable = info.depth_write ? VK_TRUE : VK_FALSE,
       .depthCompareOp = info.depth_compare_op,
@@ -88,11 +88,11 @@ void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineInfo &info)
       .stencilTestEnable = VK_FALSE,
   };
 
-  std::vector<vk::PipelineColorBlendAttachmentState> colorBlendAttachments;
-  colorBlendAttachments.reserve(info.color_blend_attachments.size());
+  std::vector<vk::PipelineColorBlendAttachmentState> color_blend_attachments;
+  color_blend_attachments.reserve(info.color_blend_attachments.size());
   for (const auto &attachment: info.color_blend_attachments)
   {
-    colorBlendAttachments.push_back({
+    color_blend_attachments.push_back({
         .blendEnable = attachment.blend_enable ? VK_TRUE : VK_FALSE,
         .srcColorBlendFactor = attachment.src_color_blend_factor,
         .dstColorBlendFactor = attachment.dst_color_blend_factor,
@@ -104,20 +104,20 @@ void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineInfo &info)
     });
   }
 
-  vk::PipelineColorBlendStateCreateInfo colorBlending{
+  vk::PipelineColorBlendStateCreateInfo color_blending{
       .logicOpEnable = VK_FALSE,
       .logicOp = vk::LogicOp::eCopy,
-      .attachmentCount = static_cast<uint32_t>(colorBlendAttachments.size()),
-      .pAttachments = colorBlendAttachments.data(),
+      .attachmentCount = static_cast<uint32_t>(color_blend_attachments.size()),
+      .pAttachments = color_blend_attachments.data(),
       .blendConstants = std::array<float, 4>{0.0F, 0.0F, 0.0F, 0.0F},
   };
 
-  vk::PipelineDynamicStateCreateInfo dynamicState{
+  vk::PipelineDynamicStateCreateInfo dynamic_state{
       .dynamicStateCount = static_cast<uint32_t>(info.dynamic_states.size()),
       .pDynamicStates = info.dynamic_states.data(),
   };
 
-  vk::PipelineRenderingCreateInfo renderingInfo{
+  vk::PipelineRenderingCreateInfo rendering_info{
       .viewMask = 0,
       .colorAttachmentCount = static_cast<uint32_t>(info.color_attachment_formats.size()),
       .pColorAttachmentFormats = info.color_attachment_formats.data(),
@@ -125,32 +125,32 @@ void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineInfo &info)
       .stencilAttachmentFormat = info.stencil_attachment_format,
   };
 
-  vk::GraphicsPipelineCreateInfo createInfo{
-      .pNext = &renderingInfo,
+  vk::GraphicsPipelineCreateInfo create_info{
+      .pNext = &rendering_info,
       .stageCount = static_cast<uint32_t>(info.shader_stages.size()),
       .pStages = info.shader_stages.data(),
-      .pVertexInputState = &vertexInput,
-      .pInputAssemblyState = &inputAssembly,
+      .pVertexInputState = &vertex_input,
+      .pInputAssemblyState = &input_assembly,
       .pViewportState = &viewport,
       .pRasterizationState = &rasterizer,
       .pMultisampleState = &multisampling,
-      .pDepthStencilState = &depthStencil,
-      .pColorBlendState = &colorBlending,
-      .pDynamicState = &dynamicState,
+      .pDepthStencilState = &depth_stencil,
+      .pColorBlendState = &color_blending,
+      .pDynamicState = &dynamic_state,
       .layout = info.layout,
   };
 
-  auto result = device_.createGraphicsPipelines(nullptr, createInfo);
+  auto result = device_.createGraphicsPipelines(nullptr, create_info);
   pipeline_ = result.value.front();
 }
 
 void VulkanPipeline::CreateComputePipeline(const ComputePipelineInfo &info)
 {
-  const vk::ComputePipelineCreateInfo createInfo{
+  const vk::ComputePipelineCreateInfo create_info{
       .flags = {},
       .stage = info.shader_stage,
       .layout = info.layout,
   };
-  const auto result = device_.createComputePipelines(nullptr, createInfo);
+  const auto result = device_.createComputePipelines(nullptr, create_info);
   pipeline_ = result.value.front();
 }

@@ -45,7 +45,7 @@ void Window::quit() { quit_ = true; }
 
 void Window::update()
 {
-  for (const auto& event: event_manager_->getEvents())
+  for (const auto& event: event_manager_->GetEvents())
   {
     if (event.type == EventType::kQuit)
     {

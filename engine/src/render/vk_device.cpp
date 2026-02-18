@@ -60,20 +60,21 @@ void VulkanDevice::PickPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surf
 
 void VulkanDevice::CreateDevice()
 {
-  const std::set uniqueQueueFamilies = {queue_family_indices_.graphics.value(), queue_family_indices_.compute.value(),
-                                        queue_family_indices_.transfer.value(), queue_family_indices_.present.value()};
+  const std::set unique_queue_families = {queue_family_indices_.graphics.value(), queue_family_indices_.compute.value(),
+                                          queue_family_indices_.transfer.value(),
+                                          queue_family_indices_.present.value()};
 
-  constexpr float queuePriority = 1.0F;
-  std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
+  constexpr float queue_priority = 1.0F;
+  std::vector<vk::DeviceQueueCreateInfo> queue_create_infos;
 
-  for (const uint32_t queueFamily: uniqueQueueFamilies)
+  for (const uint32_t queue_family: unique_queue_families)
   {
-    const vk::DeviceQueueCreateInfo queueCreateInfo{
-        .queueFamilyIndex = queueFamily, .queueCount = 1, .pQueuePriorities = &queuePriority};
-    queueCreateInfos.push_back(queueCreateInfo);
+    const vk::DeviceQueueCreateInfo queue_create_info{
+        .queueFamilyIndex = queue_family, .queueCount = 1, .pQueuePriorities = &queue_priority};
+    queue_create_infos.push_back(queue_create_info);
   }
 
-  const std::vector deviceExtensions = {vk::KHRSwapchainExtensionName};
+  const std::vector device_extensions = {vk::KHRSwapchainExtensionName};
 
   enabled_features_ = {.pNext = enabled_features11_};
   enabled_features11_ = {.pNext = enabled_features12_};
@@ -105,13 +106,13 @@ void VulkanDevice::CreateDevice()
   enabled_features12_.bufferDeviceAddress = available_features12_.bufferDeviceAddress;
 
   enabled_features12_.drawIndirectCount = available_features12_.drawIndirectCount;
-  vk::DeviceCreateInfo deviceCreateInfo{};
-  deviceCreateInfo.pNext = &enabled_features_;
-  deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-  deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-  deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-  deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
-  device_ = physical_device_.createDevice(deviceCreateInfo);
+  vk::DeviceCreateInfo device_create_info{};
+  device_create_info.pNext = &enabled_features_;
+  device_create_info.queueCreateInfoCount = static_cast<uint32_t>(queue_create_infos.size());
+  device_create_info.pQueueCreateInfos = queue_create_infos.data();
+  device_create_info.enabledExtensionCount = static_cast<uint32_t>(device_extensions.size());
+  device_create_info.ppEnabledExtensionNames = device_extensions.data();
+  device_ = physical_device_.createDevice(device_create_info);
 }
 
 void VulkanDevice::GetQueues()
@@ -134,23 +135,23 @@ bool VulkanDevice::IsDeviceSuitable(const vk::PhysicalDeviceProperties& properti
 
 bool VulkanDevice::FindQueueFamilies(const vk::SurfaceKHR surface)
 {
-  const auto queueFamilies = physical_device_.getQueueFamilyProperties();
+  const auto queue_families = physical_device_.getQueueFamilyProperties();
 
-  for (size_t idx = 0; idx < queueFamilies.size(); idx++)
+  for (size_t idx = 0; idx < queue_families.size(); idx++)
   {
-    const auto& queueFamily = queueFamilies.at(idx);
+    const auto& queue_family = queue_families.at(idx);
 
     // Dedicated compute queue
-    if ((queueFamily.queueFlags & vk::QueueFlagBits::eCompute) &&
-        !(queueFamily.queueFlags & vk::QueueFlagBits::eGraphics))
+    if ((queue_family.queueFlags & vk::QueueFlagBits::eCompute) &&
+        !(queue_family.queueFlags & vk::QueueFlagBits::eGraphics))
     {
       queue_family_indices_.compute = idx;
     }
 
     // Dedicated transfer queue
-    if (queueFamily.queueFlags & vk::QueueFlagBits::eTransfer &&
-        !(queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) &&
-        !(queueFamily.queueFlags & vk::QueueFlagBits::eCompute))
+    if (queue_family.queueFlags & vk::QueueFlagBits::eTransfer &&
+        !(queue_family.queueFlags & vk::QueueFlagBits::eGraphics) &&
+        !(queue_family.queueFlags & vk::QueueFlagBits::eCompute))
     {
       queue_family_indices_.transfer = idx;
     }
@@ -158,27 +159,27 @@ bool VulkanDevice::FindQueueFamilies(const vk::SurfaceKHR surface)
 
   // Graphics and present. Also compute and transfer if it couldn't find
   // dedicated queues for them
-  for (size_t idx = 0; idx < queueFamilies.size(); idx++)
+  for (size_t idx = 0; idx < queue_families.size(); idx++)
   {
-    const auto& queueFamily = queueFamilies.at(idx);
+    const auto& queue_family = queue_families.at(idx);
 
-    if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics)
+    if (queue_family.queueFlags & vk::QueueFlagBits::eGraphics)
     {
       queue_family_indices_.graphics = idx;
     }
 
-    const auto presentSupport = physical_device_.getSurfaceSupportKHR(idx, surface);
-    if (presentSupport != 0U)
+    const auto present_support = physical_device_.getSurfaceSupportKHR(idx, surface);
+    if (present_support != 0U)
     {
       queue_family_indices_.present = idx;
     }
 
-    if (!queue_family_indices_.compute.has_value() && (queueFamily.queueFlags & vk::QueueFlagBits::eCompute))
+    if (!queue_family_indices_.compute.has_value() && (queue_family.queueFlags & vk::QueueFlagBits::eCompute))
     {
       queue_family_indices_.compute = idx;
     }
 
-    if (!queue_family_indices_.transfer.has_value() && (queueFamily.queueFlags & vk::QueueFlagBits::eTransfer))
+    if (!queue_family_indices_.transfer.has_value() && (queue_family.queueFlags & vk::QueueFlagBits::eTransfer))
     {
       queue_family_indices_.transfer = idx;
     }

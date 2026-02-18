@@ -2,12 +2,12 @@
 
 #include "util/vk_check.hpp"
 
-VulkanImage::VulkanImage(const ImageInfo &info, VmaAllocator allocator) :
+VulkanImage::VulkanImage(const ImageInfo &info, const VmaAllocator allocator) :
     format_(info.format), width_(info.width), height_(info.height), allocator_(allocator)
 {
-  VmaAllocatorInfo allocatorInfo;
-  vmaGetAllocatorInfo(allocator_, &allocatorInfo);
-  device_ = allocatorInfo.device;
+  VmaAllocatorInfo allocator_info;
+  vmaGetAllocatorInfo(allocator_, &allocator_info);
+  device_ = allocator_info.device;
 
   Create(info);
   CreateView(info.aspect_flags);
@@ -25,9 +25,9 @@ void VulkanImage::TransitionLayout(const vk::CommandBuffer cmd, const vk::ImageL
 void VulkanImage::TransitionImageLayout(const vk::Image image, const vk::CommandBuffer cmd,
                                         const vk::ImageLayout old_layout, const vk::ImageLayout new_layout)
 {
-  const vk::ImageAspectFlags aspectMask = (new_layout == vk::ImageLayout::eDepthAttachmentOptimal)
-                                              ? vk::ImageAspectFlagBits::eDepth
-                                              : vk::ImageAspectFlagBits::eColor;
+  const vk::ImageAspectFlags aspect_mask = (new_layout == vk::ImageLayout::eDepthAttachmentOptimal)
+                                               ? vk::ImageAspectFlagBits::eDepth
+                                               : vk::ImageAspectFlagBits::eColor;
 
   vk::ImageMemoryBarrier2 barrier{
       .oldLayout = old_layout,
@@ -35,7 +35,7 @@ void VulkanImage::TransitionImageLayout(const vk::Image image, const vk::Command
       .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
       .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
       .image = image,
-      .subresourceRange = vk::ImageSubresourceRange{.aspectMask = aspectMask,
+      .subresourceRange = vk::ImageSubresourceRange{.aspectMask = aspect_mask,
                                                     .baseMipLevel = 0,
                                                     .levelCount = VK_REMAINING_MIP_LEVELS,
                                                     .baseArrayLayer = 0,
@@ -47,13 +47,15 @@ void VulkanImage::TransitionImageLayout(const vk::Image image, const vk::Command
     barrier.dstAccessMask = vk::AccessFlagBits2::eTransferWrite;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eTransfer;
-  } else if (old_layout == vk::ImageLayout::eTransferDstOptimal && new_layout == vk::ImageLayout::eShaderReadOnlyOptimal)
+  } else if (old_layout == vk::ImageLayout::eTransferDstOptimal &&
+             new_layout == vk::ImageLayout::eShaderReadOnlyOptimal)
   {
     barrier.srcAccessMask = vk::AccessFlagBits2::eTransferWrite;
     barrier.dstAccessMask = vk::AccessFlagBits2::eShaderRead;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eFragmentShader;
-  } else if (old_layout == vk::ImageLayout::eColorAttachmentOptimal && new_layout == vk::ImageLayout::eTransferSrcOptimal)
+  } else if (old_layout == vk::ImageLayout::eColorAttachmentOptimal &&
+             new_layout == vk::ImageLayout::eTransferSrcOptimal)
   {
     barrier.srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite;
     barrier.dstAccessMask = vk::AccessFlagBits2::eTransferRead;
@@ -101,9 +103,9 @@ void VulkanImage::TransitionImageLayout(const vk::Image image, const vk::Command
     throw std::runtime_error("Unsupported layout transition");
   }
 
-  const vk::DependencyInfo depInfo{.imageMemoryBarrierCount = 1, .pImageMemoryBarriers = &barrier};
+  const vk::DependencyInfo dep_info{.imageMemoryBarrierCount = 1, .pImageMemoryBarriers = &barrier};
 
-  cmd.pipelineBarrier2(depInfo);
+  cmd.pipelineBarrier2(dep_info);
 }
 
 void VulkanImage::Destroy()
@@ -123,36 +125,36 @@ void VulkanImage::Destroy()
 
 void VulkanImage::Create(const ImageInfo &info)
 {
-  vk::ImageCreateInfo imageInfo{.imageType = vk::ImageType::e2D,
-                                .format = info.format,
-                                .extent = vk::Extent3D{.width = info.width, .height = info.height, .depth = 1},
-                                .mipLevels = 1,
-                                .arrayLayers = 1,
-                                .samples = vk::SampleCountFlagBits::e1,
-                                .tiling = vk::ImageTiling::eOptimal,
-                                .usage = info.usage,
-                                .sharingMode = vk::SharingMode::eExclusive,
-                                .initialLayout = vk::ImageLayout::eUndefined};
+  vk::ImageCreateInfo image_info{.imageType = vk::ImageType::e2D,
+                                 .format = info.format,
+                                 .extent = vk::Extent3D{.width = info.width, .height = info.height, .depth = 1},
+                                 .mipLevels = 1,
+                                 .arrayLayers = 1,
+                                 .samples = vk::SampleCountFlagBits::e1,
+                                 .tiling = vk::ImageTiling::eOptimal,
+                                 .usage = info.usage,
+                                 .sharingMode = vk::SharingMode::eExclusive,
+                                 .initialLayout = vk::ImageLayout::eUndefined};
 
-  VmaAllocationCreateInfo allocInfo{};
-  allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-  allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+  VmaAllocationCreateInfo alloc_info{};
+  alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
+  alloc_info.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
-  const auto rawImageInfo = static_cast<VkImageCreateInfo>(imageInfo);
+  const auto raw_image_info = static_cast<VkImageCreateInfo>(image_info);
 
-  VkImage tempImage = VK_NULL_HANDLE;
-  VK_CHECK(vmaCreateImage(allocator_, &rawImageInfo, &allocInfo, &tempImage, &allocation_, nullptr));
-  image_ = tempImage;
+  VkImage temp_image = VK_NULL_HANDLE;
+  VK_CHECK(vmaCreateImage(allocator_, &raw_image_info, &alloc_info, &temp_image, &allocation_, nullptr));
+  image_ = temp_image;
 }
 
 void VulkanImage::CreateView(const vk::ImageAspectFlags aspect_flags)
 {
-  const vk::ImageViewCreateInfo viewInfo{
+  const vk::ImageViewCreateInfo view_info{
       .image = image_,
       .viewType = vk::ImageViewType::e2D,
       .format = format_,
       .subresourceRange = vk::ImageSubresourceRange{
           .aspectMask = aspect_flags, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1}};
 
-  image_view_ = device_.createImageView(viewInfo);
+  image_view_ = device_.createImageView(view_info);
 }
