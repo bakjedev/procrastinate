@@ -3,15 +3,16 @@
 struct VertexInput
 {
     float3 position : POSITION;
-    float3 color : COLOR0;
-    float3 normal : NORMAL;
 };
 
 [[vk::push_constant]]
 PushConstants pushConst;
 
-[[vk::binding(1, 0)]]
+[[vk::binding(1, 1)]]
 StructuredBuffer<RenderObject> renderObjects;
+
+[[vk::binding(0, 0)]]
+StructuredBuffer<MeshInfo> meshInfos;
 
 [shader("vertex")]
 VertexOutput main(VertexInput input, uint instanceID : SV_InstanceID, uint baseInstance : SV_StartInstanceLocation)
@@ -26,7 +27,10 @@ VertexOutput main(VertexInput input, uint instanceID : SV_InstanceID, uint baseI
     float4 viewPos = mul(pushConst.view, worldPos);    
 
     output.position = mul(pushConst.proj, viewPos);
-    output.color = input.color;
-    output.normal = input.normal;
+
+    MeshInfo mesh = meshInfos[renderObject.meshID];
+    uint primitive = mesh.firstIndex / 3;
+
+    output.objectID = (index << 16) | (primitive & 0xFFFF);
     return output;
 }

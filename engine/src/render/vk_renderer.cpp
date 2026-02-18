@@ -179,7 +179,8 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
               .binding = 0,
               .descriptorType = vk::DescriptorType::eStorageBuffer,
               .descriptorCount = 1,
-              .stageFlags = vk::ShaderStageFlagBits::eCompute},
+              .stageFlags = vk::ShaderStageFlagBits::eCompute |
+                            vk::ShaderStageFlagBits::eVertex},
       },
       std::vector<vk::DescriptorBindingFlags>{},
       vk::DescriptorSetLayoutCreateFlags{});
@@ -195,6 +196,8 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
       .size = sizeof(PushConstant)};
 
   pipelineLayoutInfo.pushConstants.push_back(pushConstantRange);
+  pipelineLayoutInfo.descriptorSets.push_back(
+      m_staticDescriptorSetLayout->get());
   pipelineLayoutInfo.descriptorSets.push_back(
       m_frameDescriptorSetLayout->get());
 
@@ -212,7 +215,7 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
   {
     GraphicsPipelineInfo pipelineInfo{};
     pipelineInfo.shaderStages = {vertStage, fragStage};
-    pipelineInfo.colorAttachmentFormats = {m_swapChain->format()};
+    pipelineInfo.colorAttachmentFormats = {vk::Format::eR32Uint};
     pipelineInfo.layout = m_pipelineLayout->get();
     pipelineInfo.colorBlendAttachments = {{}};
     pipelineInfo.frontFace = vk::FrontFace::eClockwise;
@@ -230,22 +233,22 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
     positionAttr.format = vk::Format::eR32G32B32Sfloat;
     positionAttr.offset = offsetof(Vertex, position);
 
-    vk::VertexInputAttributeDescription colorAttr{};
-    colorAttr.location = 1;
-    colorAttr.binding = 0;
-    colorAttr.format = vk::Format::eR32G32B32Sfloat;
-    colorAttr.offset = offsetof(Vertex, color);
-
-    vk::VertexInputAttributeDescription normalAttr{};
-    normalAttr.location = 2;
-    normalAttr.binding = 0;
-    normalAttr.format = vk::Format::eR32G32B32Sfloat;
-    normalAttr.offset = offsetof(Vertex, normal);
+    // vk::VertexInputAttributeDescription colorAttr{};
+    // colorAttr.location = 1;
+    // colorAttr.binding = 0;
+    // colorAttr.format = vk::Format::eR32G32B32Sfloat;
+    // colorAttr.offset = offsetof(Vertex, color);
+    //
+    // vk::VertexInputAttributeDescription normalAttr{};
+    // normalAttr.location = 2;
+    // normalAttr.binding = 0;
+    // normalAttr.format = vk::Format::eR32G32B32Sfloat;
+    // normalAttr.offset = offsetof(Vertex, normal);
 
     pipelineInfo.vertexBindings.push_back(binding);
     pipelineInfo.vertexAttributes.push_back(positionAttr);
-    pipelineInfo.vertexAttributes.push_back(colorAttr);
-    pipelineInfo.vertexAttributes.push_back(normalAttr);
+    // pipelineInfo.vertexAttributes.push_back(colorAttr);
+    // pipelineInfo.vertexAttributes.push_back(normalAttr);
 
     m_pipeline =
         std::make_unique<VulkanPipeline>(m_device->get(), pipelineInfo);
@@ -578,12 +581,12 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
           vk::ClearValue{.depthStencil = {.depth = 1.0F, .stencil = 0}}};
 
   const vk::RenderingAttachmentInfo colorAttachment{
-      .imageView = m_swapChain->imageViews().at(imageIndex),
+      .imageView = frame->visibilityImage()->view(),
       .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
       .loadOp = vk::AttachmentLoadOp::eClear,
       .storeOp = vk::AttachmentStoreOp::eStore,
       .clearValue = vk::ClearValue{
-          .color = vk::ClearColorValue{std::array{0.0F, 0.0F, 0.0F, 1.0F}}}};
+          .color = vk::ClearColorValue{.uint32 = std::array{0U, 0U, 0U, 0U}}}};
 
   const vk::RenderingInfo renderInfo{
       .renderArea = vk::Rect2D{.offset = {.x = 0, .y = 0},
@@ -595,9 +598,10 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
 
   cmd.beginRendering(renderInfo);
   cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline->get());
+
   cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-                         m_pipelineLayout->get(), 0, 1, &frame->descriptorSet(),
-                         0, nullptr);
+                         m_pipelineLayout->get(), 0, descriptorSets.size(),
+                         descriptorSets.data(), 0, nullptr);
 
   const PushConstant pushConstant{
       .view = view,
@@ -644,7 +648,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   const vk::RenderingAttachmentInfo debugLineColorAttachment{
       .imageView = m_swapChain->imageViews().at(imageIndex),
       .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-      .loadOp = vk::AttachmentLoadOp::eLoad,
+      .loadOp = vk::AttachmentLoadOp::eClear,
       .storeOp = vk::AttachmentStoreOp::eStore,
   };
 
@@ -721,7 +725,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   // End frame
   // -----------------------------------------------------------
   ZoneNamedN(endzone, "Endzone", true);
- endFrame(imageIndex);
+  endFrame(imageIndex);
 }
 
 uint32_t VulkanRenderer::addMesh(const std::vector<Vertex>& vertices,
@@ -1032,6 +1036,6 @@ void VulkanRenderer::recreateSwapchain() {
 void VulkanRenderer::recreateDepthImage(const uint32_t width,
                                         const uint32_t height) const {
   for (const auto& frame : m_frames) {
-    frame->recreateDepthImage(width, height);
+    frame->recreateFrameImages(width, height);
   }
 }

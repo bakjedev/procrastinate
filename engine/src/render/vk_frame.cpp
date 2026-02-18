@@ -90,16 +90,29 @@ VulkanFrame::~VulkanFrame() {
   m_objectBuffer->unmap();
   m_debugLineVertexBuffer->unmap();
 }
-void VulkanFrame::recreateDepthImage(const uint32_t width,
-                                     const uint32_t height) {
+void VulkanFrame::recreateFrameImages(const uint32_t width,
+                                      const uint32_t height) {
   m_depthImage = nullptr;
 
-  auto imageInfo = ImageInfo{
+  const ImageInfo depthImageInfo{
       .width = width,
       .height = height,
       .format = vk::Format::eD32Sfloat,
       .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
       .aspectFlags = vk::ImageAspectFlagBits::eDepth,
   };
-  m_depthImage = std::make_unique<VulkanImage>(imageInfo, m_allocator->get());
+  m_depthImage =
+      std::make_unique<VulkanImage>(depthImageInfo, m_allocator->get());
+
+  m_visibilityImage = nullptr;
+  const ImageInfo visibilityImageInfo{
+      .width = width,
+      .height = height,
+      .format = vk::Format::eR32Uint,
+      .usage = vk::ImageUsageFlagBits::eColorAttachment |
+               vk::ImageUsageFlagBits::eSampled,
+      .aspectFlags = vk::ImageAspectFlagBits::eColor,
+  };
+  m_visibilityImage =
+      std::make_unique<VulkanImage>(visibilityImageInfo, m_allocator->get());
 }

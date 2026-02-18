@@ -29,6 +29,9 @@ class VulkanFrame {
   [[nodiscard]] vk::CommandBuffer computeCmd() const { return m_computeCmd; }
 
   [[nodiscard]] VulkanImage* depthImage() const { return m_depthImage.get(); }
+  [[nodiscard]] VulkanImage* visibilityImage() const {
+    return m_visibilityImage.get();
+  }
 
   [[nodiscard]] VulkanBuffer* objectBuffer() const {
     return m_objectBuffer.get();
@@ -56,7 +59,7 @@ class VulkanFrame {
 
   [[nodiscard]] vk::DescriptorSet& descriptorSet() { return m_descriptorSet; }
 
-  void recreateDepthImage(const uint32_t width, const uint32_t height);
+  void recreateFrameImages(const uint32_t width, const uint32_t height);
 
  private:
   vk::CommandBuffer m_graphicsCmd;
@@ -66,6 +69,7 @@ class VulkanFrame {
   vk::UniqueFence m_inFlight;
   vk::UniqueSemaphore m_computeFinished;
 
+  std::unique_ptr<VulkanImage> m_visibilityImage;
   std::unique_ptr<VulkanImage> m_depthImage;
 
   std::unique_ptr<VulkanBuffer> m_objectBuffer;
