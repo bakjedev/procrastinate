@@ -13,7 +13,7 @@ constexpr uint32_t kMaxIndirectCommands = 65536;
 constexpr uint32_t kMaxLines = 10000;
 constexpr uint32_t kMaxObjects = 10000;
 
-VulkanFrame::VulkanFrame(const VulkanCommandPool* graphics_pool, const VulkanCommandPool* compute_pool,
+VulkanFrame::VulkanFrame(const VulkanCommandPool* graphics_pool, /*const VulkanCommandPool* compute_pool,*/
                          const VulkanDescriptorPool* descriptor_pool,
                          const VulkanDescriptorSetLayout* descriptor_layout, VulkanDevice* device,
                          VulkanAllocator* allocator) : device_(device), allocator_(allocator)
@@ -25,11 +25,11 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphics_pool, const VulkanCom
   const auto internal_device = device_->get();
   image_available_ = internal_device.createSemaphoreUnique(semaphore_create_info);
   in_flight_ = internal_device.createFenceUnique(fence_create_info);
-  compute_finished_ = internal_device.createSemaphoreUnique(semaphore_create_info);
+  // compute_finished_ = internal_device.createSemaphoreUnique(semaphore_create_info);
 
   // Allocate command buffers for graphics, transfer and compute.
   graphics_cmd_ = graphics_pool->allocate();
-  compute_cmd_ = compute_pool->allocate();
+  // compute_cmd_ = compute_pool->allocate();
 
   // Create render object buffer
   object_buffer_ = std::make_unique<VulkanBuffer>(

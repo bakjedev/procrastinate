@@ -73,7 +73,7 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   // -----------------------------------------------------------
   const uint32_t graphics_queue_family = device_->QueueFamilies().graphics.value();
   const uint32_t transfer_queue_family = device_->QueueFamilies().transfer.value();
-  const uint32_t compute_queue_family = device_->QueueFamilies().compute.value();
+  // const uint32_t compute_queue_family = device_->QueueFamilies().compute.value();
 
   // -----------------------------------------------------------
   // CREATE COMMAND POOLS FOR GRAPHICS, TRANSFER AND COMPUTE
@@ -86,12 +86,12 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   transfer_pool_ = std::make_unique<VulkanCommandPool>(
       CommandPoolInfo{.queue_family_index = transfer_queue_family, .flags = {}}, device_->get());
 
-  compute_pool_ = std::make_unique<VulkanCommandPool>(
-      CommandPoolInfo{
-          .queue_family_index = compute_queue_family,
-          .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-      },
-      device_->get());
+  // compute_pool_ = std::make_unique<VulkanCommandPool>(
+  //     CommandPoolInfo{
+  //         .queue_family_index = compute_queue_family,
+  //         .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+  //     },
+  //     device_->get());
 
   // -----------------------------------------------------------
   // TRANSITION SWAPCHAIN IMAGES TO PRESENT
@@ -320,9 +320,9 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   frames_.reserve(max_frames_in_flight_);
   for (uint32_t i{}; i < max_frames_in_flight_; i++)
   {
-    frames_.push_back(std::make_unique<VulkanFrame>(graphics_pool_.get(), compute_pool_.get(), descriptor_pool_.get(),
-                                                    frame_descriptor_set_layout_.get(), device_.get(),
-                                                    allocator_.get()));
+    frames_.push_back(
+        std::make_unique<VulkanFrame>(graphics_pool_.get(), /*compute_pool_.get(),*/ descriptor_pool_.get(),
+                                      frame_descriptor_set_layout_.get(), device_.get(), allocator_.get()));
   }
 
   const auto swap_chain_image_count = swap_chain_->imageCount();
@@ -473,49 +473,55 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   const auto frustum = ExtractFrustum(view_proj);
 
   // -----------------------------------------------------------
+  // Begin command buffer
+  // -----------------------------------------------------------
+  const auto cmd = frame->GraphicsCmd();
+  constexpr vk::CommandBufferBeginInfo begin_info{};
+  cmd.begin(begin_info);
+
+  // -----------------------------------------------------------
   // Compute pass - create indirect draw commands
   // -----------------------------------------------------------
   ZoneNamedN(computezone, "ComputePass", true);
-  const auto ccmd = frame->ComputeCmd();
-  constexpr vk::CommandBufferBeginInfo begin_info{};
-  ccmd.begin(begin_info);
-
   constexpr vk::DebugUtilsLabelEXT label_info1{.pLabelName = "FrustumGPUDrivenPass"};
-  ccmd.beginDebugUtilsLabelEXT(label_info1, instance_->getDynamicLoader());
+  cmd.beginDebugUtilsLabelEXT(label_info1, instance_->getDynamicLoader());
 
-  ccmd.fillBuffer(frame->DrawCount()->get(), 0, sizeof(uint32_t), 0);
+  cmd.fillBuffer(frame->DrawCount()->get(), 0, sizeof(uint32_t), 0);
 
   vulkan_barriers::BufferBarrier(
-      ccmd, vulkan_barriers::BufferInfo{.buffer = frame->DrawCount()->get(), .size = sizeof(uint32_t)},
+      cmd, vulkan_barriers::BufferInfo{.buffer = frame->DrawCount()->get(), .size = sizeof(uint32_t)},
       vulkan_barriers::BufferUsageBit::CopyDestination, vulkan_barriers::BufferUsageBit::RWCompute);
 
   const auto descriptor_sets = std::array{static_descriptor_set_, frame->DescriptorSet()};
 
-  ccmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, comp_pipeline_layout_->get(), 0, descriptor_sets.size(),
-                          descriptor_sets.data(), 0, nullptr);
+  cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, comp_pipeline_layout_->get(), 0, descriptor_sets.size(),
+                         descriptor_sets.data(), 0, nullptr);
 
   const ComputePushConstant compute_push_constant{
       .frustum = frustum,
   };
 
-  ccmd.pushConstants(comp_pipeline_layout_->get(), vk::ShaderStageFlagBits::eCompute, 0, sizeof(ComputePushConstant),
-                     &compute_push_constant);
+  cmd.pushConstants(comp_pipeline_layout_->get(), vk::ShaderStageFlagBits::eCompute, 0, sizeof(ComputePushConstant),
+                    &compute_push_constant);
 
-  ccmd.bindPipeline(vk::PipelineBindPoint::eCompute, comp_pipeline_->get());
+  cmd.bindPipeline(vk::PipelineBindPoint::eCompute, comp_pipeline_->get());
   const uint32_t workgroups = (render_objects_.size() + 255) / 256;
-  ccmd.dispatch(workgroups, 1, 1);
+  cmd.dispatch(workgroups, 1, 1);
 
-  ccmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
-  ccmd.end();
+  vulkan_barriers::BufferBarrier(
+      cmd, vulkan_barriers::BufferInfo{.buffer = frame->DrawCount()->get(), .size = sizeof(uint32_t)},
+      vulkan_barriers::BufferUsageBit::RWCompute, vulkan_barriers::BufferUsageBit::IndirectDraw);
+
+  vulkan_barriers::BufferBarrier(
+      cmd, vulkan_barriers::BufferInfo{.buffer = frame->IndirectBuffer()->get(), .size = vk::WholeSize},
+      vulkan_barriers::BufferUsageBit::RWCompute, vulkan_barriers::BufferUsageBit::IndirectDraw);
+
+  cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
 
   // -----------------------------------------------------------
   // Graphics pass - render meshes
   // -----------------------------------------------------------
   ZoneNamedN(graphicsmesheszone, "MeshPass", true);
-  const auto cmd = frame->GraphicsCmd();
-
-  cmd.begin(begin_info);
-
   constexpr vk::DebugUtilsLabelEXT label_info2{.pLabelName = "MeshPass"};
   cmd.beginDebugUtilsLabelEXT(label_info2, instance_->getDynamicLoader());
 
@@ -929,44 +935,44 @@ auto VulkanRenderer::EndFrame(const uint32_t image_index) -> void
   ZoneScopedN("VulkanRenderer::endFrame");
   const auto& frame = frames_.at(current_frame_);
 
-  const vk::SemaphoreSubmitInfo c_signal_semaphore{.semaphore = frame->ComputeFinished(),
-                                                   .stageMask = vk::PipelineStageFlagBits2::eComputeShader};
+  // const vk::SemaphoreSubmitInfo c_signal_semaphore{.semaphore = frame->ComputeFinished(),
+  //                                                  .stageMask = vk::PipelineStageFlagBits2::eComputeShader};
 
-  const vk::CommandBufferSubmitInfo c_cmd_info{.commandBuffer = frame->ComputeCmd()};
+  // const vk::CommandBufferSubmitInfo c_cmd_info{.commandBuffer = frame->ComputeCmd()};
+  //
+  // const vk::SubmitInfo2 c_submit_info{.waitSemaphoreInfoCount = 0,
+  //                                     .pWaitSemaphoreInfos = nullptr,
+  //                                     .commandBufferInfoCount = 1,
+  //                                     .pCommandBufferInfos = &c_cmd_info,
+  //                                     .signalSemaphoreInfoCount = 1,
+  //                                     .pSignalSemaphoreInfos = &c_signal_semaphore};
+  //
+  // auto result = device_->ComputeQueue().submit2(1, &c_submit_info, nullptr);
+  // if (result != vk::Result::eSuccess)
+  // {
+  //   throw std::runtime_error("compute submit2 failed: " + vk::to_string(result));
+  // }
 
-  const vk::SubmitInfo2 c_submit_info{.waitSemaphoreInfoCount = 0,
-                                      .pWaitSemaphoreInfos = nullptr,
-                                      .commandBufferInfoCount = 1,
-                                      .pCommandBufferInfos = &c_cmd_info,
-                                      .signalSemaphoreInfoCount = 1,
-                                      .pSignalSemaphoreInfos = &c_signal_semaphore};
-
-  auto result = device_->ComputeQueue().submit2(1, &c_submit_info, nullptr);
-  if (result != vk::Result::eSuccess)
-  {
-    throw std::runtime_error("compute submit2 failed: " + vk::to_string(result));
-  }
-
-  std::array<vk::SemaphoreSubmitInfo, 2> g_wait_semaphores{
-      {{.semaphore = frame->ComputeFinished(), .stageMask = vk::PipelineStageFlagBits2::eDrawIndirect},
+  std::array<vk::SemaphoreSubmitInfo, 1> wait_semaphores{
+      {/*{.semaphore = frame->ComputeFinished(), .stageMask = vk::PipelineStageFlagBits2::eDrawIndirect},*/
        {.semaphore = frame->ImageAvailable(), .stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput}}};
 
-  const vk::SemaphoreSubmitInfo g_signal_semaphore{.semaphore = submit_semaphores_.at(image_index).get(),
-                                                   .stageMask = vk::PipelineStageFlagBits2::eAllCommands};
+  const vk::SemaphoreSubmitInfo signal_semaphore{.semaphore = submit_semaphores_.at(image_index).get(),
+                                                 .stageMask = vk::PipelineStageFlagBits2::eAllCommands};
 
-  const vk::CommandBufferSubmitInfo g_cmd_info{.commandBuffer = frame->GraphicsCmd()};
+  const vk::CommandBufferSubmitInfo cmd_info{.commandBuffer = frame->GraphicsCmd()};
 
-  const vk::SubmitInfo2 g_submit_info{.waitSemaphoreInfoCount = g_wait_semaphores.size(),
-                                      .pWaitSemaphoreInfos = g_wait_semaphores.data(),
-                                      .commandBufferInfoCount = 1,
-                                      .pCommandBufferInfos = &g_cmd_info,
-                                      .signalSemaphoreInfoCount = 1,
-                                      .pSignalSemaphoreInfos = &g_signal_semaphore};
+  const vk::SubmitInfo2 submit_info{.waitSemaphoreInfoCount = wait_semaphores.size(),
+                                    .pWaitSemaphoreInfos = wait_semaphores.data(),
+                                    .commandBufferInfoCount = 1,
+                                    .pCommandBufferInfos = &cmd_info,
+                                    .signalSemaphoreInfoCount = 1,
+                                    .pSignalSemaphoreInfos = &signal_semaphore};
 
-  result = device_->GraphicsQueue().submit2(1, &g_submit_info, frame->InFlight());
+  auto result = device_->GraphicsQueue().submit2(1, &submit_info, frame->InFlight());
   if (result != vk::Result::eSuccess)
   {
-    throw std::runtime_error("graphics submit2 failed: " + vk::to_string(result));
+    throw std::runtime_error("submit2 failed: " + vk::to_string(result));
   }
 
   result = swap_chain_->Present(image_index, device_->PresentQueue(), submit_semaphores_.at(image_index).get());
