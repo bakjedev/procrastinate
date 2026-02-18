@@ -40,14 +40,10 @@ constexpr float kFarPlaneDistance = 1000.0F;
 constexpr uint32_t kMaxDescriptorSets = 1000;
 constexpr uint32_t kStorageBufferCount = 20;
 
-VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager, EventManager& event_manager)
+VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager, EventManager& event_manager) :
+    window_(window), event_manager_(&event_manager)
 {
   util::println("Initializing renderer");
-  // -----------------------------------------------------------
-  // SET REFERENCES
-  // -----------------------------------------------------------
-  window_ = window;
-  event_manager_ = &event_manager;
 
   const auto [width, height] = window->GetWindowSize();
   aspect_ratio_ = static_cast<float>(width) / static_cast<float>(height);
@@ -76,7 +72,7 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   // const uint32_t compute_queue_family = device_->QueueFamilies().compute.value();
 
   // -----------------------------------------------------------
-  // CREATE COMMAND POOLS FOR GRAPHICS, TRANSFER AND COMPUTE
+  // CREATE COMMAND POOLS FOR GRAPHICS AND TRANSFER
   // -----------------------------------------------------------
   graphics_pool_ =
       std::make_unique<VulkanCommandPool>(CommandPoolInfo{.queue_family_index = graphics_queue_family,
@@ -85,13 +81,6 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
 
   transfer_pool_ = std::make_unique<VulkanCommandPool>(
       CommandPoolInfo{.queue_family_index = transfer_queue_family, .flags = {}}, device_->get());
-
-  // compute_pool_ = std::make_unique<VulkanCommandPool>(
-  //     CommandPoolInfo{
-  //         .queue_family_index = compute_queue_family,
-  //         .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-  //     },
-  //     device_->get());
 
   // -----------------------------------------------------------
   // TRANSITION SWAPCHAIN IMAGES TO PRESENT
@@ -320,9 +309,9 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   frames_.reserve(max_frames_in_flight_);
   for (uint32_t i{}; i < max_frames_in_flight_; i++)
   {
-    frames_.push_back(
-        std::make_unique<VulkanFrame>(graphics_pool_.get(), /*compute_pool_.get(),*/ descriptor_pool_.get(),
-                                      frame_descriptor_set_layout_.get(), device_.get(), allocator_.get()));
+    frames_.push_back(std::make_unique<VulkanFrame>(graphics_pool_.get(), descriptor_pool_.get(),
+                                                    frame_descriptor_set_layout_.get(), device_.get(),
+                                                    allocator_.get()));
   }
 
   const auto swap_chain_image_count = swap_chain_->imageCount();
@@ -935,35 +924,16 @@ auto VulkanRenderer::EndFrame(const uint32_t image_index) -> void
   ZoneScopedN("VulkanRenderer::endFrame");
   const auto& frame = frames_.at(current_frame_);
 
-  // const vk::SemaphoreSubmitInfo c_signal_semaphore{.semaphore = frame->ComputeFinished(),
-  //                                                  .stageMask = vk::PipelineStageFlagBits2::eComputeShader};
-
-  // const vk::CommandBufferSubmitInfo c_cmd_info{.commandBuffer = frame->ComputeCmd()};
-  //
-  // const vk::SubmitInfo2 c_submit_info{.waitSemaphoreInfoCount = 0,
-  //                                     .pWaitSemaphoreInfos = nullptr,
-  //                                     .commandBufferInfoCount = 1,
-  //                                     .pCommandBufferInfos = &c_cmd_info,
-  //                                     .signalSemaphoreInfoCount = 1,
-  //                                     .pSignalSemaphoreInfos = &c_signal_semaphore};
-  //
-  // auto result = device_->ComputeQueue().submit2(1, &c_submit_info, nullptr);
-  // if (result != vk::Result::eSuccess)
-  // {
-  //   throw std::runtime_error("compute submit2 failed: " + vk::to_string(result));
-  // }
-
-  std::array<vk::SemaphoreSubmitInfo, 1> wait_semaphores{
-      {/*{.semaphore = frame->ComputeFinished(), .stageMask = vk::PipelineStageFlagBits2::eDrawIndirect},*/
-       {.semaphore = frame->ImageAvailable(), .stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput}}};
+  const vk::SemaphoreSubmitInfo wait_semaphore{.semaphore = frame->ImageAvailable(),
+                                               .stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput};
 
   const vk::SemaphoreSubmitInfo signal_semaphore{.semaphore = submit_semaphores_.at(image_index).get(),
                                                  .stageMask = vk::PipelineStageFlagBits2::eAllCommands};
 
   const vk::CommandBufferSubmitInfo cmd_info{.commandBuffer = frame->GraphicsCmd()};
 
-  const vk::SubmitInfo2 submit_info{.waitSemaphoreInfoCount = wait_semaphores.size(),
-                                    .pWaitSemaphoreInfos = wait_semaphores.data(),
+  const vk::SubmitInfo2 submit_info{.waitSemaphoreInfoCount = 1,
+                                    .pWaitSemaphoreInfos = &wait_semaphore,
                                     .commandBufferInfoCount = 1,
                                     .pCommandBufferInfos = &cmd_info,
                                     .signalSemaphoreInfoCount = 1,

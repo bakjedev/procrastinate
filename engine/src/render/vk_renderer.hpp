@@ -109,7 +109,6 @@ private:
 
   std::unique_ptr<VulkanCommandPool> graphics_pool_;
   std::unique_ptr<VulkanCommandPool> transfer_pool_;
-  // std::unique_ptr<VulkanCommandPool> compute_pool_;
 
   std::unique_ptr<VulkanShader> vertex_shader_;
   std::unique_ptr<VulkanShader> fragment_shader_;

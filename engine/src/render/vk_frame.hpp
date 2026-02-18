@@ -15,9 +15,8 @@ class VulkanDevice;
 class VulkanFrame
 {
 public:
-  VulkanFrame(const VulkanCommandPool* graphics_pool, /*const VulkanCommandPool* compute_pool,*/
-              const VulkanDescriptorPool* descriptor_pool, const VulkanDescriptorSetLayout* descriptor_layout,
-              VulkanDevice* device, VulkanAllocator* allocator);
+  VulkanFrame(const VulkanCommandPool* graphics_pool, const VulkanDescriptorPool* descriptor_pool,
+              const VulkanDescriptorSetLayout* descriptor_layout, VulkanDevice* device, VulkanAllocator* allocator);
   VulkanFrame(const VulkanFrame&) = delete;
   VulkanFrame(VulkanFrame&&) = delete;
   VulkanFrame& operator=(const VulkanFrame&) = delete;
@@ -25,7 +24,6 @@ public:
   ~VulkanFrame();
 
   [[nodiscard]] vk::CommandBuffer GraphicsCmd() const { return graphics_cmd_; }
-  // [[nodiscard]] vk::CommandBuffer ComputeCmd() const { return compute_cmd_; }
 
   [[nodiscard]] VulkanImage* DepthImage() const { return depth_image_.get(); }
   [[nodiscard]] VulkanImage* VisibilityImage() const { return visibility_image_.get(); }
@@ -43,19 +41,15 @@ public:
 
   [[nodiscard]] vk::Fence InFlight() const { return in_flight_.get(); }
 
-  // [[nodiscard]] vk::Semaphore ComputeFinished() const { return compute_finished_.get(); }
-
   [[nodiscard]] vk::DescriptorSet& DescriptorSet() { return descriptor_set_; }
 
   void RecreateFrameImages(const uint32_t width, const uint32_t height);
 
 private:
   vk::CommandBuffer graphics_cmd_;
-  // vk::CommandBuffer compute_cmd_;
 
   vk::UniqueSemaphore image_available_;
   vk::UniqueFence in_flight_;
-  // vk::UniqueSemaphore compute_finished_;
 
   std::unique_ptr<VulkanImage> visibility_image_;
   std::unique_ptr<VulkanImage> depth_image_;
