@@ -10,7 +10,7 @@ struct QueueFamilyIndices
   std::optional<uint32_t> transfer;
   std::optional<uint32_t> present;
 
-  [[nodiscard]] bool isComplete() const
+  [[nodiscard]] bool IsComplete() const
   {
     return graphics.has_value() && present.has_value() && compute.has_value() && transfer.has_value();
   }
@@ -26,50 +26,50 @@ public:
   VulkanDevice& operator=(VulkanDevice&&) = delete;
   ~VulkanDevice();
 
-  [[nodiscard]] vk::Device get() const { return m_device; }
-  [[nodiscard]] vk::PhysicalDevice getPhysical() const { return m_physicalDevice; }
+  [[nodiscard]] vk::Device get() const { return device_; }
+  [[nodiscard]] vk::PhysicalDevice GetPhysical() const { return physical_device_; }
 
-  void waitIdle() const;
+  void WaitIdle() const;
 
-  [[nodiscard]] vk::Queue graphicsQueue() const { return m_graphicsQueue; }
-  [[nodiscard]] vk::Queue computeQueue() const { return m_computeQueue; }
-  [[nodiscard]] vk::Queue transferQueue() const { return m_transferQueue; }
-  [[nodiscard]] vk::Queue presentQueue() const { return m_presentQueue; }
+  [[nodiscard]] vk::Queue GraphicsQueue() const { return graphics_queue_; }
+  [[nodiscard]] vk::Queue ComputeQueue() const { return compute_queue_; }
+  [[nodiscard]] vk::Queue TransferQueue() const { return transfer_queue_; }
+  [[nodiscard]] vk::Queue PresentQueue() const { return present_queue_; }
 
-  [[nodiscard]] std::string name() const { return static_cast<const char*>(m_properties.deviceName); }
-  [[nodiscard]] const QueueFamilyIndices& queueFamilies() const { return m_queueFamilyIndices; }
-  [[nodiscard]] bool separateComputeQueue() const
+  [[nodiscard]] std::string name() const { return static_cast<const char*>(properties_.deviceName); }
+  [[nodiscard]] const QueueFamilyIndices& QueueFamilies() const { return queue_family_indices_; }
+  [[nodiscard]] bool SeparateComputeQueue() const
   {
-    return m_queueFamilyIndices.compute.value() != m_queueFamilyIndices.graphics.value();
+    return queue_family_indices_.compute.value() != queue_family_indices_.graphics.value();
   }
 
 private:
-  vk::PhysicalDevice m_physicalDevice;
-  vk::Device m_device;
-  vk::PhysicalDeviceProperties m_properties;
+  vk::PhysicalDevice physical_device_;
+  vk::Device device_;
+  vk::PhysicalDeviceProperties properties_;
 
-  vk::PhysicalDeviceFeatures2 m_availableFeatures;
-  vk::PhysicalDeviceVulkan11Features m_availableFeatures11;
-  vk::PhysicalDeviceVulkan12Features m_availableFeatures12;
-  vk::PhysicalDeviceVulkan13Features m_availableFeatures13;
+  vk::PhysicalDeviceFeatures2 available_features_;
+  vk::PhysicalDeviceVulkan11Features available_features11_;
+  vk::PhysicalDeviceVulkan12Features available_features12_;
+  vk::PhysicalDeviceVulkan13Features available_features13_;
 
-  vk::PhysicalDeviceFeatures2 m_enabledFeatures;
-  vk::PhysicalDeviceVulkan11Features m_enabledFeatures11;
-  vk::PhysicalDeviceVulkan12Features m_enabledFeatures12;
-  vk::PhysicalDeviceVulkan13Features m_enabledFeatures13;
+  vk::PhysicalDeviceFeatures2 enabled_features_;
+  vk::PhysicalDeviceVulkan11Features enabled_features11_;
+  vk::PhysicalDeviceVulkan12Features enabled_features12_;
+  vk::PhysicalDeviceVulkan13Features enabled_features13_;
 
-  QueueFamilyIndices m_queueFamilyIndices;
+  QueueFamilyIndices queue_family_indices_;
 
-  vk::Queue m_graphicsQueue;
-  vk::Queue m_presentQueue;
-  vk::Queue m_transferQueue;
-  vk::Queue m_computeQueue;
+  vk::Queue graphics_queue_;
+  vk::Queue present_queue_;
+  vk::Queue transfer_queue_;
+  vk::Queue compute_queue_;
 
-  void pickPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface);
-  void createDevice();
-  void getQueues();
+  void PickPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface);
+  void CreateDevice();
+  void GetQueues();
 
-  static bool isDeviceSuitable(const vk::PhysicalDeviceProperties& properties);
+  static bool IsDeviceSuitable(const vk::PhysicalDeviceProperties& properties);
 
-  bool findQueueFamilies(vk::SurfaceKHR surface);
+  bool FindQueueFamilies(vk::SurfaceKHR surface);
 };

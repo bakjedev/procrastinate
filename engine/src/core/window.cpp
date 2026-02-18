@@ -5,27 +5,27 @@
 #include "core/events.hpp"
 #include "events.hpp"
 
-Window::Window(const WindowInfo& info, EventManager& eventManager) :
-    m_width(info.width), m_height(info.height), m_fullscreen(info.fullscreen), m_eventManager(&eventManager)
+Window::Window(const WindowInfo& info, EventManager& event_manager) :
+    width_(info.width), height_(info.height), fullscreen_(info.fullscreen), event_manager_(&event_manager)
 {
   if (!SDL_Init(SDL_INIT_VIDEO))
   {
     throw std::runtime_error(std::string("Failed to initialize SDL: ") + SDL_GetError());
   }
 
-  if (m_width == 0 || m_height == 0)
+  if (width_ == 0 || height_ == 0)
   {
     throw std::runtime_error("Invalid window size");
   }
 
   SDL_WindowFlags flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_VULKAN;
-  if (m_fullscreen)
+  if (fullscreen_)
   {
     flags |= SDL_WINDOW_FULLSCREEN;
   }
 
-  m_window = SDL_CreateWindow(info.title, static_cast<int>(m_width), static_cast<int>(m_height), flags);
-  if (m_window == nullptr)
+  window_ = SDL_CreateWindow(info.title, static_cast<int>(width_), static_cast<int>(height_), flags);
+  if (window_ == nullptr)
   {
     throw std::runtime_error(std::string("Failed to create window: ") + SDL_GetError());
   }
@@ -33,32 +33,32 @@ Window::Window(const WindowInfo& info, EventManager& eventManager) :
 
 Window::~Window()
 {
-  SDL_DestroyWindow(m_window);
+  SDL_DestroyWindow(window_);
   SDL_Quit();
 }
 
-SDL_Window* Window::get() const { return m_window; }
+SDL_Window* Window::get() const { return window_; }
 
-bool Window::shouldQuit() const { return m_quit; }
+bool Window::ShouldQuit() const { return quit_; }
 
-void Window::quit() { m_quit = true; }
+void Window::quit() { quit_ = true; }
 
 void Window::update()
 {
-  for (const auto& event: m_eventManager->getEvents())
+  for (const auto& event: event_manager_->getEvents())
   {
-    if (event.type == EventType::Quit)
+    if (event.type == EventType::kQuit)
     {
-      m_quit = true;
+      quit_ = true;
     }
   }
 }
 
-std::pair<uint32_t, uint32_t> Window::getWindowSize() const
+std::pair<uint32_t, uint32_t> Window::GetWindowSize() const
 {
   int width{};
   int height{};
-  SDL_GetWindowSizeInPixels(m_window, &width, &height);
+  SDL_GetWindowSizeInPixels(window_, &width, &height);
 
   return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 }

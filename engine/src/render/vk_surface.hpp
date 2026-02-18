@@ -13,10 +13,10 @@ public:
   VulkanSurface &operator=(VulkanSurface &&) = delete;
   ~VulkanSurface();
 
-  [[nodiscard]] vk::SurfaceKHR get() const { return m_surface; }
+  [[nodiscard]] vk::SurfaceKHR get() const { return surface_; }
 
 private:
-  vk::SurfaceKHR m_surface;
+  vk::SurfaceKHR surface_;
 
-  vk::Instance m_instance; // for deconstructing
+  vk::Instance instance_; // for deconstructing
 };

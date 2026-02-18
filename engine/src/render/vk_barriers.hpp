@@ -18,7 +18,7 @@
   inline E& operator!=(E& lhs, E rhs) { return lhs = lhs | rhs; }     \
   inline E& operator&=(E& lhs, E rhs) { return lhs = lhs & rhs; }
 
-namespace VulkanBarriers
+namespace vulkan_barriers
 {
   // https://anki3d.org/simplified-pipeline-barriers/
   using UsageType = uint16_t;
@@ -75,13 +75,14 @@ namespace VulkanBarriers
     vk::AccessFlags2 access;
   };
 
-  void bufferBarrier(vk::CommandBuffer cmd, const BufferInfo& buffer, BufferUsageBit oldUsage, BufferUsageBit newUsage);
+  void BufferBarrier(vk::CommandBuffer cmd, const BufferInfo& buffer, BufferUsageBit old_usage,
+                     BufferUsageBit new_usage);
 
-  void bufferBarrierRelease(vk::CommandBuffer cmd, const BufferInfo& buffer, BufferUsageBit oldUsage,
-                            uint32_t srcFamily, uint32_t dstFamily);
+  void BufferBarrierRelease(vk::CommandBuffer cmd, const BufferInfo& buffer, BufferUsageBit old_usage,
+                            uint32_t src_family, uint32_t dst_family);
 
-  void bufferBarrierAcquire(vk::CommandBuffer cmd, const BufferInfo& buffer, BufferUsageBit newUsage,
-                            uint32_t srcFamily, uint32_t dstFamily);
+  void BufferBarrierAcquire(vk::CommandBuffer cmd, const BufferInfo& buffer, BufferUsageBit new_usage,
+                            uint32_t src_family, uint32_t dst_family);
 
-  StageAccess bufferUsage(BufferUsageBit usage);
-} // namespace VulkanBarriers
+  StageAccess BufferUsage(BufferUsageBit usage);
+} // namespace vulkan_barriers

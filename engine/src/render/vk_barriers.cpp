@@ -2,13 +2,13 @@
 
 #include "vulkan/vulkan.hpp"
 
-void VulkanBarriers::bufferBarrier(vk::CommandBuffer cmd, const BufferInfo& buffer, BufferUsageBit oldUsage,
-                                   BufferUsageBit newUsage)
+void vulkan_barriers::BufferBarrier(vk::CommandBuffer cmd, const BufferInfo& buffer, BufferUsageBit old_usage,
+                                    BufferUsageBit new_usage)
 {
   vk::BufferMemoryBarrier2 barrier{};
 
-  const auto source = bufferUsage(oldUsage);
-  const auto destination = bufferUsage(newUsage);
+  const auto source = BufferUsage(old_usage);
+  const auto destination = BufferUsage(new_usage);
 
   barrier.srcStageMask = source.stage, barrier.srcAccessMask = source.access, barrier.dstStageMask = destination.stage,
   barrier.dstAccessMask = destination.access, barrier.buffer = buffer.buffer, barrier.offset = buffer.offset,
@@ -19,43 +19,43 @@ void VulkanBarriers::bufferBarrier(vk::CommandBuffer cmd, const BufferInfo& buff
   cmd.pipelineBarrier2(dependency);
 }
 
-void VulkanBarriers::bufferBarrierRelease(vk::CommandBuffer cmd, const BufferInfo& buffer, BufferUsageBit oldUsage,
-                                          uint32_t srcFamily, uint32_t dstFamily)
+void vulkan_barriers::BufferBarrierRelease(vk::CommandBuffer cmd, const BufferInfo& buffer, BufferUsageBit old_usage,
+                                           uint32_t src_family, uint32_t dst_family)
 {
   vk::BufferMemoryBarrier2 barrier{};
 
-  const auto source = bufferUsage(oldUsage);
+  const auto source = BufferUsage(old_usage);
 
   barrier.srcStageMask = source.stage, barrier.srcAccessMask = source.access,
   barrier.dstStageMask = vk::PipelineStageFlagBits2::eNone, barrier.dstAccessMask = vk::AccessFlagBits2::eNone,
   barrier.buffer = buffer.buffer, barrier.offset = buffer.offset, barrier.size = buffer.size;
-  barrier.srcQueueFamilyIndex = srcFamily;
-  barrier.dstQueueFamilyIndex = dstFamily;
+  barrier.srcQueueFamilyIndex = src_family;
+  barrier.dstQueueFamilyIndex = dst_family;
 
   const vk::DependencyInfo dependency{.bufferMemoryBarrierCount = 1, .pBufferMemoryBarriers = &barrier};
 
   cmd.pipelineBarrier2(dependency);
 }
 
-void VulkanBarriers::bufferBarrierAcquire(vk::CommandBuffer cmd, const BufferInfo& buffer, BufferUsageBit newUsage,
-                                          uint32_t srcFamily, uint32_t dstFamily)
+void vulkan_barriers::BufferBarrierAcquire(vk::CommandBuffer cmd, const BufferInfo& buffer, BufferUsageBit new_usage,
+                                           uint32_t src_family, uint32_t dst_family)
 {
   vk::BufferMemoryBarrier2 barrier{};
 
-  const auto destination = bufferUsage(newUsage);
+  const auto destination = BufferUsage(new_usage);
 
   barrier.srcStageMask = vk::PipelineStageFlagBits2::eNone, barrier.srcAccessMask = vk::AccessFlagBits2::eNone,
   barrier.dstStageMask = destination.stage, barrier.dstAccessMask = destination.access, barrier.buffer = buffer.buffer,
   barrier.offset = buffer.offset, barrier.size = buffer.size;
-  barrier.srcQueueFamilyIndex = srcFamily;
-  barrier.dstQueueFamilyIndex = dstFamily;
+  barrier.srcQueueFamilyIndex = src_family;
+  barrier.dstQueueFamilyIndex = dst_family;
 
   const vk::DependencyInfo dependency{.bufferMemoryBarrierCount = 1, .pBufferMemoryBarriers = &barrier};
 
   cmd.pipelineBarrier2(dependency);
 }
 
-VulkanBarriers::StageAccess VulkanBarriers::bufferUsage(BufferUsageBit usage)
+vulkan_barriers::StageAccess vulkan_barriers::BufferUsage(BufferUsageBit usage)
 {
   vk::PipelineStageFlags2 stage{};
   vk::AccessFlags2 access{};

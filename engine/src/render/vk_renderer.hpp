@@ -27,11 +27,11 @@ class VulkanDevice;
 
 struct MeshInfo
 {
-  glm::vec3 bmin;
-  uint32_t indexCount;
-  glm::vec3 bmax;
-  uint32_t firstIndex;
-  int32_t vertexOffset;
+  glm::vec3 b_min;
+  uint32_t index_count;
+  glm::vec3 b_max;
+  uint32_t first_index;
+  int32_t vertex_offset;
   std::array<float, 3> pad;
 };
 
@@ -56,7 +56,7 @@ struct Vertex
 struct RenderObject
 {
   glm::mat4 model;
-  uint32_t meshID;
+  uint32_t mesh_id;
   std::array<int32_t, 3> pad;
 };
 
@@ -69,7 +69,7 @@ struct DebugLineVertex
 class VulkanRenderer
 {
 public:
-  explicit VulkanRenderer(Window *window, ResourceManager &resourceManager, EventManager &eventManager);
+  explicit VulkanRenderer(Window *window, ResourceManager &resource_manager, EventManager &event_manager);
   VulkanRenderer(const VulkanRenderer &) = delete;
   VulkanRenderer(VulkanRenderer &&) = delete;
   VulkanRenderer &operator=(const VulkanRenderer &) = delete;
@@ -78,77 +78,77 @@ public:
 
   void run(glm::mat4 world, float fov);
 
-  uint32_t addMesh(const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices, uint32_t firstIndex,
-                   int32_t vertexOffset, const glm::vec3 &bmin, const glm::vec3 &bmax);
+  uint32_t AddMesh(const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices, uint32_t first_index,
+                   int32_t vertex_offset, const glm::vec3 &b_min, const glm::vec3 &b_max);
 
-  void upload();
+  void Upload();
 
-  void renderMesh(glm::mat4 model, uint32_t meshID);
-  void clearMeshes();
+  void RenderMesh(glm::mat4 model, uint32_t mesh_id);
+  void ClearMeshes();
 
-  void renderLine(const glm::vec3 &pointA, const glm::vec3 &pointB, const glm::vec3 &color);
-  void clearLines();
-  [[nodiscard]] int32_t getVertexCount() const;
-  [[nodiscard]] uint32_t getIndexCount() const;
+  void RenderLine(const glm::vec3 &point_a, const glm::vec3 &point_b, const glm::vec3 &color);
+  void ClearLines();
+  [[nodiscard]] int32_t GetVertexCount() const;
+  [[nodiscard]] uint32_t GetIndexCount() const;
 
 private:
-  [[nodiscard]] std::optional<uint32_t> beginFrame() const;
-  void endFrame(uint32_t imageIndex);
+  [[nodiscard]] std::optional<uint32_t> BeginFrame() const;
+  void EndFrame(uint32_t image_index);
 
-  void recreateSwapchain();
-  void recreateDepthImage(uint32_t width, uint32_t height) const;
+  void RecreateSwapChain();
+  void RecreateDepthImage(uint32_t width, uint32_t height) const;
 
-  static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+  static constexpr uint32_t max_frames_in_flight_ = 2;
 
-  std::unique_ptr<VulkanInstance> m_instance;
-  std::unique_ptr<VulkanSurface> m_surface;
-  std::unique_ptr<VulkanDevice> m_device;
-  std::unique_ptr<VulkanAllocator> m_allocator;
+  std::unique_ptr<VulkanInstance> instance_;
+  std::unique_ptr<VulkanSurface> surface_;
+  std::unique_ptr<VulkanDevice> device_;
+  std::unique_ptr<VulkanAllocator> allocator_;
 
-  std::unique_ptr<VulkanSwapChain> m_swapChain;
+  std::unique_ptr<VulkanSwapChain> swap_chain_;
 
-  std::unique_ptr<VulkanCommandPool> m_graphicsPool;
-  std::unique_ptr<VulkanCommandPool> m_transferPool;
-  std::unique_ptr<VulkanCommandPool> m_computePool;
+  std::unique_ptr<VulkanCommandPool> graphics_pool_;
+  std::unique_ptr<VulkanCommandPool> transfer_pool_;
+  std::unique_ptr<VulkanCommandPool> compute_pool_;
 
-  std::unique_ptr<VulkanShader> m_vertexShader;
-  std::unique_ptr<VulkanShader> m_fragmentShader;
-  std::unique_ptr<VulkanShader> m_computeShader;
+  std::unique_ptr<VulkanShader> vertex_shader_;
+  std::unique_ptr<VulkanShader> fragment_shader_;
+  std::unique_ptr<VulkanShader> compute_shader_;
 
-  std::unique_ptr<VulkanShader> m_debugLineVert;
-  std::unique_ptr<VulkanShader> m_debugLineFrag;
+  std::unique_ptr<VulkanShader> debug_line_vert_;
+  std::unique_ptr<VulkanShader> debug_line_frag_;
 
-  std::unique_ptr<VulkanDescriptorPool> m_descriptorPool;
+  std::unique_ptr<VulkanDescriptorPool> descriptor_pool_;
 
-  std::unique_ptr<VulkanDescriptorSetLayout> m_staticDescriptorSetLayout;
-  std::unique_ptr<VulkanDescriptorSetLayout> m_frameDescriptorSetLayout;
-  vk::DescriptorSet m_staticDescriptorSet;
+  std::unique_ptr<VulkanDescriptorSetLayout> static_descriptor_set_layout_;
+  std::unique_ptr<VulkanDescriptorSetLayout> frame_descriptor_set_layout_;
+  vk::DescriptorSet static_descriptor_set_;
 
-  std::unique_ptr<VulkanPipelineLayout> m_pipelineLayout;
-  std::unique_ptr<VulkanPipeline> m_pipeline;
-  std::unique_ptr<VulkanPipelineLayout> m_debugLinePipelineLayout;
-  std::unique_ptr<VulkanPipeline> m_debugLinePipeline;
-  std::unique_ptr<VulkanPipelineLayout> m_compPipelineLayout;
-  std::unique_ptr<VulkanPipeline> m_compPipeline;
+  std::unique_ptr<VulkanPipelineLayout> pipeline_layout_;
+  std::unique_ptr<VulkanPipeline> pipeline_;
+  std::unique_ptr<VulkanPipelineLayout> debug_line_pipeline_layout_;
+  std::unique_ptr<VulkanPipeline> debug_line_pipeline_;
+  std::unique_ptr<VulkanPipelineLayout> comp_pipeline_layout_;
+  std::unique_ptr<VulkanPipeline> comp_pipeline_;
 
   // https://docs.vulkan.org/guide/latest/swapchain_semaphore_reuse.html
-  std::vector<std::unique_ptr<VulkanFrame>> m_frames;
-  std::vector<vk::UniqueSemaphore> m_submitSemaphores;
+  std::vector<std::unique_ptr<VulkanFrame>> frames_;
+  std::vector<vk::UniqueSemaphore> submit_semaphores_;
 
-  uint32_t m_currentFrame = 0;
-  float m_aspectRatio = 1.0F;
+  uint32_t current_frame_ = 0;
+  float aspect_ratio_ = 1.0F;
 
-  std::vector<RenderObject> m_renderObjects;
+  std::vector<RenderObject> render_objects_;
 
-  std::vector<DebugLineVertex> m_debugLineVertices;
+  std::vector<DebugLineVertex> debug_line_vertices_;
 
-  std::vector<Vertex> m_vertices;
-  std::vector<uint32_t> m_indices;
-  std::vector<MeshInfo> m_meshInfos;
-  std::unique_ptr<VulkanBuffer> m_vertexBuffer;
-  std::unique_ptr<VulkanBuffer> m_indexBuffer;
-  std::unique_ptr<VulkanBuffer> m_meshInfoBuffer;
+  std::vector<Vertex> vertices_;
+  std::vector<uint32_t> indices_;
+  std::vector<MeshInfo> mesh_infos_;
+  std::unique_ptr<VulkanBuffer> vertex_buffer_;
+  std::unique_ptr<VulkanBuffer> index_buffer_;
+  std::unique_ptr<VulkanBuffer> mesh_info_buffer_;
 
-  Window *m_window = nullptr;
-  EventManager *m_eventManager = nullptr;
+  Window *window_ = nullptr;
+  EventManager *event_manager_ = nullptr;
 };

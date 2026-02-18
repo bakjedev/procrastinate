@@ -14,57 +14,57 @@
 
 Engine::Engine()
 {
-  Util::println("procrastinating");
+  util::println("procrastinating");
 
   constexpr uint32_t width = 1920;
   constexpr uint32_t height = 1080;
 
-  m_eventManager = std::make_unique<EventManager>();
-  m_window = std::make_unique<Window>(
-      WindowInfo{.width = width, .height = height, .fullscreen = false, .title = "meowl"}, *m_eventManager);
-  m_input = std::make_unique<Input>(*m_eventManager);
-  m_resourceManager = std::make_unique<ResourceManager>();
-  ImGuiSystem::initialize(m_window.get());
-  m_renderer = std::make_unique<VulkanRenderer>(m_window.get(), *m_resourceManager, *m_eventManager);
-  m_scene = std::make_unique<Scene>();
+  event_manager_ = std::make_unique<EventManager>();
+  window_ = std::make_unique<Window>(
+      WindowInfo{.width = width, .height = height, .fullscreen = false, .title = "meowl"}, *event_manager_);
+  input_ = std::make_unique<Input>(*event_manager_);
+  resource_manager_ = std::make_unique<ResourceManager>();
+  im_gui_system::Initialize(window_.get());
+  renderer_ = std::make_unique<VulkanRenderer>(window_.get(), *resource_manager_, *event_manager_);
+  scene_ = std::make_unique<Scene>();
 
-  Util::println("Engine initialized");
+  util::println("Engine initialized");
 }
 
-Engine::~Engine() { Util::println("Engine destroyed"); }
+Engine::~Engine() { util::println("Engine destroyed"); }
 
-EventManager& Engine::getEventManager() const
+EventManager& Engine::GetEventManager() const
 {
-  assert(m_eventManager && "No event manager!!");
-  return *m_eventManager;
+  assert(event_manager_ && "No event manager!!");
+  return *event_manager_;
 }
 
-Window& Engine::getWindow() const
+Window& Engine::GetWindow() const
 {
-  assert(m_window && "No window!");
-  return *m_window;
+  assert(window_ && "No window!");
+  return *window_;
 }
 
-Input& Engine::getInput() const
+Input& Engine::GetInput() const
 {
-  assert(m_input && "No input!");
-  return *m_input;
+  assert(input_ && "No input!");
+  return *input_;
 }
 
-ResourceManager& Engine::getResourceManager() const
+ResourceManager& Engine::GetResourceManager() const
 {
-  assert(m_resourceManager && "No resource manager!");
-  return *m_resourceManager;
+  assert(resource_manager_ && "No resource manager!");
+  return *resource_manager_;
 }
 
-VulkanRenderer& Engine::getRenderer() const
+VulkanRenderer& Engine::GetRenderer() const
 {
-  assert(m_renderer && "No renderer!");
-  return *m_renderer;
+  assert(renderer_ && "No renderer!");
+  return *renderer_;
 }
 
-Scene& Engine::getScene() const
+Scene& Engine::GetScene() const
 {
-  assert(m_scene && "No scene!");
-  return *m_scene;
+  assert(scene_ && "No scene!");
+  return *scene_;
 }

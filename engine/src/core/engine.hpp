@@ -32,20 +32,20 @@ public:
   template<Application App>
   void run(App& app);
 
-  [[nodiscard]] EventManager& getEventManager() const;
-  [[nodiscard]] Window& getWindow() const;
-  [[nodiscard]] Input& getInput() const;
-  [[nodiscard]] ResourceManager& getResourceManager() const;
-  [[nodiscard]] VulkanRenderer& getRenderer() const;
-  [[nodiscard]] Scene& getScene() const;
+  [[nodiscard]] EventManager& GetEventManager() const;
+  [[nodiscard]] Window& GetWindow() const;
+  [[nodiscard]] Input& GetInput() const;
+  [[nodiscard]] ResourceManager& GetResourceManager() const;
+  [[nodiscard]] VulkanRenderer& GetRenderer() const;
+  [[nodiscard]] Scene& GetScene() const;
 
 private:
-  std::unique_ptr<EventManager> m_eventManager;
-  std::unique_ptr<Window> m_window;
-  std::unique_ptr<Input> m_input;
-  std::unique_ptr<ResourceManager> m_resourceManager;
-  std::unique_ptr<VulkanRenderer> m_renderer;
-  std::unique_ptr<Scene> m_scene;
+  std::unique_ptr<EventManager> event_manager_;
+  std::unique_ptr<Window> window_;
+  std::unique_ptr<Input> input_;
+  std::unique_ptr<ResourceManager> resource_manager_;
+  std::unique_ptr<VulkanRenderer> renderer_;
+  std::unique_ptr<Scene> scene_;
 };
 
 #include "engine.inl" // IWYU pragma: keep

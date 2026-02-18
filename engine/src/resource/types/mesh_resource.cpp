@@ -50,8 +50,8 @@ MeshResource MeshResourceLoader::operator()(const std::string &path, VulkanRende
   }
 
   res.renderer_id =
-      renderer.addMesh(vertices, indices, renderer.getIndexCount(), renderer.getVertexCount(), bmin, bmax);
-  renderer.upload();
+      renderer.AddMesh(vertices, indices, renderer.GetIndexCount(), renderer.GetVertexCount(), bmin, bmax);
+  renderer.Upload();
 
   return res;
 }

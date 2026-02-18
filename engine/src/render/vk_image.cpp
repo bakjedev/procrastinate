@@ -3,35 +3,35 @@
 #include "util/vk_check.hpp"
 
 VulkanImage::VulkanImage(const ImageInfo &info, VmaAllocator allocator) :
-    m_format(info.format), m_width(info.width), m_height(info.height), m_allocator(allocator)
+    format_(info.format), width_(info.width), height_(info.height), allocator_(allocator)
 {
   VmaAllocatorInfo allocatorInfo;
-  vmaGetAllocatorInfo(m_allocator, &allocatorInfo);
-  m_device = allocatorInfo.device;
+  vmaGetAllocatorInfo(allocator_, &allocatorInfo);
+  device_ = allocatorInfo.device;
 
-  create(info);
-  createView(info.aspectFlags);
+  Create(info);
+  CreateView(info.aspect_flags);
 }
 
-VulkanImage::~VulkanImage() { destroy(); }
+VulkanImage::~VulkanImage() { Destroy(); }
 
-void VulkanImage::transitionLayout(const vk::CommandBuffer cmd, const vk::ImageLayout oldLayout,
-                                   const vk::ImageLayout newLayout) const
+void VulkanImage::TransitionLayout(const vk::CommandBuffer cmd, const vk::ImageLayout old_layout,
+                                   const vk::ImageLayout new_layout) const
 {
-  transitionImageLayout(m_image, cmd, oldLayout, newLayout);
+  TransitionImageLayout(image_, cmd, old_layout, new_layout);
 }
 
 // static
-void VulkanImage::transitionImageLayout(const vk::Image image, const vk::CommandBuffer cmd,
-                                        const vk::ImageLayout oldLayout, const vk::ImageLayout newLayout)
+void VulkanImage::TransitionImageLayout(const vk::Image image, const vk::CommandBuffer cmd,
+                                        const vk::ImageLayout old_layout, const vk::ImageLayout new_layout)
 {
-  const vk::ImageAspectFlags aspectMask = (newLayout == vk::ImageLayout::eDepthAttachmentOptimal)
+  const vk::ImageAspectFlags aspectMask = (new_layout == vk::ImageLayout::eDepthAttachmentOptimal)
                                               ? vk::ImageAspectFlagBits::eDepth
                                               : vk::ImageAspectFlagBits::eColor;
 
   vk::ImageMemoryBarrier2 barrier{
-      .oldLayout = oldLayout,
-      .newLayout = newLayout,
+      .oldLayout = old_layout,
+      .newLayout = new_layout,
       .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
       .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
       .image = image,
@@ -41,56 +41,56 @@ void VulkanImage::transitionImageLayout(const vk::Image image, const vk::Command
                                                     .baseArrayLayer = 0,
                                                     .layerCount = VK_REMAINING_ARRAY_LAYERS}};
 
-  if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal)
+  if (old_layout == vk::ImageLayout::eUndefined && new_layout == vk::ImageLayout::eTransferDstOptimal)
   {
     barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
     barrier.dstAccessMask = vk::AccessFlagBits2::eTransferWrite;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eTransfer;
-  } else if (oldLayout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal)
+  } else if (old_layout == vk::ImageLayout::eTransferDstOptimal && new_layout == vk::ImageLayout::eShaderReadOnlyOptimal)
   {
     barrier.srcAccessMask = vk::AccessFlagBits2::eTransferWrite;
     barrier.dstAccessMask = vk::AccessFlagBits2::eShaderRead;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eFragmentShader;
-  } else if (oldLayout == vk::ImageLayout::eColorAttachmentOptimal && newLayout == vk::ImageLayout::eTransferSrcOptimal)
+  } else if (old_layout == vk::ImageLayout::eColorAttachmentOptimal && new_layout == vk::ImageLayout::eTransferSrcOptimal)
   {
     barrier.srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite;
     barrier.dstAccessMask = vk::AccessFlagBits2::eTransferRead;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eTransfer;
-  } else if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal)
+  } else if (old_layout == vk::ImageLayout::eUndefined && new_layout == vk::ImageLayout::eDepthStencilAttachmentOptimal)
   {
     barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
     barrier.dstAccessMask =
         vk::AccessFlagBits2::eDepthStencilAttachmentRead | vk::AccessFlagBits2::eDepthStencilAttachmentWrite;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests;
-  } else if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eColorAttachmentOptimal)
+  } else if (old_layout == vk::ImageLayout::eUndefined && new_layout == vk::ImageLayout::eColorAttachmentOptimal)
   {
     barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
     barrier.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
-  } else if (oldLayout == vk::ImageLayout::eColorAttachmentOptimal && newLayout == vk::ImageLayout::ePresentSrcKHR)
+  } else if (old_layout == vk::ImageLayout::eColorAttachmentOptimal && new_layout == vk::ImageLayout::ePresentSrcKHR)
   {
     barrier.srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite;
     barrier.dstAccessMask = vk::AccessFlagBits2::eNone;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe;
-  } else if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::ePresentSrcKHR)
+  } else if (old_layout == vk::ImageLayout::eUndefined && new_layout == vk::ImageLayout::ePresentSrcKHR)
   {
     barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
     barrier.dstAccessMask = vk::AccessFlagBits2::eNone;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eNone;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe;
-  } else if (oldLayout == vk::ImageLayout::ePresentSrcKHR && newLayout == vk::ImageLayout::eTransferDstOptimal)
+  } else if (old_layout == vk::ImageLayout::ePresentSrcKHR && new_layout == vk::ImageLayout::eTransferDstOptimal)
   {
     barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
     barrier.dstAccessMask = vk::AccessFlagBits2::eTransferWrite;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eTransfer;
-  } else if (oldLayout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::ePresentSrcKHR)
+  } else if (old_layout == vk::ImageLayout::eTransferDstOptimal && new_layout == vk::ImageLayout::ePresentSrcKHR)
   {
     barrier.srcAccessMask = vk::AccessFlagBits2::eTransferWrite;
     barrier.dstAccessMask = vk::AccessFlagBits2::eNone;
@@ -106,22 +106,22 @@ void VulkanImage::transitionImageLayout(const vk::Image image, const vk::Command
   cmd.pipelineBarrier2(depInfo);
 }
 
-void VulkanImage::destroy()
+void VulkanImage::Destroy()
 {
-  if (m_imageView)
+  if (image_view_)
   {
-    m_device.destroyImageView(m_imageView);
-    m_imageView = nullptr;
+    device_.destroyImageView(image_view_);
+    image_view_ = nullptr;
   }
-  if (m_image)
+  if (image_)
   {
-    vmaDestroyImage(m_allocator, static_cast<VkImage>(m_image), m_allocation);
-    m_image = nullptr;
-    m_allocation = VK_NULL_HANDLE;
+    vmaDestroyImage(allocator_, static_cast<VkImage>(image_), allocation_);
+    image_ = nullptr;
+    allocation_ = VK_NULL_HANDLE;
   }
 }
 
-void VulkanImage::create(const ImageInfo &info)
+void VulkanImage::Create(const ImageInfo &info)
 {
   vk::ImageCreateInfo imageInfo{.imageType = vk::ImageType::e2D,
                                 .format = info.format,
@@ -141,18 +141,18 @@ void VulkanImage::create(const ImageInfo &info)
   const auto rawImageInfo = static_cast<VkImageCreateInfo>(imageInfo);
 
   VkImage tempImage = VK_NULL_HANDLE;
-  VK_CHECK(vmaCreateImage(m_allocator, &rawImageInfo, &allocInfo, &tempImage, &m_allocation, nullptr));
-  m_image = tempImage;
+  VK_CHECK(vmaCreateImage(allocator_, &rawImageInfo, &allocInfo, &tempImage, &allocation_, nullptr));
+  image_ = tempImage;
 }
 
-void VulkanImage::createView(const vk::ImageAspectFlags aspectFlags)
+void VulkanImage::CreateView(const vk::ImageAspectFlags aspect_flags)
 {
   const vk::ImageViewCreateInfo viewInfo{
-      .image = m_image,
+      .image = image_,
       .viewType = vk::ImageViewType::e2D,
-      .format = m_format,
+      .format = format_,
       .subresourceRange = vk::ImageSubresourceRange{
-          .aspectMask = aspectFlags, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1}};
+          .aspectMask = aspect_flags, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1}};
 
-  m_imageView = m_device.createImageView(viewInfo);
+  image_view_ = device_.createImageView(viewInfo);
 }

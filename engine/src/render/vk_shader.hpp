@@ -13,10 +13,10 @@ public:
   VulkanShader &operator=(VulkanShader &&) = delete;
   ~VulkanShader();
 
-  [[nodiscard]] vk::ShaderModule get() const { return m_shaderModule; }
+  [[nodiscard]] vk::ShaderModule get() const { return shader_module_; }
 
 private:
-  vk::ShaderModule m_shaderModule;
+  vk::ShaderModule shader_module_;
 
-  vk::Device m_device;
+  vk::Device device_;
 };

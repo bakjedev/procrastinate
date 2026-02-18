@@ -3,7 +3,7 @@
 
 struct CommandPoolInfo
 {
-  uint32_t queueFamilyIndex{};
+  uint32_t queue_family_index{};
   vk::CommandPoolCreateFlags flags;
 };
 
@@ -17,14 +17,14 @@ public:
   VulkanCommandPool& operator=(VulkanCommandPool&&) = delete;
   ~VulkanCommandPool();
 
-  [[nodiscard]] vk::CommandPool get() const { return m_commandPool; }
+  [[nodiscard]] vk::CommandPool get() const { return command_pool_; }
   [[nodiscard]] vk::CommandBuffer allocate(vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const;
-  void free(vk::CommandBuffer commandBuffer) const;
+  void free(vk::CommandBuffer command_buffer) const;
   void reset() const;
 
 private:
-  vk::Device m_device;
-  vk::CommandPool m_commandPool;
+  vk::Device device_;
+  vk::CommandPool command_pool_;
 
   void create(const CommandPoolInfo& info);
   void destroy() const;

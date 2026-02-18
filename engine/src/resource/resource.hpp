@@ -19,9 +19,9 @@ struct ResourceHandleHash
 {
   std::size_t operator()(const ResourceHandle<T>& handle) const
   {
-    constexpr std::size_t generationBits = 32;
+    constexpr std::size_t generation_bits = 32;
 
-    return std::hash<uint64_t>{}((static_cast<uint64_t>(handle.index) << generationBits) | handle.generation);
+    return std::hash<uint64_t>{}((static_cast<uint64_t>(handle.index) << generation_bits) | handle.generation);
   }
 };
 
@@ -34,34 +34,34 @@ class ResourceRef
 public:
   ResourceRef() = default;
 
-  ResourceRef(const ResourceRef& other) : m_handle(other.m_handle), m_storage(other.m_storage)
+  ResourceRef(const ResourceRef& other) : handle_(other.handle_), storage_(other.storage_)
   {
-    if (m_storage)
+    if (storage_)
     {
-      m_storage->acquire(m_handle);
+      storage_->acquire(handle_);
     }
   }
 
-  ResourceRef(ResourceRef&& other) noexcept : m_handle(other.m_handle), m_storage(other.m_storage)
+  ResourceRef(ResourceRef&& other) noexcept : handle_(other.handle_), storage_(other.storage_)
   {
-    other.m_storage = nullptr;
+    other.storage_ = nullptr;
   }
 
   ResourceRef& operator=(const ResourceRef& other)
   {
     if (this != &other)
     {
-      if (m_storage)
+      if (storage_)
       {
-        m_storage->destroy(m_handle);
+        storage_->destroy(handle_);
       }
 
-      m_handle = other.m_handle;
-      m_storage = other.m_storage;
+      handle_ = other.handle_;
+      storage_ = other.storage_;
 
-      if (m_storage)
+      if (storage_)
       {
-        m_storage->acquire(m_handle);
+        storage_->acquire(handle_);
       }
     }
     return *this;
@@ -71,29 +71,29 @@ public:
   {
     if (this != &other)
     {
-      if (m_storage)
+      if (storage_)
       {
-        m_storage->destroy(m_handle);
+        storage_->destroy(handle_);
       }
 
-      m_handle = other.m_handle;
-      m_storage = other.m_storage;
+      handle_ = other.handle_;
+      storage_ = other.storage_;
 
-      other.m_storage = nullptr;
+      other.storage_ = nullptr;
     }
     return *this;
   }
 
   ~ResourceRef()
   {
-    if (m_storage)
+    if (storage_)
     {
-      m_storage->destroy(m_handle);
+      storage_->destroy(handle_);
     }
   }
 
   // make it act like a pointer to the resource
-  T* get() { return m_storage ? m_storage->get(m_handle) : nullptr; }
+  T* get() { return storage_ ? storage_->get(handle_) : nullptr; }
   T* operator->() { return get(); }
   T& operator*()
   {
@@ -102,7 +102,7 @@ public:
     return *ptr;
   }
 
-  const T* get() const { return m_storage ? m_storage->get(m_handle) : nullptr; }
+  const T* get() const { return storage_ ? storage_->get(handle_) : nullptr; }
   const T* operator->() const { return get(); }
   const T& operator*() const
   {
@@ -111,15 +111,15 @@ public:
     return *ptr;
   }
 
-  [[nodiscard]] bool valid() const { return m_storage && m_storage->valid(m_handle); }
+  [[nodiscard]] bool valid() const { return storage_ && storage_->valid(handle_); }
 
 private:
   friend class ResourceStorage<T>;
 
-  ResourceRef(ResourceHandle<T> handle, ResourceStorage<T>* storage) : m_handle(handle), m_storage(storage) {}
+  ResourceRef(ResourceHandle<T> handle, ResourceStorage<T>* storage) : handle_(handle), storage_(storage) {}
 
-  ResourceHandle<T> m_handle;
-  ResourceStorage<T>* m_storage;
+  ResourceHandle<T> handle_;
+  ResourceStorage<T>* storage_;
 };
 
 // concept for valid loaders. needs () operator that takes the right args and
@@ -139,41 +139,41 @@ private:
   struct Metadata
   {
     uint32_t generation;
-    uint32_t refCount;
+    uint32_t ref_count;
   };
 
-  std::vector<T> m_resources;
-  std::vector<Metadata> m_metadata;
-  std::vector<uint32_t> m_free;
+  std::vector<T> resources_;
+  std::vector<Metadata> metadata_;
+  std::vector<uint32_t> free_;
 
-  std::unordered_map<std::string, ResourceHandle<T>> m_keyToHandle;
-  std::unordered_map<ResourceHandle<T>, std::string, ResourceHandleHash<T>> m_handleToKey;
+  std::unordered_map<std::string, ResourceHandle<T>> key_to_handle_;
+  std::unordered_map<ResourceHandle<T>, std::string, ResourceHandleHash<T>> handle_to_key_;
 
   void destroy(const Handle& handle)
   {
     uint32_t index = handle.index;
-    if (index >= m_metadata.size())
+    if (index >= metadata_.size())
     {
       return;
     }
 
-    auto& metadata = m_metadata[handle.index];
+    auto& metadata = metadata_[handle.index];
 
     if (metadata.generation != handle.generation)
     {
       return;
     }
 
-    if (--metadata.refCount == 0)
+    if (--metadata.ref_count == 0)
     {
-      auto iter = m_handleToKey.find(handle);
-      if (iter != m_handleToKey.end())
+      auto iter = handle_to_key_.find(handle);
+      if (iter != handle_to_key_.end())
       {
-        m_keyToHandle.erase(iter->second);
-        m_handleToKey.erase(iter);
+        key_to_handle_.erase(iter->second);
+        handle_to_key_.erase(iter);
       }
 
-      m_free.push_back(handle.index);
+      free_.push_back(handle.index);
 
       ++metadata.generation;
       // could destroy resource here but why not leave it, gets destroyed when
@@ -185,7 +185,7 @@ private:
   {
     if (valid(handle))
     {
-      ++m_metadata[handle.index].refCount;
+      ++metadata_[handle.index].ref_count;
     }
   }
 
@@ -193,7 +193,7 @@ private:
   {
     if (valid(handle))
     {
-      return &m_resources[handle.index];
+      return &resources_[handle.index];
     }
     return nullptr;
   }
@@ -202,7 +202,7 @@ private:
   {
     if (valid(handle))
     {
-      return &m_resources[handle.index];
+      return &resources_[handle.index];
     }
     return nullptr;
   }
@@ -212,18 +212,18 @@ public:
     requires LoaderFor<Loader, T, Args...>
   Ref create(const std::string& key, Loader&& loader, Args&&... args)
   {
-    auto iter = m_keyToHandle.find(key);
-    if (iter != m_keyToHandle.end())
+    auto iter = key_to_handle_.find(key);
+    if (iter != key_to_handle_.end())
     {
       const Handle& cached = iter->second;
       if (valid(cached))
       {
-        ++m_metadata[cached.index].refCount;
+        ++metadata_[cached.index].ref_count;
         return Ref{cached, this};
       } else
       {
-        m_keyToHandle.erase(iter);
-        m_handleToKey.erase(cached);
+        key_to_handle_.erase(iter);
+        handle_to_key_.erase(cached);
       }
     }
 
@@ -232,43 +232,43 @@ public:
 
     uint32_t index = 0;
 
-    if (!m_free.empty())
+    if (!free_.empty())
     {
-      index = m_free.back();
-      m_free.pop_back();
+      index = free_.back();
+      free_.pop_back();
 
-      m_metadata[index].refCount = 1;
+      metadata_[index].ref_count = 1;
 
-      m_resources[index] = std::move(resource);
+      resources_[index] = std::move(resource);
     } else
     {
-      index = m_resources.size();
+      index = resources_.size();
 
-      m_metadata.push_back(Metadata{.generation = 1, .refCount = 1});
+      metadata_.push_back(Metadata{.generation = 1, .ref_count = 1});
 
-      m_resources.push_back(std::move(resource));
+      resources_.push_back(std::move(resource));
     }
 
-    Handle handle{index, m_metadata[index].generation};
-    m_keyToHandle[key] = handle;
-    m_handleToKey[handle] = key;
+    Handle handle{index, metadata_[index].generation};
+    key_to_handle_[key] = handle;
+    handle_to_key_[handle] = key;
     return Ref{handle, this};
   }
 
   Ref get(const std::string& key)
   {
-    auto iter = m_keyToHandle.find(key);
-    if (iter != m_keyToHandle.end())
+    auto iter = key_to_handle_.find(key);
+    if (iter != key_to_handle_.end())
     {
       const Handle& cached = iter->second;
       if (valid(cached))
       {
-        ++m_metadata[cached.index].refCount;
+        ++metadata_[cached.index].refCount;
         return Ref{cached, this};
       } else
       {
-        m_keyToHandle.erase(iter);
-        m_handleToKey.erase(cached);
+        key_to_handle_.erase(iter);
+        handle_to_key_.erase(cached);
       }
     }
     return Ref{};
@@ -277,12 +277,12 @@ public:
   bool valid(const Handle& handle) const
   {
     uint32_t index = handle.index;
-    return index < m_metadata.size() && m_metadata[index].generation == handle.generation;
+    return index < metadata_.size() && metadata_[index].generation == handle.generation;
   }
 
   bool valid(const Handle& handle)
   {
     uint32_t index = handle.index;
-    return index < m_metadata.size() && m_metadata[index].generation == handle.generation;
+    return index < metadata_.size() && metadata_[index].generation == handle.generation;
   }
 };

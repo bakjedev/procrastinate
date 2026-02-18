@@ -5,21 +5,21 @@
 class Scene
 {
 public:
-  uint32_t create();
-  void destroy(uint32_t entity);
+  uint32_t Create();
+  void Destroy(uint32_t entity);
 
   template<typename C, typename... Args>
-  C *addComponent(uint32_t entity, Args &&...args);
+  C *AddComponent(uint32_t entity, Args &&...args);
 
-  entt::registry &registry() { return m_registry; }
+  entt::registry &registry() { return registry_; }
 
 private:
-  entt::registry m_registry;
+  entt::registry registry_;
 };
 
 template<typename C, typename... Args>
-C *Scene::addComponent(uint32_t entity, Args &&...args)
+C *Scene::AddComponent(uint32_t entity, Args &&...args)
 {
   auto entt_entity = static_cast<entt::entity>(entity);
-  return &m_registry.emplace_or_replace<C>(entt_entity, std::forward<Args>(args)...);
+  return &registry_.emplace_or_replace<C>(entt_entity, std::forward<Args>(args)...);
 }

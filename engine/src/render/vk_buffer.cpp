@@ -7,18 +7,18 @@
 #include "vk_device.hpp"
 
 VulkanBuffer::VulkanBuffer(const BufferInfo& info, VmaAllocator allocator, VulkanDevice* device) :
-    m_allocator(allocator), m_device(device)
+    allocator_(allocator), device_(device)
 {
-  create(info);
+  Create(info);
 }
 
-VulkanBuffer::~VulkanBuffer() { destroy(); }
+VulkanBuffer::~VulkanBuffer() { Destroy(); }
 
-void VulkanBuffer::create(const BufferInfo& info)
+void VulkanBuffer::Create(const BufferInfo& info)
 {
   const std::unordered_set uniqueQueueFamilies{
-      m_device->queueFamilies().graphics.value(), m_device->queueFamilies().compute.value(),
-      m_device->queueFamilies().present.value(), m_device->queueFamilies().transfer.value()};
+      device_->QueueFamilies().graphics.value(), device_->QueueFamilies().compute.value(),
+      device_->QueueFamilies().present.value(), device_->QueueFamilies().transfer.value()};
   const std::vector queueFamilies(uniqueQueueFamilies.begin(), uniqueQueueFamilies.end());
 
   vk::BufferCreateInfo bufferCreateInfo{.size = info.size,
@@ -36,71 +36,71 @@ void VulkanBuffer::create(const BufferInfo& info)
   VmaAllocationInfo allocationInfo;
 
   VkBuffer tempBuffer = VK_NULL_HANDLE;
-  VK_CHECK(vmaCreateBuffer(m_allocator, &rawBufferInfo, &vmaAllocInfo, &tempBuffer, &m_allocation, &allocationInfo));
-  m_buffer = tempBuffer;
-  m_size = info.size;
-  m_mappedData = allocationInfo.pMappedData;
+  VK_CHECK(vmaCreateBuffer(allocator_, &rawBufferInfo, &vmaAllocInfo, &tempBuffer, &allocation_, &allocationInfo));
+  buffer_ = tempBuffer;
+  size_ = info.size;
+  mapped_data_ = allocationInfo.pMappedData;
 }
 
-void VulkanBuffer::write(const void* srcData)
+void VulkanBuffer::Write(const void* src_data)
 {
-  if (m_mappedData != nullptr)
+  if (mapped_data_ != nullptr)
   {
-    memcpy(m_mappedData, srcData, m_size);
+    memcpy(mapped_data_, src_data, size_);
     return;
   }
 
   void* data = map();
-  memcpy(data, srcData, m_size);
+  memcpy(data, src_data, size_);
   unmap();
 }
 
-void VulkanBuffer::writeRange(const void* srcData, const uint32_t rangeSize)
+void VulkanBuffer::WriteRange(const void* src_data, const uint32_t range_size)
 {
-  if (m_mappedData != nullptr)
+  if (mapped_data_ != nullptr)
   {
-    memcpy(m_mappedData, srcData, rangeSize);
+    memcpy(mapped_data_, src_data, range_size);
     return;
   }
 
   void* data = map();
-  memcpy(data, srcData, rangeSize);
+  memcpy(data, src_data, range_size);
   unmap();
 }
 
-void VulkanBuffer::writeRangeOffset(const void* srcData, const uint32_t rangeSize, const uint32_t offset)
+void VulkanBuffer::WriteRangeOffset(const void* src_data, const uint32_t range_size, const uint32_t offset)
 {
-  if (m_mappedData != nullptr)
+  if (mapped_data_ != nullptr)
   {
-    memcpy(static_cast<uint8_t*>(m_mappedData) + offset, srcData, rangeSize);
+    memcpy(static_cast<uint8_t*>(mapped_data_) + offset, src_data, range_size);
     return;
   }
 
   void* data = map();
-  memcpy(static_cast<uint8_t*>(data) + offset, srcData, rangeSize);
+  memcpy(static_cast<uint8_t*>(data) + offset, src_data, range_size);
   unmap();
 }
 
 void* VulkanBuffer::map()
 {
-  if (m_mappedData != nullptr)
+  if (mapped_data_ != nullptr)
   {
-    vmaMapMemory(m_allocator, m_allocation, &m_mappedData);
-    return m_mappedData;
+    vmaMapMemory(allocator_, allocation_, &mapped_data_);
+    return mapped_data_;
   }
 
   void* data = nullptr;
-  vmaMapMemory(m_allocator, m_allocation, &data);
+  vmaMapMemory(allocator_, allocation_, &data);
 
   return data;
 }
 
-void VulkanBuffer::unmap() const { vmaUnmapMemory(m_allocator, m_allocation); }
+void VulkanBuffer::unmap() const { vmaUnmapMemory(allocator_, allocation_); }
 
-void VulkanBuffer::destroy()
+void VulkanBuffer::Destroy()
 {
-  vmaDestroyBuffer(m_allocator, m_buffer, m_allocation);
-  m_buffer = nullptr;
-  m_allocation = VK_NULL_HANDLE;
-  m_mappedData = nullptr;
+  vmaDestroyBuffer(allocator_, buffer_, allocation_);
+  buffer_ = nullptr;
+  allocation_ = VK_NULL_HANDLE;
+  mapped_data_ = nullptr;
 }

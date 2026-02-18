@@ -6,15 +6,15 @@
 
 enum class EventType : uint8_t
 {
-  None,
-  Quit,
-  KeyDown,
-  KeyUp,
-  MouseButtonDown,
-  MouseButtonUp,
-  MouseMotion,
-  MouseWheel,
-  WindowResized
+  kNone,
+  kQuit,
+  kKeyDown,
+  kKeyUp,
+  kMouseButtonDown,
+  kMouseButtonUp,
+  kMouseMotion,
+  kMouseWheel,
+  kWindowResized
 };
 
 struct InputData
@@ -43,7 +43,7 @@ struct WindowResizeData
 
 struct Event
 {
-  EventType type = EventType::None;
+  EventType type = EventType::kNone;
   std::variant<std::monostate, InputData, MotionData, WheelData, WindowResizeData> data;
 };
 
@@ -55,9 +55,9 @@ public:
   [[nodiscard]] const std::vector<Event>& getEvents() const;
 
 private:
-  std::vector<Event> m_events;
+  std::vector<Event> events_;
 
-  static constexpr size_t expectedEvents = 64;
+  static constexpr size_t expected_events_ = 64;
 
   void clear();
 };

@@ -6,13 +6,13 @@
 
 #include "print.hpp"
 
-#define VK_CHECK(f) Util::vkCheck((f), __FILE__, __LINE__)
+#define VK_CHECK(f) util::VkCheck((f), __FILE__, __LINE__)
 
-namespace Util
+namespace util
 {
-  inline std::string errorString(VkResult errorCode)
+  inline std::string ErrorString(const VkResult error_code)
   {
-    switch (errorCode)
+    switch (error_code)
     {
 #define STR(r) \
   case VK_##r: \
@@ -47,13 +47,13 @@ namespace Util
     }
   }
 
-  inline void vkCheck(VkResult result, const char* file, int line)
+  inline void VkCheck(const VkResult result, const char* file, int line)
   {
     if (result != VK_SUCCESS)
     {
-      Util::println("Fatal: VkResult is {} in {} at line {}", Util::errorString(result), file, line);
+      util::println("Fatal: VkResult is {} in {} at line {}", util::ErrorString(result), file, line);
       std::abort();
     }
   }
 
-} // namespace Util
+} // namespace util

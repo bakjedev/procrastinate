@@ -3,7 +3,7 @@
 #include <format>
 #include <iostream>
 
-namespace Util
+namespace util
 {
   // basically std::print from c++23
   template<class... Args>
@@ -17,4 +17,4 @@ namespace Util
   {
     std::cout << std::format(fmt, std::forward<Args>(args)...) << '\n';
   }
-} // namespace Util
+} // namespace util

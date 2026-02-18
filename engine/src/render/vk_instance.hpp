@@ -10,14 +10,14 @@ public:
   VulkanInstance &operator=(const VulkanInstance &) = delete;
   VulkanInstance &operator=(VulkanInstance &&) = delete;
   ~VulkanInstance();
-  [[nodiscard]] vk::Instance get() const { return m_instance; }
-  [[nodiscard]] vk::detail::DispatchLoaderDynamic &getDynamicLoader() { return m_dynamicLoader; }
+  [[nodiscard]] vk::Instance get() const { return instance_; }
+  [[nodiscard]] vk::detail::DispatchLoaderDynamic &getDynamicLoader() { return dynamic_loader_; }
 
 private:
-  vk::Instance m_instance;
+  vk::Instance instance_;
 
-  vk::detail::DispatchLoaderDynamic m_dynamicLoader;
+  vk::detail::DispatchLoaderDynamic dynamic_loader_;
 #ifndef NDEBUG
-  vk::DebugUtilsMessengerEXT m_debugMessenger;
+  vk::DebugUtilsMessengerEXT debug_messenger_;
 #endif
 };

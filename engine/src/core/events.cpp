@@ -8,7 +8,7 @@
 void EventManager::poll()
 {
   clear();
-  m_events.reserve(expectedEvents);
+  events_.reserve(expected_events_);
 
   SDL_Event sdlEvent;
   while (SDL_PollEvent(&sdlEvent))
@@ -18,34 +18,34 @@ void EventManager::poll()
     switch (sdlEvent.type)
     {
       case SDL_EVENT_QUIT:
-        event = Event{.type = EventType::Quit, .data = std::monostate{}};
+        event = Event{.type = EventType::kQuit, .data = std::monostate{}};
         break;
       case SDL_EVENT_KEY_DOWN:
-        event = Event{.type = EventType::KeyDown,
+        event = Event{.type = EventType::kKeyDown,
                       .data = InputData{.scancode = static_cast<uint32_t>(sdlEvent.key.scancode)}};
         break;
       case SDL_EVENT_KEY_UP:
-        event = Event{.type = EventType::KeyUp,
+        event = Event{.type = EventType::kKeyUp,
                       .data = InputData{.scancode = static_cast<uint32_t>(sdlEvent.key.scancode)}};
         break;
       case SDL_EVENT_MOUSE_BUTTON_DOWN:
-        event = Event{.type = EventType::MouseButtonDown, .data = InputData{.scancode = sdlEvent.button.button}};
+        event = Event{.type = EventType::kMouseButtonDown, .data = InputData{.scancode = sdlEvent.button.button}};
         break;
       case SDL_EVENT_MOUSE_BUTTON_UP:
-        event = Event{.type = EventType::MouseButtonUp, .data = InputData{.scancode = sdlEvent.button.button}};
+        event = Event{.type = EventType::kMouseButtonUp, .data = InputData{.scancode = sdlEvent.button.button}};
         break;
       case SDL_EVENT_MOUSE_MOTION:
-        event = Event{.type = EventType::MouseMotion,
+        event = Event{.type = EventType::kMouseMotion,
                       .data = MotionData{.x = sdlEvent.motion.x,
                                          .y = sdlEvent.motion.y,
                                          .dx = sdlEvent.motion.xrel,
                                          .dy = sdlEvent.motion.yrel}};
         break;
       case SDL_EVENT_MOUSE_WHEEL:
-        event = Event{.type = EventType::MouseWheel, .data = WheelData{.scroll = sdlEvent.wheel.y}};
+        event = Event{.type = EventType::kMouseWheel, .data = WheelData{.scroll = sdlEvent.wheel.y}};
         break;
       case SDL_EVENT_WINDOW_RESIZED:
-        event = Event{.type = EventType::WindowResized,
+        event = Event{.type = EventType::kWindowResized,
                       .data = WindowResizeData{.width = static_cast<uint32_t>(sdlEvent.window.data1),
                                                .height = static_cast<uint32_t>(sdlEvent.window.data2)}};
         break;
@@ -55,12 +55,12 @@ void EventManager::poll()
 
     if (event)
     {
-      m_events.push_back(*event);
+      events_.push_back(*event);
     }
-    ImGuiSystem::processEvent(&sdlEvent);
+    im_gui_system::ProcessEvent(&sdlEvent);
   }
 }
 
-const std::vector<Event>& EventManager::getEvents() const { return m_events; }
+const std::vector<Event>& EventManager::getEvents() const { return events_; }
 
-void EventManager::clear() { m_events.clear(); }
+void EventManager::clear() { events_.clear(); }

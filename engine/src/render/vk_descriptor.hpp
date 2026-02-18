@@ -5,8 +5,8 @@
 struct DescriptorPoolInfo
 {
   vk::DescriptorPoolCreateFlags flags;
-  uint32_t maxSets;
-  std::vector<vk::DescriptorPoolSize> poolSizes;
+  uint32_t max_sets;
+  std::vector<vk::DescriptorPoolSize> pool_sizes;
 };
 
 class VulkanDescriptorPool
@@ -22,11 +22,11 @@ public:
   vk::DescriptorSet allocate(vk::DescriptorSetLayout layout) const;
   std::vector<vk::DescriptorSet> allocate(const std::vector<vk::DescriptorSetLayout> &layouts) const;
 
-  vk::DescriptorPool get() const { return m_descriptorPool; }
+  vk::DescriptorPool get() const { return descriptor_pool_; }
 
 private:
-  vk::Device m_device;
-  vk::DescriptorPool m_descriptorPool;
+  vk::Device device_;
+  vk::DescriptorPool descriptor_pool_;
 };
 
 class VulkanDescriptorSetLayout
@@ -41,9 +41,9 @@ public:
   VulkanDescriptorSetLayout &operator=(VulkanDescriptorSetLayout &&) = delete;
   ~VulkanDescriptorSetLayout();
 
-  [[nodiscard]] vk::DescriptorSetLayout get() const { return m_layout; }
+  [[nodiscard]] vk::DescriptorSetLayout get() const { return layout_; }
 
 private:
-  vk::Device m_device;
-  vk::DescriptorSetLayout m_layout;
+  vk::Device device_;
+  vk::DescriptorSetLayout layout_;
 };

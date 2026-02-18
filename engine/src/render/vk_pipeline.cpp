@@ -4,26 +4,26 @@
 
 #include "vulkan/vulkan.hpp"
 
-VulkanPipelineLayout::VulkanPipelineLayout(const vk::Device device, const PipelineLayoutInfo &info) : m_device(device)
+VulkanPipelineLayout::VulkanPipelineLayout(const vk::Device device, const PipelineLayoutInfo &info) : device_(device)
 {
   const vk::PipelineLayoutCreateInfo createInfo{
-      .setLayoutCount = static_cast<uint32_t>(info.descriptorSets.size()),
-      .pSetLayouts = info.descriptorSets.data(),
-      .pushConstantRangeCount = static_cast<uint32_t>(info.pushConstants.size()),
-      .pPushConstantRanges = info.pushConstants.data()};
+      .setLayoutCount = static_cast<uint32_t>(info.descriptor_sets.size()),
+      .pSetLayouts = info.descriptor_sets.data(),
+      .pushConstantRangeCount = static_cast<uint32_t>(info.push_constants.size()),
+      .pPushConstantRanges = info.push_constants.data()};
 
-  m_layout = device.createPipelineLayout(createInfo);
+  layout_ = device.createPipelineLayout(createInfo);
 }
 
 VulkanPipelineLayout::~VulkanPipelineLayout()
 {
-  if (m_layout)
+  if (layout_)
   {
-    m_device.destroyPipelineLayout(m_layout);
+    device_.destroyPipelineLayout(layout_);
   }
 }
 
-VulkanPipeline::VulkanPipeline(const vk::Device device, const PipelineInfo &info) : m_device(device)
+VulkanPipeline::VulkanPipeline(const vk::Device device, const PipelineInfo &info) : device_(device)
 {
   std::visit(
       [this](auto &&value)
@@ -32,10 +32,10 @@ VulkanPipeline::VulkanPipeline(const vk::Device device, const PipelineInfo &info
 
         if constexpr (std::is_same_v<T, GraphicsPipelineInfo>)
         {
-          createGraphicsPipeline(value);
+          CreateGraphicsPipeline(value);
         } else if constexpr (std::is_same_v<T, ComputePipelineInfo>)
         {
-          createComputePipeline(value);
+          CreateComputePipeline(value);
         }
       },
       info);
@@ -43,19 +43,19 @@ VulkanPipeline::VulkanPipeline(const vk::Device device, const PipelineInfo &info
 
 VulkanPipeline::~VulkanPipeline()
 {
-  if (m_pipeline)
+  if (pipeline_)
   {
-    m_device.destroyPipeline(m_pipeline);
+    device_.destroyPipeline(pipeline_);
   }
 }
 
-void VulkanPipeline::createGraphicsPipeline(const GraphicsPipelineInfo &info)
+void VulkanPipeline::CreateGraphicsPipeline(const GraphicsPipelineInfo &info)
 {
   vk::PipelineVertexInputStateCreateInfo vertexInput{
-      .vertexBindingDescriptionCount = static_cast<uint32_t>(info.vertexBindings.size()),
-      .pVertexBindingDescriptions = info.vertexBindings.data(),
-      .vertexAttributeDescriptionCount = static_cast<uint32_t>(info.vertexAttributes.size()),
-      .pVertexAttributeDescriptions = info.vertexAttributes.data(),
+      .vertexBindingDescriptionCount = static_cast<uint32_t>(info.vertex_bindings.size()),
+      .pVertexBindingDescriptions = info.vertex_bindings.data(),
+      .vertexAttributeDescriptionCount = static_cast<uint32_t>(info.vertex_attributes.size()),
+      .pVertexAttributeDescriptions = info.vertex_attributes.data(),
   };
 
   vk::PipelineInputAssemblyStateCreateInfo inputAssembly{
@@ -69,11 +69,11 @@ void VulkanPipeline::createGraphicsPipeline(const GraphicsPipelineInfo &info)
   vk::PipelineRasterizationStateCreateInfo rasterizer{
       .depthClampEnable = VK_FALSE,
       .rasterizerDiscardEnable = VK_FALSE,
-      .polygonMode = info.polygonMode,
-      .cullMode = info.cullMode,
-      .frontFace = info.frontFace,
+      .polygonMode = info.polygon_mode,
+      .cullMode = info.cull_mode,
+      .frontFace = info.front_face,
       .depthBiasEnable = VK_FALSE,
-      .lineWidth = info.lineWidth,
+      .lineWidth = info.line_width,
   };
 
   vk::PipelineMultisampleStateCreateInfo multisampling{
@@ -81,26 +81,26 @@ void VulkanPipeline::createGraphicsPipeline(const GraphicsPipelineInfo &info)
   };
 
   vk::PipelineDepthStencilStateCreateInfo depthStencil{
-      .depthTestEnable = info.depthTest ? VK_TRUE : VK_FALSE,
-      .depthWriteEnable = info.depthWrite ? VK_TRUE : VK_FALSE,
-      .depthCompareOp = info.depthCompareOp,
+      .depthTestEnable = info.depth_test ? VK_TRUE : VK_FALSE,
+      .depthWriteEnable = info.depth_write ? VK_TRUE : VK_FALSE,
+      .depthCompareOp = info.depth_compare_op,
       .depthBoundsTestEnable = VK_FALSE,
       .stencilTestEnable = VK_FALSE,
   };
 
   std::vector<vk::PipelineColorBlendAttachmentState> colorBlendAttachments;
-  colorBlendAttachments.reserve(info.colorBlendAttachments.size());
-  for (const auto &attachment: info.colorBlendAttachments)
+  colorBlendAttachments.reserve(info.color_blend_attachments.size());
+  for (const auto &attachment: info.color_blend_attachments)
   {
     colorBlendAttachments.push_back({
-        .blendEnable = attachment.blendEnable ? VK_TRUE : VK_FALSE,
-        .srcColorBlendFactor = attachment.srcColorBlendFactor,
-        .dstColorBlendFactor = attachment.dstColorBlendFactor,
-        .colorBlendOp = attachment.colorBlendOp,
-        .srcAlphaBlendFactor = attachment.srcAlphaBlendFactor,
-        .dstAlphaBlendFactor = attachment.dstAlphaBlendFactor,
-        .alphaBlendOp = attachment.alphaBlendOp,
-        .colorWriteMask = attachment.colorWriteMask,
+        .blendEnable = attachment.blend_enable ? VK_TRUE : VK_FALSE,
+        .srcColorBlendFactor = attachment.src_color_blend_factor,
+        .dstColorBlendFactor = attachment.dst_color_blend_factor,
+        .colorBlendOp = attachment.color_blend_op,
+        .srcAlphaBlendFactor = attachment.src_alpha_blend_factor,
+        .dstAlphaBlendFactor = attachment.dst_alpha_blend_factor,
+        .alphaBlendOp = attachment.alpha_blend_op,
+        .colorWriteMask = attachment.color_write_mask,
     });
   }
 
@@ -113,22 +113,22 @@ void VulkanPipeline::createGraphicsPipeline(const GraphicsPipelineInfo &info)
   };
 
   vk::PipelineDynamicStateCreateInfo dynamicState{
-      .dynamicStateCount = static_cast<uint32_t>(info.dynamicStates.size()),
-      .pDynamicStates = info.dynamicStates.data(),
+      .dynamicStateCount = static_cast<uint32_t>(info.dynamic_states.size()),
+      .pDynamicStates = info.dynamic_states.data(),
   };
 
   vk::PipelineRenderingCreateInfo renderingInfo{
       .viewMask = 0,
-      .colorAttachmentCount = static_cast<uint32_t>(info.colorAttachmentFormats.size()),
-      .pColorAttachmentFormats = info.colorAttachmentFormats.data(),
-      .depthAttachmentFormat = info.depthAttachmentFormat,
-      .stencilAttachmentFormat = info.stencilAttachmentFormat,
+      .colorAttachmentCount = static_cast<uint32_t>(info.color_attachment_formats.size()),
+      .pColorAttachmentFormats = info.color_attachment_formats.data(),
+      .depthAttachmentFormat = info.depth_attachment_format,
+      .stencilAttachmentFormat = info.stencil_attachment_format,
   };
 
   vk::GraphicsPipelineCreateInfo createInfo{
       .pNext = &renderingInfo,
-      .stageCount = static_cast<uint32_t>(info.shaderStages.size()),
-      .pStages = info.shaderStages.data(),
+      .stageCount = static_cast<uint32_t>(info.shader_stages.size()),
+      .pStages = info.shader_stages.data(),
       .pVertexInputState = &vertexInput,
       .pInputAssemblyState = &inputAssembly,
       .pViewportState = &viewport,
@@ -140,17 +140,17 @@ void VulkanPipeline::createGraphicsPipeline(const GraphicsPipelineInfo &info)
       .layout = info.layout,
   };
 
-  auto result = m_device.createGraphicsPipelines(nullptr, createInfo);
-  m_pipeline = result.value.front();
+  auto result = device_.createGraphicsPipelines(nullptr, createInfo);
+  pipeline_ = result.value.front();
 }
 
-void VulkanPipeline::createComputePipeline(const ComputePipelineInfo &info)
+void VulkanPipeline::CreateComputePipeline(const ComputePipelineInfo &info)
 {
   const vk::ComputePipelineCreateInfo createInfo{
       .flags = {},
-      .stage = info.shaderStage,
+      .stage = info.shader_stage,
       .layout = info.layout,
   };
-  const auto result = m_device.createComputePipelines(nullptr, createInfo);
-  m_pipeline = result.value.front();
+  const auto result = device_.createComputePipelines(nullptr, createInfo);
+  pipeline_ = result.value.front();
 }

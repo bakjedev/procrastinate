@@ -4,18 +4,18 @@
 
 enum class PlaneType : uint8_t
 {
-  Left,
-  Right,
-  Bottom,
-  Top,
-  Near,
-  Far
+  kLeft,
+  kRight,
+  kBottom,
+  kTop,
+  kNear,
+  kFar
 };
 enum class Halfspace : uint8_t
 {
-  Inside,
-  Outside,
-  On
+  kInside,
+  kOutside,
+  kOn
 };
 
 struct Plane
@@ -33,11 +33,11 @@ struct Frustum
   Plane top;
 
   // These have plane suffixed because *windows*...
-  Plane nearPlane;
-  Plane farPlane;
+  Plane near_plane;
+  Plane far_plane;
 };
 
-inline Plane extractPlane(const glm::mat4& matrix, PlaneType type)
+inline Plane ExtractPlane(const glm::mat4& matrix, PlaneType type)
 {
   const auto row1 = glm::row(matrix, 0);
   const auto row2 = glm::row(matrix, 1);
@@ -47,22 +47,22 @@ inline Plane extractPlane(const glm::mat4& matrix, PlaneType type)
   glm::vec4 result{};
   switch (type)
   {
-    case PlaneType::Left:
+    case PlaneType::kLeft:
       result = row4 + row1;
       break;
-    case PlaneType::Right:
+    case PlaneType::kRight:
       result = row4 - row1;
       break;
-    case PlaneType::Bottom:
+    case PlaneType::kBottom:
       result = row4 + row2;
       break;
-    case PlaneType::Top:
+    case PlaneType::kTop:
       result = row4 - row2;
       break;
-    case PlaneType::Near:
+    case PlaneType::kNear:
       result = row4 + row3;
       break;
-    case PlaneType::Far:
+    case PlaneType::kFar:
       result = row4 - row3;
       break;
   }
@@ -74,38 +74,12 @@ inline Plane extractPlane(const glm::mat4& matrix, PlaneType type)
   return Plane{.normal = normalized, .distance = distance};
 }
 
-inline Frustum extractFrustum(const glm::mat4& matrix)
+inline Frustum ExtractFrustum(const glm::mat4& matrix)
 {
-  return Frustum{.left = extractPlane(matrix, PlaneType::Left),
-                 .right = extractPlane(matrix, PlaneType::Right),
-                 .bottom = extractPlane(matrix, PlaneType::Bottom),
-                 .top = extractPlane(matrix, PlaneType::Top),
-                 .nearPlane = extractPlane(matrix, PlaneType::Near),
-                 .farPlane = extractPlane(matrix, PlaneType::Far)};
-}
-
-inline Halfspace checkPointForPlane(const Plane& plane, const glm::vec3& point)
-{
-  const float dist = glm::dot(plane.normal, point) + plane.distance;
-
-  if (dist < 0) return Halfspace::Inside;
-  if (dist > 0) return Halfspace::Outside;
-  return Halfspace::On;
-}
-
-inline bool checkPoint(const Frustum& frustum, const glm::vec3& point)
-{
-  return checkPointForPlane(frustum.left, point) == Halfspace::Inside &&
-         checkPointForPlane(frustum.right, point) == Halfspace::Inside &&
-         checkPointForPlane(frustum.bottom, point) == Halfspace::Inside &&
-         checkPointForPlane(frustum.top, point) == Halfspace::Inside &&
-         checkPointForPlane(frustum.nearPlane, point) == Halfspace::Inside &&
-         checkPointForPlane(frustum.farPlane, point) == Halfspace::Inside;
-}
-
-inline glm::vec3 intersect3Planes(const Plane& plane1, const Plane& plane2, const Plane& plane3)
-{
-  const glm::mat3 matrix = glm::transpose(glm::mat3(plane1.normal, plane2.normal, plane3.normal));
-  const glm::vec3 distances(-plane1.distance, -plane2.distance, -plane3.distance);
-  return glm::inverse(matrix) * distances;
+  return Frustum{.left = ExtractPlane(matrix, PlaneType::kLeft),
+                 .right = ExtractPlane(matrix, PlaneType::kRight),
+                 .bottom = ExtractPlane(matrix, PlaneType::kBottom),
+                 .top = ExtractPlane(matrix, PlaneType::kTop),
+                 .near_plane = ExtractPlane(matrix, PlaneType::kNear),
+                 .far_plane = ExtractPlane(matrix, PlaneType::kFar)};
 }

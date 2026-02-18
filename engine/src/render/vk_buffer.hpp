@@ -23,32 +23,32 @@ public:
   VulkanBuffer& operator=(VulkanBuffer&&) = delete;
   ~VulkanBuffer();
 
-  void create(const BufferInfo& info);
-  void write(const void* srcData);
-  void writeRange(const void* srcData, uint32_t rangeSize);
-  void writeRangeOffset(const void* srcData, uint32_t rangeSize, uint32_t offset);
+  void Create(const BufferInfo& info);
+  void Write(const void* src_data);
+  void WriteRange(const void* src_data, uint32_t range_size);
+  void WriteRangeOffset(const void* src_data, uint32_t range_size, uint32_t offset);
 
   void* map();
   void unmap() const;
 
-  [[nodiscard]] void* getMappedData() const { return m_mappedData; };
+  [[nodiscard]] void* GetMappedData() const { return mapped_data_; };
   template<typename T>
-  [[nodiscard]] T* getMappedDataAs() const
+  [[nodiscard]] T* GetMappedDataAs() const
   {
-    return static_cast<T*>(m_mappedData);
+    return static_cast<T*>(mapped_data_);
   };
 
-  void destroy();
+  void Destroy();
 
-  [[nodiscard]] vk::Buffer get() const { return m_buffer; }
-  [[nodiscard]] VmaAllocation allocation() const { return m_allocation; }
-  [[nodiscard]] uint32_t size() const { return m_size; }
+  [[nodiscard]] vk::Buffer get() const { return buffer_; }
+  [[nodiscard]] VmaAllocation allocation() const { return allocation_; }
+  [[nodiscard]] uint32_t size() const { return size_; }
 
 private:
-  vk::Buffer m_buffer;
-  VmaAllocation m_allocation = VK_NULL_HANDLE;
-  uint32_t m_size = 0;
-  void* m_mappedData = nullptr;
-  VmaAllocator m_allocator;
-  VulkanDevice* m_device;
+  vk::Buffer buffer_;
+  VmaAllocation allocation_ = VK_NULL_HANDLE;
+  uint32_t size_ = 0;
+  void* mapped_data_ = nullptr;
+  VmaAllocator allocator_;
+  VulkanDevice* device_;
 };

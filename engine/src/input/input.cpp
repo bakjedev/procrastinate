@@ -3,67 +3,67 @@
 #include "core/events.hpp"
 #include "util/print.hpp"
 
-Input::Input(EventManager& eventManager) : m_eventManager(&eventManager) {}
+Input::Input(EventManager& event_manager) : event_manager_(&event_manager) {}
 
 void Input::update()
 {
-  m_mouseScroll = 0.0F;
-  m_mouseDeltaX = 0.0F;
-  m_mouseDeltaY = 0.0F;
+  mouse_scroll_ = 0.0F;
+  mouse_delta_x_ = 0.0F;
+  mouse_delta_y_ = 0.0F;
 
-  for (const auto& event: m_eventManager->getEvents())
+  for (const auto& event: event_manager_->getEvents())
   {
     switch (event.type)
     {
-      case EventType::KeyDown:
+      case EventType::kKeyDown:
       {
         const auto& input = std::get<InputData>(event.data);
         if (input.scancode < static_cast<uint32_t>(KeyboardKey::Count))
         {
-          m_keysDown.set(input.scancode);
+          keys_down_.set(input.scancode);
         }
         break;
       }
-      case EventType::KeyUp:
+      case EventType::kKeyUp:
       {
         const auto& input = std::get<InputData>(event.data);
         if (input.scancode < static_cast<uint32_t>(KeyboardKey::Count))
         {
-          m_keysDown.reset(input.scancode);
+          keys_down_.reset(input.scancode);
         }
         break;
       }
-      case EventType::MouseButtonDown:
+      case EventType::kMouseButtonDown:
       {
         const auto& input = std::get<InputData>(event.data);
         if (input.scancode < static_cast<uint32_t>(MouseButton::Count))
         {
-          m_mouseButtonsDown.set(input.scancode - 1);
+          mouse_buttons_down_.set(input.scancode - 1);
         }
         break;
       }
-      case EventType::MouseButtonUp:
+      case EventType::kMouseButtonUp:
       {
         const auto& input = std::get<InputData>(event.data);
         if (input.scancode < static_cast<uint32_t>(MouseButton::Count))
         {
-          m_mouseButtonsDown.reset(input.scancode - 1);
+          mouse_buttons_down_.reset(input.scancode - 1);
         }
         break;
       }
-      case EventType::MouseMotion:
+      case EventType::kMouseMotion:
       {
         const auto& motion = std::get<MotionData>(event.data);
-        m_mouseX = motion.x;
-        m_mouseY = motion.y;
-        m_mouseDeltaX = motion.dx;
-        m_mouseDeltaY = motion.dy;
+        mouse_x_ = motion.x;
+        mouse_y_ = motion.y;
+        mouse_delta_x_ = motion.dx;
+        mouse_delta_y_ = motion.dy;
         break;
       }
-      case EventType::MouseWheel:
+      case EventType::kMouseWheel:
       {
         const auto& wheel = std::get<WheelData>(event.data);
-        m_mouseScroll = wheel.scroll;
+        mouse_scroll_ = wheel.scroll;
         break;
       }
       default:
@@ -72,71 +72,71 @@ void Input::update()
   }
 
   // update previous state
-  m_keysPressed = m_keysDown & ~m_keysDownPrev;
-  m_keysReleased = ~m_keysDown & m_keysDownPrev;
-  m_keysDownPrev = m_keysDown;
+  keys_pressed_ = keys_down_ & ~keys_down_prev_;
+  keys_released_ = ~keys_down_ & keys_down_prev_;
+  keys_down_prev_ = keys_down_;
 
-  m_mouseButtonsPressed = m_mouseButtonsDown & ~m_mouseButtonsDownPrev;
-  m_mouseButtonsReleased = ~m_mouseButtonsDown & m_mouseButtonsDownPrev;
-  m_mouseButtonsDownPrev = m_mouseButtonsDown;
+  mouse_buttons_pressed_ = mouse_buttons_down_ & ~mouse_buttons_down_prev_;
+  mouse_buttons_released_ = ~mouse_buttons_down_ & mouse_buttons_down_prev_;
+  mouse_buttons_down_prev_ = mouse_buttons_down_;
 }
 
-bool Input::keyDown(KeyboardKey key) const
+bool Input::KeyDown(KeyboardKey key) const
 {
   auto index = static_cast<size_t>(key);
   if (index >= static_cast<size_t>(KeyboardKey::Count))
   {
     return false;
   }
-  return m_keysDown.test(index);
+  return keys_down_.test(index);
 }
 
-bool Input::keyPressed(KeyboardKey key) const
+bool Input::KeyPressed(KeyboardKey key) const
 {
   auto index = static_cast<size_t>(key);
   if (index >= static_cast<size_t>(KeyboardKey::Count))
   {
     return false;
   }
-  return m_keysPressed.test(index);
+  return keys_pressed_.test(index);
 }
 
-bool Input::keyReleased(KeyboardKey key) const
+bool Input::KeyReleased(KeyboardKey key) const
 {
   auto index = static_cast<size_t>(key);
   if (index >= static_cast<size_t>(KeyboardKey::Count))
   {
     return false;
   }
-  return m_keysReleased.test(index);
+  return keys_released_.test(index);
 }
 
-bool Input::mouseButtonDown(MouseButton button) const
+bool Input::MouseButtonDown(MouseButton button) const
 {
   auto index = static_cast<size_t>(button);
   if (index >= static_cast<size_t>(MouseButton::Count))
   {
     return false;
   }
-  return m_mouseButtonsDown.test(index);
+  return mouse_buttons_down_.test(index);
 }
 
-bool Input::mouseButtonPressed(MouseButton button) const
+bool Input::MouseButtonPressed(MouseButton button) const
 {
   auto index = static_cast<size_t>(button);
   if (index >= static_cast<size_t>(MouseButton::Count))
   {
     return false;
   }
-  return m_mouseButtonsPressed.test(index);
+  return mouse_buttons_pressed_.test(index);
 }
 
-bool Input::mouseButtonReleased(MouseButton button) const
+bool Input::MouseButtonReleased(MouseButton button) const
 {
   auto index = static_cast<size_t>(button);
   if (index >= static_cast<size_t>(MouseButton::Count))
   {
     return false;
   }
-  return m_mouseButtonsReleased.test(index);
+  return mouse_buttons_released_.test(index);
 }

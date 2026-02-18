@@ -7,26 +7,26 @@
 class VulkanAllocator
 {
 public:
-  VulkanAllocator(const vk::PhysicalDevice physicalDevice, const vk::Device device, const vk::Instance instance)
+  VulkanAllocator(const vk::PhysicalDevice physical_device, const vk::Device device, const vk::Instance instance)
   {
     VmaAllocatorCreateInfo info = {};
-    info.physicalDevice = physicalDevice;
+    info.physicalDevice = physical_device;
     info.device = device;
     info.instance = instance;
     info.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 
-    VK_CHECK(vmaCreateAllocator(&info, &m_allocator));
+    VK_CHECK(vmaCreateAllocator(&info, &allocator_));
   }
 
-  ~VulkanAllocator() { vmaDestroyAllocator(m_allocator); }
+  ~VulkanAllocator() { vmaDestroyAllocator(allocator_); }
 
   VulkanAllocator(const VulkanAllocator &) = delete;
   VulkanAllocator(VulkanAllocator &&) = delete;
   VulkanAllocator &operator=(const VulkanAllocator &) = delete;
   VulkanAllocator &operator=(VulkanAllocator &&) = delete;
 
-  [[nodiscard]] VmaAllocator get() const { return m_allocator; }
+  [[nodiscard]] VmaAllocator get() const { return allocator_; }
 
 private:
-  VmaAllocator m_allocator = nullptr;
+  VmaAllocator allocator_ = nullptr;
 };

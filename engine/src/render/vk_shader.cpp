@@ -1,16 +1,16 @@
 #include "vk_shader.hpp"
 
-VulkanShader::VulkanShader(vk::Device device, std::span<const uint32_t> code) : m_device(device)
+VulkanShader::VulkanShader(vk::Device device, std::span<const uint32_t> code) : device_(device)
 {
   const vk::ShaderModuleCreateInfo createInfo{.codeSize = code.size_bytes(), .pCode = code.data()};
 
-  m_shaderModule = m_device.createShaderModule(createInfo);
+  shader_module_ = device_.createShaderModule(createInfo);
 }
 
 VulkanShader::~VulkanShader()
 {
-  if (m_shaderModule)
+  if (shader_module_)
   {
-    m_device.destroyShaderModule(m_shaderModule);
+    device_.destroyShaderModule(shader_module_);
   }
 }

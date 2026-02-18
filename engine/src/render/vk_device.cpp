@@ -6,16 +6,16 @@
 
 VulkanDevice::VulkanDevice(const vk::Instance instance, const vk::SurfaceKHR surface)
 {
-  pickPhysicalDevice(instance, surface);
-  createDevice();
-  getQueues();
+  PickPhysicalDevice(instance, surface);
+  CreateDevice();
+  GetQueues();
 }
 
-VulkanDevice::~VulkanDevice() { m_device.destroy(); }
+VulkanDevice::~VulkanDevice() { device_.destroy(); }
 
-void VulkanDevice::waitIdle() const { m_device.waitIdle(); }
+void VulkanDevice::WaitIdle() const { device_.waitIdle(); }
 
-void VulkanDevice::pickPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface)
+void VulkanDevice::PickPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface)
 {
   const auto devices = instance.enumeratePhysicalDevices();
 
@@ -33,35 +33,35 @@ void VulkanDevice::pickPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surf
     vk::PhysicalDeviceFeatures2 features{.pNext = &features11};
     device.getProperties(&properties);
     device.getFeatures2(&features);
-    if (isDeviceSuitable(properties))
+    if (IsDeviceSuitable(properties))
     {
-      m_physicalDevice = device;
-      m_properties = properties;
-      m_availableFeatures = features;
-      m_availableFeatures12 = features12;
-      m_availableFeatures11 = features11;
-      m_availableFeatures13 = features13;
+      physical_device_ = device;
+      properties_ = properties;
+      available_features_ = features;
+      available_features12_ = features12;
+      available_features11_ = features11;
+      available_features13_ = features13;
 
-      if (!findQueueFamilies(surface))
+      if (!FindQueueFamilies(surface))
       {
         throw std::runtime_error("Failed to find Vulkan queue families");
       }
 
-      Util::println("Picked physical device: {}", properties.deviceName.data());
+      util::println("Picked physical device: {}", properties.deviceName.data());
 
       break;
     }
   }
-  if (m_physicalDevice == nullptr)
+  if (physical_device_ == nullptr)
   {
     throw std::runtime_error("Failed to pick physical device");
   }
 }
 
-void VulkanDevice::createDevice()
+void VulkanDevice::CreateDevice()
 {
-  const std::set uniqueQueueFamilies = {m_queueFamilyIndices.graphics.value(), m_queueFamilyIndices.compute.value(),
-                                        m_queueFamilyIndices.transfer.value(), m_queueFamilyIndices.present.value()};
+  const std::set uniqueQueueFamilies = {queue_family_indices_.graphics.value(), queue_family_indices_.compute.value(),
+                                        queue_family_indices_.transfer.value(), queue_family_indices_.present.value()};
 
   constexpr float queuePriority = 1.0F;
   std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
@@ -75,66 +75,66 @@ void VulkanDevice::createDevice()
 
   const std::vector deviceExtensions = {vk::KHRSwapchainExtensionName};
 
-  m_enabledFeatures = {.pNext = m_enabledFeatures11};
-  m_enabledFeatures11 = {.pNext = m_enabledFeatures12};
-  m_enabledFeatures12 = {.pNext = m_enabledFeatures13};
-  m_enabledFeatures13 = {};
+  enabled_features_ = {.pNext = enabled_features11_};
+  enabled_features11_ = {.pNext = enabled_features12_};
+  enabled_features12_ = {.pNext = enabled_features13_};
+  enabled_features13_ = {};
 
-  m_enabledFeatures.features.multiDrawIndirect = m_availableFeatures.features.multiDrawIndirect;
+  enabled_features_.features.multiDrawIndirect = available_features_.features.multiDrawIndirect;
 
-  m_enabledFeatures11.shaderDrawParameters = m_availableFeatures11.shaderDrawParameters;
+  enabled_features11_.shaderDrawParameters = available_features11_.shaderDrawParameters;
 
-  m_enabledFeatures13.synchronization2 = m_availableFeatures13.synchronization2;
-  m_enabledFeatures13.dynamicRendering = m_availableFeatures13.dynamicRendering;
+  enabled_features13_.synchronization2 = available_features13_.synchronization2;
+  enabled_features13_.dynamicRendering = available_features13_.dynamicRendering;
 
-  m_enabledFeatures12.descriptorIndexing = m_availableFeatures12.descriptorIndexing;
+  enabled_features12_.descriptorIndexing = available_features12_.descriptorIndexing;
 
-  m_enabledFeatures12.descriptorBindingUniformBufferUpdateAfterBind =
-      m_availableFeatures12.descriptorBindingUniformBufferUpdateAfterBind;
-  m_enabledFeatures12.descriptorBindingSampledImageUpdateAfterBind =
-      m_availableFeatures12.descriptorBindingSampledImageUpdateAfterBind;
-  m_enabledFeatures12.descriptorBindingStorageImageUpdateAfterBind =
-      m_availableFeatures12.descriptorBindingStorageImageUpdateAfterBind;
-  m_enabledFeatures12.descriptorBindingStorageBufferUpdateAfterBind =
-      m_availableFeatures12.descriptorBindingStorageBufferUpdateAfterBind;
-  m_enabledFeatures12.descriptorBindingPartiallyBound = m_availableFeatures12.descriptorBindingPartiallyBound;
-  m_enabledFeatures12.descriptorBindingVariableDescriptorCount =
-      m_availableFeatures12.descriptorBindingVariableDescriptorCount;
+  enabled_features12_.descriptorBindingUniformBufferUpdateAfterBind =
+      available_features12_.descriptorBindingUniformBufferUpdateAfterBind;
+  enabled_features12_.descriptorBindingSampledImageUpdateAfterBind =
+      available_features12_.descriptorBindingSampledImageUpdateAfterBind;
+  enabled_features12_.descriptorBindingStorageImageUpdateAfterBind =
+      available_features12_.descriptorBindingStorageImageUpdateAfterBind;
+  enabled_features12_.descriptorBindingStorageBufferUpdateAfterBind =
+      available_features12_.descriptorBindingStorageBufferUpdateAfterBind;
+  enabled_features12_.descriptorBindingPartiallyBound = available_features12_.descriptorBindingPartiallyBound;
+  enabled_features12_.descriptorBindingVariableDescriptorCount =
+      available_features12_.descriptorBindingVariableDescriptorCount;
 
-  m_enabledFeatures12.runtimeDescriptorArray = m_availableFeatures12.runtimeDescriptorArray;
-  m_enabledFeatures12.bufferDeviceAddress = m_availableFeatures12.bufferDeviceAddress;
+  enabled_features12_.runtimeDescriptorArray = available_features12_.runtimeDescriptorArray;
+  enabled_features12_.bufferDeviceAddress = available_features12_.bufferDeviceAddress;
 
-  m_enabledFeatures12.drawIndirectCount = m_availableFeatures12.drawIndirectCount;
+  enabled_features12_.drawIndirectCount = available_features12_.drawIndirectCount;
   vk::DeviceCreateInfo deviceCreateInfo{};
-  deviceCreateInfo.pNext = &m_enabledFeatures;
+  deviceCreateInfo.pNext = &enabled_features_;
   deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
   deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
   deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
   deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
-  m_device = m_physicalDevice.createDevice(deviceCreateInfo);
+  device_ = physical_device_.createDevice(deviceCreateInfo);
 }
 
-void VulkanDevice::getQueues()
+void VulkanDevice::GetQueues()
 {
-  m_graphicsQueue = m_device.getQueue(m_queueFamilyIndices.graphics.value(), 0);
-  m_computeQueue = m_device.getQueue(m_queueFamilyIndices.compute.value(), 0);
-  m_transferQueue = m_device.getQueue(m_queueFamilyIndices.transfer.value(), 0);
-  m_presentQueue = m_device.getQueue(m_queueFamilyIndices.present.value(), 0);
+  graphics_queue_ = device_.getQueue(queue_family_indices_.graphics.value(), 0);
+  compute_queue_ = device_.getQueue(queue_family_indices_.compute.value(), 0);
+  transfer_queue_ = device_.getQueue(queue_family_indices_.transfer.value(), 0);
+  present_queue_ = device_.getQueue(queue_family_indices_.present.value(), 0);
 
-  if (!m_graphicsQueue || !m_computeQueue || !m_transferQueue || !m_presentQueue)
+  if (!graphics_queue_ || !compute_queue_ || !transfer_queue_ || !present_queue_)
   {
     throw std::runtime_error("Unable to get at least one of the Vulkan logical device queues");
   }
 }
 
-bool VulkanDevice::isDeviceSuitable(const vk::PhysicalDeviceProperties& properties)
+bool VulkanDevice::IsDeviceSuitable(const vk::PhysicalDeviceProperties& properties)
 {
   return properties.limits.maxPushConstantsSize >= 96; // Frustum is 96 bytes
 }
 
-bool VulkanDevice::findQueueFamilies(const vk::SurfaceKHR surface)
+bool VulkanDevice::FindQueueFamilies(const vk::SurfaceKHR surface)
 {
-  const auto queueFamilies = m_physicalDevice.getQueueFamilyProperties();
+  const auto queueFamilies = physical_device_.getQueueFamilyProperties();
 
   for (size_t idx = 0; idx < queueFamilies.size(); idx++)
   {
@@ -144,7 +144,7 @@ bool VulkanDevice::findQueueFamilies(const vk::SurfaceKHR surface)
     if ((queueFamily.queueFlags & vk::QueueFlagBits::eCompute) &&
         !(queueFamily.queueFlags & vk::QueueFlagBits::eGraphics))
     {
-      m_queueFamilyIndices.compute = idx;
+      queue_family_indices_.compute = idx;
     }
 
     // Dedicated transfer queue
@@ -152,7 +152,7 @@ bool VulkanDevice::findQueueFamilies(const vk::SurfaceKHR surface)
         !(queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) &&
         !(queueFamily.queueFlags & vk::QueueFlagBits::eCompute))
     {
-      m_queueFamilyIndices.transfer = idx;
+      queue_family_indices_.transfer = idx;
     }
   }
 
@@ -164,29 +164,29 @@ bool VulkanDevice::findQueueFamilies(const vk::SurfaceKHR surface)
 
     if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics)
     {
-      m_queueFamilyIndices.graphics = idx;
+      queue_family_indices_.graphics = idx;
     }
 
-    const auto presentSupport = m_physicalDevice.getSurfaceSupportKHR(idx, surface);
+    const auto presentSupport = physical_device_.getSurfaceSupportKHR(idx, surface);
     if (presentSupport != 0U)
     {
-      m_queueFamilyIndices.present = idx;
+      queue_family_indices_.present = idx;
     }
 
-    if (!m_queueFamilyIndices.compute.has_value() && (queueFamily.queueFlags & vk::QueueFlagBits::eCompute))
+    if (!queue_family_indices_.compute.has_value() && (queueFamily.queueFlags & vk::QueueFlagBits::eCompute))
     {
-      m_queueFamilyIndices.compute = idx;
+      queue_family_indices_.compute = idx;
     }
 
-    if (!m_queueFamilyIndices.transfer.has_value() && (queueFamily.queueFlags & vk::QueueFlagBits::eTransfer))
+    if (!queue_family_indices_.transfer.has_value() && (queueFamily.queueFlags & vk::QueueFlagBits::eTransfer))
     {
-      m_queueFamilyIndices.transfer = idx;
+      queue_family_indices_.transfer = idx;
     }
-    if (m_queueFamilyIndices.isComplete())
+    if (queue_family_indices_.IsComplete())
     {
       return true;
     }
   }
 
-  return m_queueFamilyIndices.isComplete();
+  return queue_family_indices_.IsComplete();
 }

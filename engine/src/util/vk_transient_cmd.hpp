@@ -5,36 +5,37 @@
 
 #include "render/vk_command_pool.hpp"
 
-namespace Util
+namespace util
 {
-  inline vk::CommandBuffer beginSingleTimeCommandBuffer(const VulkanCommandPool& pool)
+  inline vk::CommandBuffer BeginSingleTimeCommandBuffer(const VulkanCommandPool& pool)
   {
-    auto commandBuffer = pool.allocate();
+    const auto command_buffer = pool.allocate();
 
-    vk::CommandBufferBeginInfo info{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit};
+    constexpr vk::CommandBufferBeginInfo info{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit};
 
-    commandBuffer.begin(info);
-    return commandBuffer;
+    command_buffer.begin(info);
+    return command_buffer;
   }
 
-  inline void endSingleTimeCommandBuffer(vk::CommandBuffer cmd, vk::Queue transferQueue, const VulkanCommandPool& pool)
+  inline void EndSingleTimeCommandBuffer(const vk::CommandBuffer cmd, const vk::Queue queue,
+                                         const VulkanCommandPool& pool)
   {
     cmd.end();
 
-    vk::CommandBufferSubmitInfo cmdInfo{.commandBuffer = cmd};
+    const vk::CommandBufferSubmitInfo cmd_info{.commandBuffer = cmd};
 
-    vk::SubmitInfo2 submitInfo{
+    const vk::SubmitInfo2 submit_info{
         .commandBufferInfoCount = 1,
-        .pCommandBufferInfos = &cmdInfo,
+        .pCommandBufferInfos = &cmd_info,
     };
 
-    auto result = transferQueue.submit2(1, &submitInfo, nullptr);
+    auto result = queue.submit2(1, &submit_info, nullptr);
     if (result != vk::Result::eSuccess)
     {
       throw std::runtime_error("Failed to submit to transfer queue");
     }
-    transferQueue.waitIdle();
+    queue.waitIdle();
 
     pool.free(cmd);
   }
-} // namespace Util
+} // namespace util

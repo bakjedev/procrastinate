@@ -11,7 +11,7 @@
 class ResourceManager
 {
 public:
-  ResourceManager() { m_rootPath = Files::getResourceRoot(); }
+  ResourceManager() { m_rootPath = files::GetResourceRoot(); }
 
   template<typename T>
   ResourceStorage<T> &getStorage()

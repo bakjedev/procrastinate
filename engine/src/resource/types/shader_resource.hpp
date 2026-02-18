@@ -9,7 +9,7 @@ struct ShaderResource
 {
   std::vector<uint32_t> code;
 
-  explicit ShaderResource(const std::string& path) { code = Files::readBinaryFile(path).value(); }
+  explicit ShaderResource(const std::string& path) { code = files::ReadBinaryFile(path).value(); }
 };
 
 struct ShaderResourceLoader

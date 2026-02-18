@@ -8,39 +8,39 @@ class EventManager;
 class Input
 {
 public:
-  explicit Input(EventManager& eventManager);
+  explicit Input(EventManager& event_manager);
   void update();
 
-  [[nodiscard]] bool keyDown(KeyboardKey key) const;
-  [[nodiscard]] bool keyPressed(KeyboardKey key) const;
-  [[nodiscard]] bool keyReleased(KeyboardKey key) const;
+  [[nodiscard]] bool KeyDown(KeyboardKey key) const;
+  [[nodiscard]] bool KeyPressed(KeyboardKey key) const;
+  [[nodiscard]] bool KeyReleased(KeyboardKey key) const;
 
-  [[nodiscard]] bool mouseButtonDown(MouseButton button) const;
-  [[nodiscard]] bool mouseButtonPressed(MouseButton button) const;
-  [[nodiscard]] bool mouseButtonReleased(MouseButton button) const;
+  [[nodiscard]] bool MouseButtonDown(MouseButton button) const;
+  [[nodiscard]] bool MouseButtonPressed(MouseButton button) const;
+  [[nodiscard]] bool MouseButtonReleased(MouseButton button) const;
 
-  [[nodiscard]] float getMouseX() const { return m_mouseX; }
-  [[nodiscard]] float getMouseY() const { return m_mouseY; }
-  [[nodiscard]] float getMouseDeltaX() const { return m_mouseDeltaX; }
-  [[nodiscard]] float getMouseDeltaY() const { return m_mouseDeltaY; }
-  [[nodiscard]] float getMouseScroll() const { return m_mouseScroll; }
+  [[nodiscard]] float GetMouseX() const { return mouse_x_; }
+  [[nodiscard]] float GetMouseY() const { return mouse_y_; }
+  [[nodiscard]] float GetMouseDeltaX() const { return mouse_delta_x_; }
+  [[nodiscard]] float GetMouseDeltaY() const { return mouse_delta_y_; }
+  [[nodiscard]] float GetMouseScroll() const { return mouse_scroll_; }
 
 private:
-  std::bitset<static_cast<size_t>(KeyboardKey::Count)> m_keysDown;
-  std::bitset<static_cast<size_t>(KeyboardKey::Count)> m_keysDownPrev;
-  std::bitset<static_cast<size_t>(KeyboardKey::Count)> m_keysPressed;
-  std::bitset<static_cast<size_t>(KeyboardKey::Count)> m_keysReleased;
+  std::bitset<static_cast<size_t>(KeyboardKey::Count)> keys_down_;
+  std::bitset<static_cast<size_t>(KeyboardKey::Count)> keys_down_prev_;
+  std::bitset<static_cast<size_t>(KeyboardKey::Count)> keys_pressed_;
+  std::bitset<static_cast<size_t>(KeyboardKey::Count)> keys_released_;
 
-  std::bitset<static_cast<size_t>(MouseButton::Count)> m_mouseButtonsDown;
-  std::bitset<static_cast<size_t>(MouseButton::Count)> m_mouseButtonsDownPrev;
-  std::bitset<static_cast<size_t>(MouseButton::Count)> m_mouseButtonsPressed;
-  std::bitset<static_cast<size_t>(MouseButton::Count)> m_mouseButtonsReleased;
+  std::bitset<static_cast<size_t>(MouseButton::Count)> mouse_buttons_down_;
+  std::bitset<static_cast<size_t>(MouseButton::Count)> mouse_buttons_down_prev_;
+  std::bitset<static_cast<size_t>(MouseButton::Count)> mouse_buttons_pressed_;
+  std::bitset<static_cast<size_t>(MouseButton::Count)> mouse_buttons_released_;
 
-  float m_mouseX{0.0F};
-  float m_mouseY{0.0F};
-  float m_mouseDeltaX{0.0F};
-  float m_mouseDeltaY{0.0F};
-  float m_mouseScroll{0.0F};
+  float mouse_x_{0.0F};
+  float mouse_y_{0.0F};
+  float mouse_delta_x_{0.0F};
+  float mouse_delta_y_{0.0F};
+  float mouse_scroll_{0.0F};
 
-  EventManager* m_eventManager;
+  EventManager* event_manager_;
 };

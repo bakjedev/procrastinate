@@ -9,10 +9,10 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
-namespace Files
+namespace files
 {
 
-  inline std::filesystem::path getExecutablePath()
+  inline std::filesystem::path GetExecutablePath()
   {
 #ifdef _WIN32
     char buffer[MAX_PATH];
@@ -25,9 +25,9 @@ namespace Files
 #endif
   }
 
-  inline std::filesystem::path getResourceRoot()
+  inline std::filesystem::path GetResourceRoot()
   {
-    auto exe_dir = getExecutablePath().parent_path();
+    const auto exe_dir = GetExecutablePath().parent_path();
 
     auto current = exe_dir;
     for (int i = 0; i < 5; ++i)
@@ -42,7 +42,7 @@ namespace Files
     throw std::runtime_error("Resource root not found");
   }
 
-  inline std::optional<std::vector<uint32_t>> readBinaryFile(const std::string& path)
+  inline std::optional<std::vector<uint32_t>> ReadBinaryFile(const std::string& path)
   {
     std::ifstream file(path, std::ios::binary | std::ios::ate);
     if (!file.is_open())
@@ -68,4 +68,4 @@ namespace Files
 
     return buffer;
   }
-} // namespace Files
+} // namespace files

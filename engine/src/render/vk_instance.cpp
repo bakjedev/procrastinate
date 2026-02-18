@@ -10,7 +10,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback([[maybe_unused]] vk::DebugUt
                                                     const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData,
                                                     [[maybe_unused]] void* pUserData)
 {
-  Util::println("Validation: {}", pCallbackData->pMessage);
+  util::println("Validation: {}", pCallbackData->pMessage);
   return VK_FALSE;
 }
 #endif
@@ -54,12 +54,12 @@ VulkanInstance::VulkanInstance()
       .ppEnabledExtensionNames = extensions.data(),
   };
 
-  m_instance = vk::createInstance(instanceCreateInfo);
+  instance_ = vk::createInstance(instanceCreateInfo);
 
   const vk::detail::DynamicLoader dynamicLoader;
   const auto vkGetInstanceProcAddr = dynamicLoader.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
-  m_dynamicLoader.init(vkGetInstanceProcAddr);
-  m_dynamicLoader.init(m_instance);
+  dynamic_loader_.init(vkGetInstanceProcAddr);
+  dynamic_loader_.init(instance_);
 #ifndef NDEBUG
 
   constexpr vk::DebugUtilsMessengerCreateInfoEXT debugInfo{
@@ -71,15 +71,15 @@ VulkanInstance::VulkanInstance()
                      vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance,
       .pfnUserCallback = debugCallback};
 
-  m_debugMessenger = m_instance.createDebugUtilsMessengerEXT(debugInfo, nullptr, m_dynamicLoader);
+  debug_messenger_ = instance_.createDebugUtilsMessengerEXT(debugInfo, nullptr, dynamic_loader_);
 #endif
 }
 
 VulkanInstance::~VulkanInstance()
 {
 #ifndef NDEBUG
-  m_instance.destroyDebugUtilsMessengerEXT(m_debugMessenger, nullptr, m_dynamicLoader);
+  instance_.destroyDebugUtilsMessengerEXT(debug_messenger_, nullptr, dynamic_loader_);
 #endif
 
-  m_instance.destroy();
+  instance_.destroy();
 }

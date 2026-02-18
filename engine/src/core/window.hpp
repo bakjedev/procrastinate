@@ -16,7 +16,7 @@ struct WindowInfo
 class Window
 {
 public:
-  Window(const WindowInfo& info, EventManager& eventManager);
+  Window(const WindowInfo& info, EventManager& event_manager);
   Window(const Window&) = delete;
   Window(Window&&) = delete;
   Window& operator=(const Window&) = delete;
@@ -24,21 +24,21 @@ public:
   ~Window();
 
   [[nodiscard]] SDL_Window* get() const;
-  [[nodiscard]] bool shouldQuit() const;
+  [[nodiscard]] bool ShouldQuit() const;
 
   void quit();
 
   void update();
 
-  [[nodiscard]] std::pair<uint32_t, uint32_t> getWindowSize() const;
+  [[nodiscard]] std::pair<uint32_t, uint32_t> GetWindowSize() const;
 
 private:
-  bool m_quit = false;
-  uint32_t m_width = 0;
-  uint32_t m_height = 0;
-  bool m_fullscreen = false;
+  bool quit_ = false;
+  uint32_t width_ = 0;
+  uint32_t height_ = 0;
+  bool fullscreen_ = false;
 
-  EventManager* m_eventManager;
+  EventManager* event_manager_;
 
-  SDL_Window* m_window = nullptr;
+  SDL_Window* window_ = nullptr;
 };

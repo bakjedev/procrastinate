@@ -6,8 +6,8 @@
 
 struct PipelineLayoutInfo
 {
-  std::vector<vk::PushConstantRange> pushConstants;
-  std::vector<vk::DescriptorSetLayout> descriptorSets;
+  std::vector<vk::PushConstantRange> push_constants;
+  std::vector<vk::DescriptorSetLayout> descriptor_sets;
 };
 
 class VulkanPipelineLayout
@@ -20,58 +20,58 @@ public:
   VulkanPipelineLayout &operator=(VulkanPipelineLayout &&) = delete;
   ~VulkanPipelineLayout();
 
-  [[nodiscard]] vk::PipelineLayout get() const { return m_layout; }
+  [[nodiscard]] vk::PipelineLayout get() const { return layout_; }
 
 private:
-  vk::PipelineLayout m_layout;
-  vk::Device m_device;
+  vk::PipelineLayout layout_;
+  vk::Device device_;
 };
 
 struct ComputePipelineInfo
 {
-  vk::PipelineShaderStageCreateInfo shaderStage;
+  vk::PipelineShaderStageCreateInfo shader_stage;
   vk::PipelineLayout layout;
 };
 
 struct GraphicsPipelineInfo
 {
-  std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
+  std::vector<vk::PipelineShaderStageCreateInfo> shader_stages;
 
-  std::vector<vk::VertexInputBindingDescription> vertexBindings;
-  std::vector<vk::VertexInputAttributeDescription> vertexAttributes;
+  std::vector<vk::VertexInputBindingDescription> vertex_bindings;
+  std::vector<vk::VertexInputAttributeDescription> vertex_attributes;
 
   vk::PrimitiveTopology topology = vk::PrimitiveTopology::eTriangleList;
 
-  vk::PolygonMode polygonMode = vk::PolygonMode::eFill;
-  vk::CullModeFlags cullMode = vk::CullModeFlagBits::eBack;
-  vk::FrontFace frontFace = vk::FrontFace::eCounterClockwise;
-  float lineWidth = 1.0F;
+  vk::PolygonMode polygon_mode = vk::PolygonMode::eFill;
+  vk::CullModeFlags cull_mode = vk::CullModeFlagBits::eBack;
+  vk::FrontFace front_face = vk::FrontFace::eCounterClockwise;
+  float line_width = 1.0F;
 
   vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1;
 
-  bool depthTest = true;
-  bool depthWrite = true;
-  vk::CompareOp depthCompareOp = vk::CompareOp::eLess;
+  bool depth_test = true;
+  bool depth_write = true;
+  vk::CompareOp depth_compare_op = vk::CompareOp::eLess;
 
   struct ColorBlendAttachment
   {
-    bool blendEnable = false;
-    vk::BlendFactor srcColorBlendFactor = vk::BlendFactor::eOne;
-    vk::BlendFactor dstColorBlendFactor = vk::BlendFactor::eZero;
-    vk::BlendOp colorBlendOp = vk::BlendOp::eAdd;
-    vk::BlendFactor srcAlphaBlendFactor = vk::BlendFactor::eOne;
-    vk::BlendFactor dstAlphaBlendFactor = vk::BlendFactor::eZero;
-    vk::BlendOp alphaBlendOp = vk::BlendOp::eAdd;
-    vk::ColorComponentFlags colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-                                             vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+    bool blend_enable = false;
+    vk::BlendFactor src_color_blend_factor = vk::BlendFactor::eOne;
+    vk::BlendFactor dst_color_blend_factor = vk::BlendFactor::eZero;
+    vk::BlendOp color_blend_op = vk::BlendOp::eAdd;
+    vk::BlendFactor src_alpha_blend_factor = vk::BlendFactor::eOne;
+    vk::BlendFactor dst_alpha_blend_factor = vk::BlendFactor::eZero;
+    vk::BlendOp alpha_blend_op = vk::BlendOp::eAdd;
+    vk::ColorComponentFlags color_write_mask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                                               vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
   };
-  std::vector<ColorBlendAttachment> colorBlendAttachments;
+  std::vector<ColorBlendAttachment> color_blend_attachments;
 
-  std::vector<vk::DynamicState> dynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
+  std::vector<vk::DynamicState> dynamic_states = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
 
-  std::vector<vk::Format> colorAttachmentFormats;
-  vk::Format depthAttachmentFormat = vk::Format::eUndefined;
-  vk::Format stencilAttachmentFormat = vk::Format::eUndefined;
+  std::vector<vk::Format> color_attachment_formats;
+  vk::Format depth_attachment_format = vk::Format::eUndefined;
+  vk::Format stencil_attachment_format = vk::Format::eUndefined;
 
   vk::PipelineLayout layout;
 };
@@ -88,12 +88,12 @@ public:
   VulkanPipeline &operator=(VulkanPipeline &&) = delete;
   ~VulkanPipeline();
 
-  [[nodiscard]] vk::Pipeline get() const { return m_pipeline; }
+  [[nodiscard]] vk::Pipeline get() const { return pipeline_; }
 
 private:
-  void createGraphicsPipeline(const GraphicsPipelineInfo &info);
-  void createComputePipeline(const ComputePipelineInfo &info);
+  void CreateGraphicsPipeline(const GraphicsPipelineInfo &info);
+  void CreateComputePipeline(const ComputePipelineInfo &info);
 
-  vk::Pipeline m_pipeline;
-  vk::Device m_device;
+  vk::Pipeline pipeline_;
+  vk::Device device_;
 };
