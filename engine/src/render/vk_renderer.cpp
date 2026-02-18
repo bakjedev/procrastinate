@@ -719,8 +719,8 @@ void VulkanRenderer::ClearLines() { debug_line_vertices_.clear(); }
 
 void VulkanRenderer::Upload()
 {
-  device_->WaitIdle();
-
+  device_->WaitIdle(); // THIS BAD
+ // Destroy old buffers
   if (vertex_buffer_)
   {
     vertex_buffer_->Destroy();
@@ -739,6 +739,7 @@ void VulkanRenderer::Upload()
     mesh_info_buffer_ = nullptr;
   }
 
+  // Create staging buffers and write the vertices, indices and mesh info to them.
   const auto vertices_size = sizeof(Vertex) * vertices_.size();
   const auto indices_size = sizeof(uint32_t) * indices_.size();
   const auto meshes_size = sizeof(MeshInfo) * mesh_infos_.size();
@@ -791,6 +792,7 @@ void VulkanRenderer::Upload()
                    allocator_->get(), device_.get());
   staging_mesh_info_buffer.Write(mesh_infos_.data());
 
+  // Copy staging buffers to real buffers
   const auto cmd = util::BeginSingleTimeCommandBuffer(*transfer_pool_);
 
   vk::BufferCopy vertex_copy_region = {};
@@ -811,37 +813,9 @@ void VulkanRenderer::Upload()
   mesh_info_copy_region.size = meshes_size;
   cmd.copyBuffer(staging_mesh_info_buffer.get(), mesh_info_buffer_->get(), 1, &mesh_info_copy_region);
 
-  if (device_->QueueFamilies().transfer != device_->QueueFamilies().graphics)
-  {
-    std::array<vk::BufferMemoryBarrier2, 2> release_barriers = {
-        {{.srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
-          .srcAccessMask = vk::AccessFlagBits2::eMemoryWrite,
-          .dstStageMask = vk::PipelineStageFlagBits2::eNone,
-          .dstAccessMask = vk::AccessFlagBits2::eNone,
-          .srcQueueFamilyIndex = device_->QueueFamilies().transfer.value_or(0),
-          .dstQueueFamilyIndex = device_->QueueFamilies().graphics.value_or(0),
-          .buffer = vertex_buffer_->get(),
-          .offset = 0,
-          .size = vk::WholeSize},
-         {.srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
-          .srcAccessMask = vk::AccessFlagBits2::eMemoryWrite,
-          .dstStageMask = vk::PipelineStageFlagBits2::eNone,
-          .dstAccessMask = vk::AccessFlagBits2::eNone,
-          .srcQueueFamilyIndex = device_->QueueFamilies().transfer.value_or(0),
-          .dstQueueFamilyIndex = device_->QueueFamilies().graphics.value_or(0),
-          .buffer = index_buffer_->get(),
-          .offset = 0,
-          .size = vk::WholeSize}}};
-
-    const vk::DependencyInfoKHR dependency_info{.sType = vk::StructureType::eDependencyInfoKHR,
-                                                .bufferMemoryBarrierCount = 2,
-                                                .pBufferMemoryBarriers = release_barriers.data()};
-
-    cmd.pipelineBarrier2(dependency_info);
-  }
   util::EndSingleTimeCommandBuffer(cmd, device_->TransferQueue(), *transfer_pool_);
 
-  // UPDATE MESH INFO DESCRIPTOR SET
+  // Update the mesh info descriptor set
   auto buffer_info = vk::DescriptorBufferInfo{.buffer = mesh_info_buffer_->get(), .offset = 0, .range = vk::WholeSize};
 
   const vk::WriteDescriptorSet write{.dstSet = static_descriptor_set_,
@@ -851,38 +825,7 @@ void VulkanRenderer::Upload()
                                      .descriptorType = vk::DescriptorType::eStorageBuffer,
                                      .pBufferInfo = &buffer_info};
   device_->get().updateDescriptorSets(1, &write, 0, nullptr);
-
-  if (device_->QueueFamilies().transfer != device_->QueueFamilies().graphics)
-  {
-    const auto graphics_cmd = util::BeginSingleTimeCommandBuffer(*graphics_pool_);
-
-    std::array<vk::BufferMemoryBarrier2, 2> acquire_barriers = {
-        {{.srcStageMask = vk::PipelineStageFlagBits2::eNone,
-          .srcAccessMask = vk::AccessFlagBits2::eNone,
-          .dstStageMask = vk::PipelineStageFlagBits2::eVertexInput,
-          .dstAccessMask = vk::AccessFlagBits2::eVertexAttributeRead,
-          .srcQueueFamilyIndex = device_->QueueFamilies().transfer.value_or(0),
-          .dstQueueFamilyIndex = device_->QueueFamilies().graphics.value_or(0),
-          .buffer = vertex_buffer_->get(),
-          .offset = 0,
-          .size = vk::WholeSize},
-         {.srcStageMask = vk::PipelineStageFlagBits2::eNone,
-          .srcAccessMask = vk::AccessFlagBits2::eNone,
-          .dstStageMask = vk::PipelineStageFlagBits2::eIndexInput,
-          .dstAccessMask = vk::AccessFlagBits2::eIndexRead,
-          .srcQueueFamilyIndex = device_->QueueFamilies().transfer.value_or(0),
-          .dstQueueFamilyIndex = device_->QueueFamilies().graphics.value_or(0),
-          .buffer = index_buffer_->get(),
-          .offset = 0,
-          .size = vk::WholeSize}}};
-
-    const vk::DependencyInfo acquire_dependency_info{.bufferMemoryBarrierCount = 2,
-                                                     .pBufferMemoryBarriers = acquire_barriers.data()};
-
-    graphics_cmd.pipelineBarrier2(acquire_dependency_info);
-
-    util::EndSingleTimeCommandBuffer(graphics_cmd, device_->GraphicsQueue(), *graphics_pool_);
-  }
+  device_->WaitIdle(); // THIS BAD
 }
 
 void VulkanRenderer::RenderMesh(glm::mat4 model, const uint32_t mesh_id)
