@@ -1,13 +1,15 @@
 #pragma once
 #include <vulkan/vulkan.hpp>
 
-struct CommandPoolInfo {
+struct CommandPoolInfo
+{
   uint32_t queueFamilyIndex{};
   vk::CommandPoolCreateFlags flags;
 };
 
-class VulkanCommandPool {
- public:
+class VulkanCommandPool
+{
+public:
   explicit VulkanCommandPool(const CommandPoolInfo& info, vk::Device device);
   VulkanCommandPool(const VulkanCommandPool&) = delete;
   VulkanCommandPool(VulkanCommandPool&&) = delete;
@@ -16,12 +18,11 @@ class VulkanCommandPool {
   ~VulkanCommandPool();
 
   [[nodiscard]] vk::CommandPool get() const { return m_commandPool; }
-  [[nodiscard]] vk::CommandBuffer allocate(
-      vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const;
+  [[nodiscard]] vk::CommandBuffer allocate(vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const;
   void free(vk::CommandBuffer commandBuffer) const;
   void reset() const;
 
- private:
+private:
   vk::Device m_device;
   vk::CommandPool m_commandPool;
 

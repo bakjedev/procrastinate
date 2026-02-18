@@ -3,7 +3,8 @@
 
 #include <vulkan/vulkan.hpp>
 
-struct ImageInfo {
+struct ImageInfo
+{
   uint32_t width;
   uint32_t height;
   vk::Format format;
@@ -11,8 +12,9 @@ struct ImageInfo {
   vk::ImageAspectFlags aspectFlags;
 };
 
-class VulkanImage {
- public:
+class VulkanImage
+{
+public:
   VulkanImage(const ImageInfo& info, VmaAllocator allocator);
   VulkanImage(const VulkanImage&) = delete;
   VulkanImage(VulkanImage&&) = delete;
@@ -28,15 +30,13 @@ class VulkanImage {
   [[nodiscard]] uint32_t width() const { return m_width; }
   [[nodiscard]] uint32_t height() const { return m_height; }
 
-  void transitionLayout(vk::CommandBuffer cmd, vk::ImageLayout oldLayout,
-                        vk::ImageLayout newLayout) const;
+  void transitionLayout(vk::CommandBuffer cmd, vk::ImageLayout oldLayout, vk::ImageLayout newLayout) const;
 
-  static void transitionImageLayout(vk::Image image, vk::CommandBuffer cmd,
-                                    vk::ImageLayout oldLayout,
+  static void transitionImageLayout(vk::Image image, vk::CommandBuffer cmd, vk::ImageLayout oldLayout,
                                     vk::ImageLayout newLayout);
   void destroy();
 
- private:
+private:
   vk::Image m_image;
   vk::ImageView m_imageView;
   VmaAllocation m_allocation = VK_NULL_HANDLE;

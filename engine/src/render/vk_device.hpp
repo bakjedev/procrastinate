@@ -3,20 +3,22 @@
 #include <string>
 #include <vulkan/vulkan.hpp>
 
-struct QueueFamilyIndices {
+struct QueueFamilyIndices
+{
   std::optional<uint32_t> graphics;
   std::optional<uint32_t> compute;
   std::optional<uint32_t> transfer;
   std::optional<uint32_t> present;
 
-  [[nodiscard]] bool isComplete() const {
-    return graphics.has_value() && present.has_value() && compute.has_value() &&
-           transfer.has_value();
+  [[nodiscard]] bool isComplete() const
+  {
+    return graphics.has_value() && present.has_value() && compute.has_value() && transfer.has_value();
   }
 };
 
-class VulkanDevice {
- public:
+class VulkanDevice
+{
+public:
   explicit VulkanDevice(vk::Instance instance, vk::SurfaceKHR surface);
   VulkanDevice(const VulkanDevice&) = delete;
   VulkanDevice(VulkanDevice&&) = delete;
@@ -25,9 +27,7 @@ class VulkanDevice {
   ~VulkanDevice();
 
   [[nodiscard]] vk::Device get() const { return m_device; }
-  [[nodiscard]] vk::PhysicalDevice getPhysical() const {
-    return m_physicalDevice;
-  }
+  [[nodiscard]] vk::PhysicalDevice getPhysical() const { return m_physicalDevice; }
 
   void waitIdle() const;
 
@@ -36,18 +36,14 @@ class VulkanDevice {
   [[nodiscard]] vk::Queue transferQueue() const { return m_transferQueue; }
   [[nodiscard]] vk::Queue presentQueue() const { return m_presentQueue; }
 
-  [[nodiscard]] std::string name() const {
-    return static_cast<const char*>(m_properties.deviceName);
-  }
-  [[nodiscard]] const QueueFamilyIndices& queueFamilies() const {
-    return m_queueFamilyIndices;
-  }
-  [[nodiscard]] bool separateComputeQueue() const {
-    return m_queueFamilyIndices.compute.value() !=
-           m_queueFamilyIndices.graphics.value();
+  [[nodiscard]] std::string name() const { return static_cast<const char*>(m_properties.deviceName); }
+  [[nodiscard]] const QueueFamilyIndices& queueFamilies() const { return m_queueFamilyIndices; }
+  [[nodiscard]] bool separateComputeQueue() const
+  {
+    return m_queueFamilyIndices.compute.value() != m_queueFamilyIndices.graphics.value();
   }
 
- private:
+private:
   vk::PhysicalDevice m_physicalDevice;
   vk::Device m_device;
   vk::PhysicalDeviceProperties m_properties;

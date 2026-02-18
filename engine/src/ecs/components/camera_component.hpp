@@ -1,5 +1,6 @@
 #pragma once
 
-struct CCamera {
+struct CCamera
+{
   float fov;
 };

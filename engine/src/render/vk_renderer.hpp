@@ -25,7 +25,8 @@ class VulkanInstance;
 class VulkanSurface;
 class VulkanDevice;
 
-struct MeshInfo {
+struct MeshInfo
+{
   glm::vec3 bmin;
   uint32_t indexCount;
   glm::vec3 bmax;
@@ -34,36 +35,41 @@ struct MeshInfo {
   std::array<float, 3> pad;
 };
 
-struct PushConstant {
+struct PushConstant
+{
   glm::mat4 view;
   glm::mat4 proj;
 };
 
-struct ComputePushConstant {
+struct ComputePushConstant
+{
   Frustum frustum;
 };
 
-struct Vertex {
+struct Vertex
+{
   glm::vec3 position;
   glm::vec3 color;
   glm::vec3 normal;
 };
 
-struct RenderObject {
+struct RenderObject
+{
   glm::mat4 model;
   uint32_t meshID;
   std::array<int32_t, 3> pad;
 };
 
-struct DebugLineVertex {
+struct DebugLineVertex
+{
   glm::vec3 position;
   glm::vec3 color;
 };
 
-class VulkanRenderer {
- public:
-  explicit VulkanRenderer(Window *window, ResourceManager &resourceManager,
-                          EventManager &eventManager);
+class VulkanRenderer
+{
+public:
+  explicit VulkanRenderer(Window *window, ResourceManager &resourceManager, EventManager &eventManager);
   VulkanRenderer(const VulkanRenderer &) = delete;
   VulkanRenderer(VulkanRenderer &&) = delete;
   VulkanRenderer &operator=(const VulkanRenderer &) = delete;
@@ -72,23 +78,20 @@ class VulkanRenderer {
 
   void run(glm::mat4 world, float fov);
 
-  uint32_t addMesh(const std::vector<Vertex> &vertices,
-                   const std::vector<uint32_t> &indices, uint32_t firstIndex,
-                   int32_t vertexOffset, const glm::vec3 &bmin,
-                   const glm::vec3 &bmax);
+  uint32_t addMesh(const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices, uint32_t firstIndex,
+                   int32_t vertexOffset, const glm::vec3 &bmin, const glm::vec3 &bmax);
 
   void upload();
 
   void renderMesh(glm::mat4 model, uint32_t meshID);
   void clearMeshes();
 
-  void renderLine(const glm::vec3 &pointA, const glm::vec3 &pointB,
-                  const glm::vec3 &color);
+  void renderLine(const glm::vec3 &pointA, const glm::vec3 &pointB, const glm::vec3 &color);
   void clearLines();
   [[nodiscard]] int32_t getVertexCount() const;
   [[nodiscard]] uint32_t getIndexCount() const;
 
- private:
+private:
   [[nodiscard]] std::optional<uint32_t> beginFrame() const;
   void endFrame(uint32_t imageIndex);
 

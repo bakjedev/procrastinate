@@ -3,8 +3,9 @@
 
 struct SDL_Window;
 
-class VulkanSurface {
- public:
+class VulkanSurface
+{
+public:
   explicit VulkanSurface(SDL_Window *window, vk::Instance instance);
   VulkanSurface(const VulkanSurface &) = delete;
   VulkanSurface(VulkanSurface &&) = delete;
@@ -14,8 +15,8 @@ class VulkanSurface {
 
   [[nodiscard]] vk::SurfaceKHR get() const { return m_surface; }
 
- private:
+private:
   vk::SurfaceKHR m_surface;
 
-  vk::Instance m_instance;  // for deconstructing
+  vk::Instance m_instance; // for deconstructing
 };

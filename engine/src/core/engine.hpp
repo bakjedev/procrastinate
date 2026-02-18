@@ -10,7 +10,7 @@ class VulkanRenderer;
 class Engine;
 class Scene;
 
-template <typename T>
+template<typename T>
 concept Application = requires(T app, float deltaTime, Engine& engine) {
   { app.init(engine) } -> std::same_as<void>;
   { app.update(deltaTime) } -> std::same_as<void>;
@@ -19,8 +19,9 @@ concept Application = requires(T app, float deltaTime, Engine& engine) {
   { app.shutdown() } -> std::same_as<void>;
 };
 
-class Engine {
- public:
+class Engine
+{
+public:
   Engine();
   Engine(const Engine&) = delete;
   Engine(Engine&&) = default;
@@ -28,7 +29,7 @@ class Engine {
   Engine& operator=(Engine&&) = default;
   ~Engine();
 
-  template <Application App>
+  template<Application App>
   void run(App& app);
 
   [[nodiscard]] EventManager& getEventManager() const;
@@ -38,7 +39,7 @@ class Engine {
   [[nodiscard]] VulkanRenderer& getRenderer() const;
   [[nodiscard]] Scene& getScene() const;
 
- private:
+private:
   std::unique_ptr<EventManager> m_eventManager;
   std::unique_ptr<Window> m_window;
   std::unique_ptr<Input> m_input;
@@ -47,4 +48,4 @@ class Engine {
   std::unique_ptr<Scene> m_scene;
 };
 
-#include "engine.inl"  // IWYU pragma: keep
+#include "engine.inl" // IWYU pragma: keep

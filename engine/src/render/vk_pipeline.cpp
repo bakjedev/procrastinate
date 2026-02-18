@@ -4,54 +4,57 @@
 
 #include "vulkan/vulkan.hpp"
 
-VulkanPipelineLayout::VulkanPipelineLayout(const vk::Device device,
-                                           const PipelineLayoutInfo &info)
-    : m_device(device) {
+VulkanPipelineLayout::VulkanPipelineLayout(const vk::Device device, const PipelineLayoutInfo &info) : m_device(device)
+{
   const vk::PipelineLayoutCreateInfo createInfo{
       .setLayoutCount = static_cast<uint32_t>(info.descriptorSets.size()),
       .pSetLayouts = info.descriptorSets.data(),
-      .pushConstantRangeCount =
-          static_cast<uint32_t>(info.pushConstants.size()),
+      .pushConstantRangeCount = static_cast<uint32_t>(info.pushConstants.size()),
       .pPushConstantRanges = info.pushConstants.data()};
 
   m_layout = device.createPipelineLayout(createInfo);
 }
 
-VulkanPipelineLayout::~VulkanPipelineLayout() {
-  if (m_layout) {
+VulkanPipelineLayout::~VulkanPipelineLayout()
+{
+  if (m_layout)
+  {
     m_device.destroyPipelineLayout(m_layout);
   }
 }
 
-VulkanPipeline::VulkanPipeline(const vk::Device device,
-                               const PipelineInfo &info)
-    : m_device(device) {
+VulkanPipeline::VulkanPipeline(const vk::Device device, const PipelineInfo &info) : m_device(device)
+{
   std::visit(
-      [this](auto &&value) {
+      [this](auto &&value)
+      {
         using T = std::decay_t<decltype(value)>;
 
-        if constexpr (std::is_same_v<T, GraphicsPipelineInfo>) {
+        if constexpr (std::is_same_v<T, GraphicsPipelineInfo>)
+        {
           createGraphicsPipeline(value);
-        } else if constexpr (std::is_same_v<T, ComputePipelineInfo>) {
+        } else if constexpr (std::is_same_v<T, ComputePipelineInfo>)
+        {
           createComputePipeline(value);
         }
       },
       info);
 }
 
-VulkanPipeline::~VulkanPipeline() {
-  if (m_pipeline) {
+VulkanPipeline::~VulkanPipeline()
+{
+  if (m_pipeline)
+  {
     m_device.destroyPipeline(m_pipeline);
   }
 }
 
-void VulkanPipeline::createGraphicsPipeline(const GraphicsPipelineInfo &info) {
+void VulkanPipeline::createGraphicsPipeline(const GraphicsPipelineInfo &info)
+{
   vk::PipelineVertexInputStateCreateInfo vertexInput{
-      .vertexBindingDescriptionCount =
-          static_cast<uint32_t>(info.vertexBindings.size()),
+      .vertexBindingDescriptionCount = static_cast<uint32_t>(info.vertexBindings.size()),
       .pVertexBindingDescriptions = info.vertexBindings.data(),
-      .vertexAttributeDescriptionCount =
-          static_cast<uint32_t>(info.vertexAttributes.size()),
+      .vertexAttributeDescriptionCount = static_cast<uint32_t>(info.vertexAttributes.size()),
       .pVertexAttributeDescriptions = info.vertexAttributes.data(),
   };
 
@@ -61,10 +64,7 @@ void VulkanPipeline::createGraphicsPipeline(const GraphicsPipelineInfo &info) {
   };
 
   vk::PipelineViewportStateCreateInfo viewport{
-      .viewportCount = 1,
-      .pViewports = nullptr,
-      .scissorCount = 1,
-      .pScissors = nullptr};  // will be set dynamically
+      .viewportCount = 1, .pViewports = nullptr, .scissorCount = 1, .pScissors = nullptr}; // will be set dynamically
 
   vk::PipelineRasterizationStateCreateInfo rasterizer{
       .depthClampEnable = VK_FALSE,
@@ -90,7 +90,8 @@ void VulkanPipeline::createGraphicsPipeline(const GraphicsPipelineInfo &info) {
 
   std::vector<vk::PipelineColorBlendAttachmentState> colorBlendAttachments;
   colorBlendAttachments.reserve(info.colorBlendAttachments.size());
-  for (const auto &attachment : info.colorBlendAttachments) {
+  for (const auto &attachment: info.colorBlendAttachments)
+  {
     colorBlendAttachments.push_back({
         .blendEnable = attachment.blendEnable ? VK_TRUE : VK_FALSE,
         .srcColorBlendFactor = attachment.srcColorBlendFactor,
@@ -118,8 +119,7 @@ void VulkanPipeline::createGraphicsPipeline(const GraphicsPipelineInfo &info) {
 
   vk::PipelineRenderingCreateInfo renderingInfo{
       .viewMask = 0,
-      .colorAttachmentCount =
-          static_cast<uint32_t>(info.colorAttachmentFormats.size()),
+      .colorAttachmentCount = static_cast<uint32_t>(info.colorAttachmentFormats.size()),
       .pColorAttachmentFormats = info.colorAttachmentFormats.data(),
       .depthAttachmentFormat = info.depthAttachmentFormat,
       .stencilAttachmentFormat = info.stencilAttachmentFormat,
@@ -144,7 +144,8 @@ void VulkanPipeline::createGraphicsPipeline(const GraphicsPipelineInfo &info) {
   m_pipeline = result.value.front();
 }
 
-void VulkanPipeline::createComputePipeline(const ComputePipelineInfo &info) {
+void VulkanPipeline::createComputePipeline(const ComputePipelineInfo &info)
+{
   const vk::ComputePipelineCreateInfo createInfo{
       .flags = {},
       .stage = info.shaderStage,

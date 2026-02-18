@@ -5,15 +5,17 @@
 
 class EventManager;
 
-struct WindowInfo {
+struct WindowInfo
+{
   uint32_t width;
   uint32_t height;
   bool fullscreen;
   const char* title;
 };
 
-class Window {
- public:
+class Window
+{
+public:
   Window(const WindowInfo& info, EventManager& eventManager);
   Window(const Window&) = delete;
   Window(Window&&) = delete;
@@ -30,7 +32,7 @@ class Window {
 
   [[nodiscard]] std::pair<uint32_t, uint32_t> getWindowSize() const;
 
- private:
+private:
   bool m_quit = false;
   uint32_t m_width = 0;
   uint32_t m_height = 0;

@@ -3,8 +3,9 @@
 #include <span>
 #include <vulkan/vulkan.hpp>
 
-class VulkanShader {
- public:
+class VulkanShader
+{
+public:
   VulkanShader(vk::Device device, std::span<const uint32_t> code);
   VulkanShader(const VulkanShader &) = delete;
   VulkanShader(VulkanShader &&) = delete;
@@ -14,7 +15,7 @@ class VulkanShader {
 
   [[nodiscard]] vk::ShaderModule get() const { return m_shaderModule; }
 
- private:
+private:
   vk::ShaderModule m_shaderModule;
 
   vk::Device m_device;

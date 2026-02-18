@@ -3,7 +3,8 @@
 
 #include <vulkan/vulkan.hpp>
 
-struct BufferInfo {
+struct BufferInfo
+{
   size_t size{};
   vk::BufferUsageFlags usage;
   VmaMemoryUsage memoryUsage{};
@@ -12,10 +13,10 @@ struct BufferInfo {
 
 class VulkanDevice;
 
-class VulkanBuffer {
- public:
-  explicit VulkanBuffer(const BufferInfo& info, VmaAllocator allocator,
-                        VulkanDevice* device);
+class VulkanBuffer
+{
+public:
+  explicit VulkanBuffer(const BufferInfo& info, VmaAllocator allocator, VulkanDevice* device);
   VulkanBuffer(const VulkanBuffer&) = delete;
   VulkanBuffer(VulkanBuffer&&) = delete;
   VulkanBuffer& operator=(const VulkanBuffer&) = delete;
@@ -25,15 +26,15 @@ class VulkanBuffer {
   void create(const BufferInfo& info);
   void write(const void* srcData);
   void writeRange(const void* srcData, uint32_t rangeSize);
-  void writeRangeOffset(const void* srcData, uint32_t rangeSize,
-                        uint32_t offset);
+  void writeRangeOffset(const void* srcData, uint32_t rangeSize, uint32_t offset);
 
   void* map();
   void unmap() const;
 
   [[nodiscard]] void* getMappedData() const { return m_mappedData; };
-  template <typename T>
-  [[nodiscard]] T* getMappedDataAs() const {
+  template<typename T>
+  [[nodiscard]] T* getMappedDataAs() const
+  {
     return static_cast<T*>(m_mappedData);
   };
 
@@ -43,7 +44,7 @@ class VulkanBuffer {
   [[nodiscard]] VmaAllocation allocation() const { return m_allocation; }
   [[nodiscard]] uint32_t size() const { return m_size; }
 
- private:
+private:
   vk::Buffer m_buffer;
   VmaAllocation m_allocation = VK_NULL_HANDLE;
   uint32_t m_size = 0;

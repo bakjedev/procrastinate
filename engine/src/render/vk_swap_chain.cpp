@@ -2,30 +2,25 @@
 
 #include "util/print.hpp"
 
-VulkanSwapChain::VulkanSwapChain(const vk::Device device,
-                                 const vk::PhysicalDevice physicalDevice,
-                                 const vk::SurfaceKHR surface,
-                                 const vk::Extent2D extent)
-    : m_physicalDevice(physicalDevice),
-      m_surface(surface),
-      m_device(device),
-      m_extent(extent) {
+VulkanSwapChain::VulkanSwapChain(const vk::Device device, const vk::PhysicalDevice physicalDevice,
+                                 const vk::SurfaceKHR surface, const vk::Extent2D extent) :
+    m_physicalDevice(physicalDevice), m_surface(surface), m_device(device), m_extent(extent)
+{
   create();
 }
 
 VulkanSwapChain::~VulkanSwapChain() { destroy(); }
 
-vk::Result VulkanSwapChain::acquireNextImage(
-    const vk::Semaphore signalSemaphore, uint32_t& imageIndex) {
-  const auto result = m_device.acquireNextImageKHR(
-      m_swapChain, UINT64_MAX, signalSemaphore, nullptr, &m_imageIndex);
+vk::Result VulkanSwapChain::acquireNextImage(const vk::Semaphore signalSemaphore, uint32_t& imageIndex)
+{
+  const auto result = m_device.acquireNextImageKHR(m_swapChain, UINT64_MAX, signalSemaphore, nullptr, &m_imageIndex);
   imageIndex = m_imageIndex;
   return result;
 }
 
-vk::Result VulkanSwapChain::present(const uint32_t imageIndex,
-                                    const vk::Queue presentQueue,
-                                    const vk::Semaphore waitSemaphore) const {
+vk::Result VulkanSwapChain::present(const uint32_t imageIndex, const vk::Queue presentQueue,
+                                    const vk::Semaphore waitSemaphore) const
+{
   vk::PresentInfoKHR presentInfo{};
   presentInfo.sType = vk::StructureType::ePresentInfoKHR;
   presentInfo.waitSemaphoreCount = 1;
@@ -34,27 +29,32 @@ vk::Result VulkanSwapChain::present(const uint32_t imageIndex,
   presentInfo.pSwapchains = &m_swapChain;
   presentInfo.pImageIndices = &imageIndex;
 
-  try {
+  try
+  {
     return presentQueue.presentKHR(presentInfo);
-  } catch (const vk::OutOfDateKHRError&) {
+  } catch (const vk::OutOfDateKHRError&)
+  {
     return vk::Result::eErrorOutOfDateKHR;
   }
 }
 
-void VulkanSwapChain::recreate(vk::Extent2D extent) {
+void VulkanSwapChain::recreate(vk::Extent2D extent)
+{
   m_device.waitIdle();
   destroy();
   m_extent = extent;
   create();
 }
 
-void VulkanSwapChain::create() {
+void VulkanSwapChain::create()
+{
   chooseSurfaceFormat();
   choosePresentMode();
 
   const auto capabilities = getCapabilities();
 
-  if (m_extent.width == 0 || m_extent.height == 0) {
+  if (m_extent.width == 0 || m_extent.height == 0)
+  {
     m_extent = capabilities.currentExtent;
   }
   /* // check for invalid surface extent
@@ -67,8 +67,8 @@ void VulkanSwapChain::create() {
 
   // calculate the amount of image the swap chain will have
   uint32_t minImageCount = capabilities.minImageCount + 1;
-  if (capabilities.maxImageCount > 0 &&
-      minImageCount > capabilities.maxImageCount) {
+  if (capabilities.maxImageCount > 0 && minImageCount > capabilities.maxImageCount)
+  {
     minImageCount = capabilities.maxImageCount;
   }
 
@@ -80,8 +80,7 @@ void VulkanSwapChain::create() {
   createInfo.imageColorSpace = m_surfaceFormat.colorSpace;
   createInfo.imageExtent = m_extent;
   createInfo.imageArrayLayers = 1;
-  createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment |
-                          vk::ImageUsageFlagBits::eTransferDst;
+  createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
   createInfo.imageSharingMode = vk::SharingMode::eExclusive;
   createInfo.preTransform = vk::SurfaceTransformFlagBitsKHR::eIdentity;
   createInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
@@ -94,21 +93,26 @@ void VulkanSwapChain::create() {
   createImageViews();
 }
 
-void VulkanSwapChain::destroy() const {
-  for (const auto& view : m_imageViews) {
+void VulkanSwapChain::destroy() const
+{
+  for (const auto& view: m_imageViews)
+  {
     m_device.destroyImageView(view);
   }
   m_device.destroySwapchainKHR(m_swapChain);
 }
 
-void VulkanSwapChain::getImages() {
+void VulkanSwapChain::getImages()
+{
   m_images = m_device.getSwapchainImagesKHR(m_swapChain);
   m_imageCount = static_cast<uint32_t>(m_images.size());
 }
 
-void VulkanSwapChain::createImageViews() {
+void VulkanSwapChain::createImageViews()
+{
   m_imageViews.resize(m_imageCount);
-  for (size_t i = 0; i < m_imageCount; ++i) {
+  for (size_t i = 0; i < m_imageCount; ++i)
+  {
     vk::ImageViewCreateInfo viewCreateInfo{};
     viewCreateInfo.sType = vk::StructureType::eImageViewCreateInfo;
     viewCreateInfo.image = m_images[i];
@@ -118,8 +122,7 @@ void VulkanSwapChain::createImageViews() {
     viewCreateInfo.components.g = vk::ComponentSwizzle::eIdentity;
     viewCreateInfo.components.b = vk::ComponentSwizzle::eIdentity;
     viewCreateInfo.components.a = vk::ComponentSwizzle::eIdentity;
-    viewCreateInfo.subresourceRange.aspectMask =
-        vk::ImageAspectFlagBits::eColor;
+    viewCreateInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
     viewCreateInfo.subresourceRange.baseMipLevel = 0;
     viewCreateInfo.subresourceRange.levelCount = 1;
     viewCreateInfo.subresourceRange.baseArrayLayer = 0;
@@ -129,21 +132,24 @@ void VulkanSwapChain::createImageViews() {
   }
 }
 
-vk::SurfaceCapabilitiesKHR VulkanSwapChain::getCapabilities() const {
+vk::SurfaceCapabilitiesKHR VulkanSwapChain::getCapabilities() const
+{
   return m_physicalDevice.getSurfaceCapabilitiesKHR(m_surface);
 }
 
-void VulkanSwapChain::chooseSurfaceFormat() {
+void VulkanSwapChain::chooseSurfaceFormat()
+{
   const auto surfaceFormats = m_physicalDevice.getSurfaceFormatsKHR(m_surface);
 
-  if (surfaceFormats.empty()) {
+  if (surfaceFormats.empty())
+  {
     throw std::runtime_error("Failed to find Vulkan surface formats");
   }
 
-  for (const auto& surfaceFormat : surfaceFormats) {
+  for (const auto& surfaceFormat: surfaceFormats)
+  {
     if (surfaceFormat.format == vk::Format::eB8G8R8A8Srgb &&
-        surfaceFormat.colorSpace ==
-            vk::ColorSpaceKHR::eSrgbNonlinear)  // prefer SRGB Non linear
+        surfaceFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear) // prefer SRGB Non linear
     {
       m_surfaceFormat = surfaceFormat;
       return;
@@ -152,20 +158,23 @@ void VulkanSwapChain::chooseSurfaceFormat() {
   m_surfaceFormat = surfaceFormats[0];
 }
 
-void VulkanSwapChain::choosePresentMode() {
-  const auto presentModes =
-      m_physicalDevice.getSurfacePresentModesKHR(m_surface);
+void VulkanSwapChain::choosePresentMode()
+{
+  const auto presentModes = m_physicalDevice.getSurfacePresentModesKHR(m_surface);
 
-  if (presentModes.empty()) {
+  if (presentModes.empty())
+  {
     throw std::runtime_error("Failed to find present modes");
   }
 
-  for (const auto& presentMode : presentModes) {
-    if (presentMode == vk::PresentModeKHR::eMailbox)  // prefer mailbox
+  for (const auto& presentMode: presentModes)
+  {
+    if (presentMode == vk::PresentModeKHR::eMailbox) // prefer mailbox
     {
       m_presentMode = presentMode;
       return;
-    } else if (presentMode == vk::PresentModeKHR::eFifo) {
+    } else if (presentMode == vk::PresentModeKHR::eFifo)
+    {
       m_presentMode = presentMode;
       return;
     }

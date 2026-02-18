@@ -12,8 +12,9 @@
 #include "tracy/Tracy.hpp"
 #include "window.hpp"
 
-template <Application App>
-void Engine::run(App& app) {
+template<Application App>
+void Engine::run(App& app)
+{
   app.init(*this);
 
   using clock = std::chrono::steady_clock;
@@ -22,12 +23,12 @@ void Engine::run(App& app) {
   float accumulator = 0.0F;
   constexpr float fixedDt = 1.0F / 60.0F;
 
-  while (!m_window->shouldQuit()) {
+  while (!m_window->shouldQuit())
+  {
     ZoneScopedN("EngineLoop");
 
     auto currentTime = clock::now();
-    float deltaTime =
-        std::chrono::duration<float>(currentTime - lastTime).count();
+    float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
     lastTime = currentTime;
 
     m_eventManager->poll();
@@ -38,14 +39,16 @@ void Engine::run(App& app) {
     app.update(deltaTime);
 
     accumulator += deltaTime;
-    while (accumulator >= fixedDt) {
+    while (accumulator >= fixedDt)
+    {
       app.fixedUpdate(fixedDt);
       accumulator -= fixedDt;
     }
 
     m_renderer->clearMeshes();
     auto view = m_scene->registry().view<CMesh, CTransform>();
-    for (const auto entity : view) {
+    for (const auto entity: view)
+    {
       const auto& mesh = view.get<CMesh>(entity);
       const auto& transform = view.get<CTransform>(entity);
       m_renderer->renderMesh(transform.world, mesh.mesh->renderer_id);
@@ -54,10 +57,12 @@ void Engine::run(App& app) {
     const auto cameraView = m_scene->registry().view<CCamera, CTransform>();
     entt::entity cameraEntity = entt::null;
     auto it = cameraView.begin();
-    if (it != cameraView.end()) {
+    if (it != cameraView.end())
+    {
       cameraEntity = *it;
     }
-    if (cameraEntity != entt::null) {
+    if (cameraEntity != entt::null)
+    {
       const auto& camera = cameraView.get<CCamera>(cameraEntity);
       const auto& transform = cameraView.get<CTransform>(cameraEntity);
       app.render();

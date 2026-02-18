@@ -1,6 +1,7 @@
 #pragma once
 #include "glm/glm.hpp"
 
-struct CTransform {
+struct CTransform
+{
   glm::mat4 world;
 };

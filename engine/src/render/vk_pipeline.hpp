@@ -4,13 +4,15 @@
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
-struct PipelineLayoutInfo {
+struct PipelineLayoutInfo
+{
   std::vector<vk::PushConstantRange> pushConstants;
   std::vector<vk::DescriptorSetLayout> descriptorSets;
 };
 
-class VulkanPipelineLayout {
- public:
+class VulkanPipelineLayout
+{
+public:
   VulkanPipelineLayout(vk::Device device, const PipelineLayoutInfo &info);
   VulkanPipelineLayout(const VulkanPipelineLayout &) = delete;
   VulkanPipelineLayout(VulkanPipelineLayout &&) = delete;
@@ -20,17 +22,19 @@ class VulkanPipelineLayout {
 
   [[nodiscard]] vk::PipelineLayout get() const { return m_layout; }
 
- private:
+private:
   vk::PipelineLayout m_layout;
   vk::Device m_device;
 };
 
-struct ComputePipelineInfo {
+struct ComputePipelineInfo
+{
   vk::PipelineShaderStageCreateInfo shaderStage;
   vk::PipelineLayout layout;
 };
 
-struct GraphicsPipelineInfo {
+struct GraphicsPipelineInfo
+{
   std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
 
   std::vector<vk::VertexInputBindingDescription> vertexBindings;
@@ -49,7 +53,8 @@ struct GraphicsPipelineInfo {
   bool depthWrite = true;
   vk::CompareOp depthCompareOp = vk::CompareOp::eLess;
 
-  struct ColorBlendAttachment {
+  struct ColorBlendAttachment
+  {
     bool blendEnable = false;
     vk::BlendFactor srcColorBlendFactor = vk::BlendFactor::eOne;
     vk::BlendFactor dstColorBlendFactor = vk::BlendFactor::eZero;
@@ -57,14 +62,12 @@ struct GraphicsPipelineInfo {
     vk::BlendFactor srcAlphaBlendFactor = vk::BlendFactor::eOne;
     vk::BlendFactor dstAlphaBlendFactor = vk::BlendFactor::eZero;
     vk::BlendOp alphaBlendOp = vk::BlendOp::eAdd;
-    vk::ColorComponentFlags colorWriteMask =
-        vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-        vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+    vk::ColorComponentFlags colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                                             vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
   };
   std::vector<ColorBlendAttachment> colorBlendAttachments;
 
-  std::vector<vk::DynamicState> dynamicStates = {vk::DynamicState::eViewport,
-                                                 vk::DynamicState::eScissor};
+  std::vector<vk::DynamicState> dynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
 
   std::vector<vk::Format> colorAttachmentFormats;
   vk::Format depthAttachmentFormat = vk::Format::eUndefined;
@@ -75,8 +78,9 @@ struct GraphicsPipelineInfo {
 
 using PipelineInfo = std::variant<GraphicsPipelineInfo, ComputePipelineInfo>;
 
-class VulkanPipeline {
- public:
+class VulkanPipeline
+{
+public:
   VulkanPipeline(vk::Device device, const PipelineInfo &info);
   VulkanPipeline(const VulkanPipeline &) = delete;
   VulkanPipeline(VulkanPipeline &&) = delete;
@@ -86,7 +90,7 @@ class VulkanPipeline {
 
   [[nodiscard]] vk::Pipeline get() const { return m_pipeline; }
 
- private:
+private:
   void createGraphicsPipeline(const GraphicsPipelineInfo &info);
   void createComputePipeline(const ComputePipelineInfo &info);
 

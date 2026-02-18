@@ -2,14 +2,16 @@
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
-struct DescriptorPoolInfo {
+struct DescriptorPoolInfo
+{
   vk::DescriptorPoolCreateFlags flags;
   uint32_t maxSets;
   std::vector<vk::DescriptorPoolSize> poolSizes;
 };
 
-class VulkanDescriptorPool {
- public:
+class VulkanDescriptorPool
+{
+public:
   VulkanDescriptorPool(vk::Device device, const DescriptorPoolInfo &info);
   VulkanDescriptorPool(const VulkanDescriptorPool &) = delete;
   VulkanDescriptorPool(VulkanDescriptorPool &&) = delete;
@@ -18,33 +20,30 @@ class VulkanDescriptorPool {
   ~VulkanDescriptorPool();
 
   vk::DescriptorSet allocate(vk::DescriptorSetLayout layout) const;
-  std::vector<vk::DescriptorSet> allocate(
-      const std::vector<vk::DescriptorSetLayout> &layouts) const;
+  std::vector<vk::DescriptorSet> allocate(const std::vector<vk::DescriptorSetLayout> &layouts) const;
 
   vk::DescriptorPool get() const { return m_descriptorPool; }
 
- private:
+private:
   vk::Device m_device;
   vk::DescriptorPool m_descriptorPool;
 };
 
-class VulkanDescriptorSetLayout {
- public:
-  VulkanDescriptorSetLayout(
-      vk::Device device,
-      const std::vector<vk::DescriptorSetLayoutBinding> &bindings,
-      const std::vector<vk::DescriptorBindingFlags> &bindingFlags = {},
-      vk::DescriptorSetLayoutCreateFlags flags = {});
+class VulkanDescriptorSetLayout
+{
+public:
+  VulkanDescriptorSetLayout(vk::Device device, const std::vector<vk::DescriptorSetLayoutBinding> &bindings,
+                            const std::vector<vk::DescriptorBindingFlags> &bindingFlags = {},
+                            vk::DescriptorSetLayoutCreateFlags flags = {});
   VulkanDescriptorSetLayout(const VulkanDescriptorSetLayout &) = delete;
   VulkanDescriptorSetLayout(VulkanDescriptorSetLayout &&) = delete;
-  VulkanDescriptorSetLayout &operator=(const VulkanDescriptorSetLayout &) =
-      delete;
+  VulkanDescriptorSetLayout &operator=(const VulkanDescriptorSetLayout &) = delete;
   VulkanDescriptorSetLayout &operator=(VulkanDescriptorSetLayout &&) = delete;
   ~VulkanDescriptorSetLayout();
 
   [[nodiscard]] vk::DescriptorSetLayout get() const { return m_layout; }
 
- private:
+private:
   vk::Device m_device;
   vk::DescriptorSetLayout m_layout;
 };

@@ -5,8 +5,9 @@
 
 class EventManager;
 
-class Input {
- public:
+class Input
+{
+public:
   explicit Input(EventManager& eventManager);
   void update();
 
@@ -24,7 +25,7 @@ class Input {
   [[nodiscard]] float getMouseDeltaY() const { return m_mouseDeltaY; }
   [[nodiscard]] float getMouseScroll() const { return m_mouseScroll; }
 
- private:
+private:
   std::bitset<static_cast<size_t>(KeyboardKey::Count)> m_keysDown;
   std::bitset<static_cast<size_t>(KeyboardKey::Count)> m_keysDownPrev;
   std::bitset<static_cast<size_t>(KeyboardKey::Count)> m_keysPressed;

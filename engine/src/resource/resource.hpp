@@ -5,64 +5,74 @@
 #include <utility>
 #include <vector>
 
-template <typename T>
-struct ResourceHandle {
+template<typename T>
+struct ResourceHandle
+{
   uint32_t index = 0;
   uint32_t generation = 0;
 
   bool operator==(const ResourceHandle&) const = default;
 };
 
-template <typename T>
-struct ResourceHandleHash {
-  std::size_t operator()(const ResourceHandle<T>& handle) const {
+template<typename T>
+struct ResourceHandleHash
+{
+  std::size_t operator()(const ResourceHandle<T>& handle) const
+  {
     constexpr std::size_t generationBits = 32;
 
-    return std::hash<uint64_t>{}(
-        (static_cast<uint64_t>(handle.index) << generationBits) |
-        handle.generation);
+    return std::hash<uint64_t>{}((static_cast<uint64_t>(handle.index) << generationBits) | handle.generation);
   }
 };
 
-template <typename T>
+template<typename T>
 class ResourceStorage;
 
-template <typename T>
-class ResourceRef {
- public:
+template<typename T>
+class ResourceRef
+{
+public:
   ResourceRef() = default;
 
-  ResourceRef(const ResourceRef& other)
-      : m_handle(other.m_handle), m_storage(other.m_storage) {
-    if (m_storage) {
+  ResourceRef(const ResourceRef& other) : m_handle(other.m_handle), m_storage(other.m_storage)
+  {
+    if (m_storage)
+    {
       m_storage->acquire(m_handle);
     }
   }
 
-  ResourceRef(ResourceRef&& other) noexcept
-      : m_handle(other.m_handle), m_storage(other.m_storage) {
+  ResourceRef(ResourceRef&& other) noexcept : m_handle(other.m_handle), m_storage(other.m_storage)
+  {
     other.m_storage = nullptr;
   }
 
-  ResourceRef& operator=(const ResourceRef& other) {
-    if (this != &other) {
-      if (m_storage) {
+  ResourceRef& operator=(const ResourceRef& other)
+  {
+    if (this != &other)
+    {
+      if (m_storage)
+      {
         m_storage->destroy(m_handle);
       }
 
       m_handle = other.m_handle;
       m_storage = other.m_storage;
 
-      if (m_storage) {
+      if (m_storage)
+      {
         m_storage->acquire(m_handle);
       }
     }
     return *this;
   }
 
-  ResourceRef& operator=(ResourceRef&& other) noexcept {
-    if (this != &other) {
-      if (m_storage) {
+  ResourceRef& operator=(ResourceRef&& other) noexcept
+  {
+    if (this != &other)
+    {
+      if (m_storage)
+      {
         m_storage->destroy(m_handle);
       }
 
@@ -74,8 +84,10 @@ class ResourceRef {
     return *this;
   }
 
-  ~ResourceRef() {
-    if (m_storage) {
+  ~ResourceRef()
+  {
+    if (m_storage)
+    {
       m_storage->destroy(m_handle);
     }
   }
@@ -83,31 +95,28 @@ class ResourceRef {
   // make it act like a pointer to the resource
   T* get() { return m_storage ? m_storage->get(m_handle) : nullptr; }
   T* operator->() { return get(); }
-  T& operator*() {
+  T& operator*()
+  {
     auto* ptr = get();
     assert(ptr && "dereferencing nullptr");
     return *ptr;
   }
 
-  const T* get() const {
-    return m_storage ? m_storage->get(m_handle) : nullptr;
-  }
+  const T* get() const { return m_storage ? m_storage->get(m_handle) : nullptr; }
   const T* operator->() const { return get(); }
-  const T& operator*() const {
+  const T& operator*() const
+  {
     auto* ptr = get();
     assert(ptr && "dereferencing nullptr");
     return *ptr;
   }
 
-  [[nodiscard]] bool valid() const {
-    return m_storage && m_storage->valid(m_handle);
-  }
+  [[nodiscard]] bool valid() const { return m_storage && m_storage->valid(m_handle); }
 
- private:
+private:
   friend class ResourceStorage<T>;
 
-  ResourceRef(ResourceHandle<T> handle, ResourceStorage<T>* storage)
-      : m_handle(handle), m_storage(storage) {}
+  ResourceRef(ResourceHandle<T> handle, ResourceStorage<T>* storage) : m_handle(handle), m_storage(storage) {}
 
   ResourceHandle<T> m_handle;
   ResourceStorage<T>* m_storage;
@@ -115,19 +124,20 @@ class ResourceRef {
 
 // concept for valid loaders. needs () operator that takes the right args and
 // returns the right type
-template <typename Loader, typename T, typename... Args>
-concept LoaderFor = std::invocable<Loader, Args...> &&
-                    std::same_as<std::invoke_result_t<Loader, Args...>, T>;
+template<typename Loader, typename T, typename... Args>
+concept LoaderFor = std::invocable<Loader, Args...> && std::same_as<std::invoke_result_t<Loader, Args...>, T>;
 
-template <typename T>
-class ResourceStorage {
- private:
+template<typename T>
+class ResourceStorage
+{
+private:
   using Ref = ResourceRef<T>;
   using Handle = ResourceHandle<T>;
 
   friend class ResourceRef<T>;
 
-  struct Metadata {
+  struct Metadata
+  {
     uint32_t generation;
     uint32_t refCount;
   };
@@ -137,24 +147,28 @@ class ResourceStorage {
   std::vector<uint32_t> m_free;
 
   std::unordered_map<std::string, ResourceHandle<T>> m_keyToHandle;
-  std::unordered_map<ResourceHandle<T>, std::string, ResourceHandleHash<T>>
-      m_handleToKey;
+  std::unordered_map<ResourceHandle<T>, std::string, ResourceHandleHash<T>> m_handleToKey;
 
-  void destroy(const Handle& handle) {
+  void destroy(const Handle& handle)
+  {
     uint32_t index = handle.index;
-    if (index >= m_metadata.size()) {
+    if (index >= m_metadata.size())
+    {
       return;
     }
 
     auto& metadata = m_metadata[handle.index];
 
-    if (metadata.generation != handle.generation) {
+    if (metadata.generation != handle.generation)
+    {
       return;
     }
 
-    if (--metadata.refCount == 0) {
+    if (--metadata.refCount == 0)
+    {
       auto iter = m_handleToKey.find(handle);
-      if (iter != m_handleToKey.end()) {
+      if (iter != m_handleToKey.end())
+      {
         m_keyToHandle.erase(iter->second);
         m_handleToKey.erase(iter);
       }
@@ -167,37 +181,47 @@ class ResourceStorage {
     }
   }
 
-  void acquire(const Handle& handle) {
-    if (valid(handle)) {
+  void acquire(const Handle& handle)
+  {
+    if (valid(handle))
+    {
       ++m_metadata[handle.index].refCount;
     }
   }
 
-  const T* get(const Handle& handle) const {
-    if (valid(handle)) {
+  const T* get(const Handle& handle) const
+  {
+    if (valid(handle))
+    {
       return &m_resources[handle.index];
     }
     return nullptr;
   }
 
-  T* get(const Handle& handle) {
-    if (valid(handle)) {
+  T* get(const Handle& handle)
+  {
+    if (valid(handle))
+    {
       return &m_resources[handle.index];
     }
     return nullptr;
   }
 
- public:
-  template <typename Loader, typename... Args>
+public:
+  template<typename Loader, typename... Args>
     requires LoaderFor<Loader, T, Args...>
-  Ref create(const std::string& key, Loader&& loader, Args&&... args) {
+  Ref create(const std::string& key, Loader&& loader, Args&&... args)
+  {
     auto iter = m_keyToHandle.find(key);
-    if (iter != m_keyToHandle.end()) {
+    if (iter != m_keyToHandle.end())
+    {
       const Handle& cached = iter->second;
-      if (valid(cached)) {
+      if (valid(cached))
+      {
         ++m_metadata[cached.index].refCount;
         return Ref{cached, this};
-      } else {
+      } else
+      {
         m_keyToHandle.erase(iter);
         m_handleToKey.erase(cached);
       }
@@ -208,14 +232,16 @@ class ResourceStorage {
 
     uint32_t index = 0;
 
-    if (!m_free.empty()) {
+    if (!m_free.empty())
+    {
       index = m_free.back();
       m_free.pop_back();
 
       m_metadata[index].refCount = 1;
 
       m_resources[index] = std::move(resource);
-    } else {
+    } else
+    {
       index = m_resources.size();
 
       m_metadata.push_back(Metadata{.generation = 1, .refCount = 1});
@@ -229,14 +255,18 @@ class ResourceStorage {
     return Ref{handle, this};
   }
 
-  Ref get(const std::string& key) {
+  Ref get(const std::string& key)
+  {
     auto iter = m_keyToHandle.find(key);
-    if (iter != m_keyToHandle.end()) {
+    if (iter != m_keyToHandle.end())
+    {
       const Handle& cached = iter->second;
-      if (valid(cached)) {
+      if (valid(cached))
+      {
         ++m_metadata[cached.index].refCount;
         return Ref{cached, this};
-      } else {
+      } else
+      {
         m_keyToHandle.erase(iter);
         m_handleToKey.erase(cached);
       }
@@ -244,15 +274,15 @@ class ResourceStorage {
     return Ref{};
   }
 
-  bool valid(const Handle& handle) const {
+  bool valid(const Handle& handle) const
+  {
     uint32_t index = handle.index;
-    return index < m_metadata.size() &&
-           m_metadata[index].generation == handle.generation;
+    return index < m_metadata.size() && m_metadata[index].generation == handle.generation;
   }
 
-  bool valid(const Handle& handle) {
+  bool valid(const Handle& handle)
+  {
     uint32_t index = handle.index;
-    return index < m_metadata.size() &&
-           m_metadata[index].generation == handle.generation;
+    return index < m_metadata.size() && m_metadata[index].generation == handle.generation;
   }
 };

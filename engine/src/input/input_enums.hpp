@@ -2,7 +2,8 @@
 
 #include <cstdint>
 
-enum class KeyboardKey : uint8_t {
+enum class KeyboardKey : uint8_t
+{
   Unknown = 0,
   A = 4,
   B = 5,
@@ -153,7 +154,8 @@ enum class KeyboardKey : uint8_t {
   Count = 232
 };
 
-enum class MouseButton : uint8_t {
+enum class MouseButton : uint8_t
+{
   Left = 0,
   Middle = 1,
   Right = 2,
@@ -162,7 +164,8 @@ enum class MouseButton : uint8_t {
   Count = 5
 };
 
-enum class GamepadButton : uint8_t {
+enum class GamepadButton : uint8_t
+{
   South = 0,
   East = 1,
   West = 2,
@@ -192,7 +195,8 @@ enum class GamepadButton : uint8_t {
   Count = 26
 };
 
-enum class GamepadAxis : uint8_t {
+enum class GamepadAxis : uint8_t
+{
   LeftX = 0,
   LeftY = 1,
   RightX = 2,

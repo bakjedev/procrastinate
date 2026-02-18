@@ -4,7 +4,8 @@
 #include <variant>
 #include <vector>
 
-enum class EventType : uint8_t {
+enum class EventType : uint8_t
+{
   None,
   Quit,
   KeyDown,
@@ -16,40 +17,44 @@ enum class EventType : uint8_t {
   WindowResized
 };
 
-struct InputData {
+struct InputData
+{
   uint32_t scancode;
 };
 
-struct MotionData {
+struct MotionData
+{
   float x;
   float y;
   float dx;
   float dy;
 };
 
-struct WheelData {
+struct WheelData
+{
   float scroll;
 };
 
-struct WindowResizeData {
+struct WindowResizeData
+{
   uint32_t width;
   uint32_t height;
 };
 
-struct Event {
+struct Event
+{
   EventType type = EventType::None;
-  std::variant<std::monostate, InputData, MotionData, WheelData,
-               WindowResizeData>
-      data;
+  std::variant<std::monostate, InputData, MotionData, WheelData, WindowResizeData> data;
 };
 
-class EventManager {
- public:
+class EventManager
+{
+public:
   void poll();
 
   [[nodiscard]] const std::vector<Event>& getEvents() const;
 
- private:
+private:
   std::vector<Event> m_events;
 
   static constexpr size_t expectedEvents = 64;

@@ -4,10 +4,11 @@
 #include "util/vk_check.hpp"
 #include "vma/vma_usage.h"
 
-class VulkanAllocator {
- public:
-  VulkanAllocator(const vk::PhysicalDevice physicalDevice,
-                  const vk::Device device, const vk::Instance instance) {
+class VulkanAllocator
+{
+public:
+  VulkanAllocator(const vk::PhysicalDevice physicalDevice, const vk::Device device, const vk::Instance instance)
+  {
     VmaAllocatorCreateInfo info = {};
     info.physicalDevice = physicalDevice;
     info.device = device;
@@ -26,6 +27,6 @@ class VulkanAllocator {
 
   [[nodiscard]] VmaAllocator get() const { return m_allocator; }
 
- private:
+private:
   VmaAllocator m_allocator = nullptr;
 };

@@ -6,11 +6,12 @@
 
 #include "render/vk_renderer.hpp"
 
-struct MeshResource {
+struct MeshResource
+{
   uint32_t renderer_id;
 };
 
-struct MeshResourceLoader {
-  MeshResource operator()(const std::string &path,
-                          VulkanRenderer &renderer) const;
+struct MeshResourceLoader
+{
+  MeshResource operator()(const std::string &path, VulkanRenderer &renderer) const;
 };
