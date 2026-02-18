@@ -17,11 +17,8 @@ VulkanFrame::VulkanFrame(const VulkanCommandPool* graphicsPool,
                          const VulkanCommandPool* computePool,
                          const VulkanDescriptorPool* descriptorPool,
                          const VulkanDescriptorSetLayout* descriptorLayout,
-                         VulkanDevice* device, VulkanAllocator* allocator) {
-  // Set references
-  m_device = device;
-  m_allocator = allocator;
-
+                         VulkanDevice* device, VulkanAllocator* allocator)
+    : m_device(device), m_allocator(allocator) {
   // Create per frame sync objects
   constexpr vk::SemaphoreCreateInfo semaphoreCreateInfo{};
   constexpr vk::FenceCreateInfo fenceCreateInfo{
@@ -115,4 +112,17 @@ void VulkanFrame::recreateFrameImages(const uint32_t width,
   };
   m_visibilityImage =
       std::make_unique<VulkanImage>(visibilityImageInfo, m_allocator->get());
+
+  m_renderImage = nullptr;
+  const ImageInfo renderImageInfo{
+      .width = width,
+      .height = height,
+      .format = vk::Format::eB8G8R8A8Unorm,
+      .usage = vk::ImageUsageFlagBits::eColorAttachment |
+               vk::ImageUsageFlagBits::eTransferSrc |
+               vk::ImageUsageFlagBits::eStorage,
+      .aspectFlags = vk::ImageAspectFlagBits::eColor,
+  };
+  m_renderImage =
+      std::make_unique<VulkanImage>(renderImageInfo, m_allocator->get());
 }

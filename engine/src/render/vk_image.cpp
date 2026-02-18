@@ -58,6 +58,12 @@ void VulkanImage::transitionImageLayout(const vk::Image image,
     barrier.dstAccessMask = vk::AccessFlagBits2::eShaderRead;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eFragmentShader;
+  } else if (oldLayout == vk::ImageLayout::eColorAttachmentOptimal &&
+             newLayout == vk::ImageLayout::eTransferSrcOptimal) {
+    barrier.srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite;
+    barrier.dstAccessMask = vk::AccessFlagBits2::eTransferRead;
+    barrier.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+    barrier.dstStageMask = vk::PipelineStageFlagBits2::eTransfer;
   } else if (oldLayout == vk::ImageLayout::eUndefined &&
              newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
     barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
@@ -76,6 +82,24 @@ void VulkanImage::transitionImageLayout(const vk::Image image,
     barrier.srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite;
     barrier.dstAccessMask = vk::AccessFlagBits2::eNone;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+    barrier.dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe;
+  } else if (oldLayout == vk::ImageLayout::eUndefined &&
+             newLayout == vk::ImageLayout::ePresentSrcKHR) {
+    barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
+    barrier.dstAccessMask = vk::AccessFlagBits2::eNone;
+    barrier.srcStageMask = vk::PipelineStageFlagBits2::eNone;
+    barrier.dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe;
+  } else if (oldLayout == vk::ImageLayout::ePresentSrcKHR &&
+             newLayout == vk::ImageLayout::eTransferDstOptimal) {
+    barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
+    barrier.dstAccessMask = vk::AccessFlagBits2::eTransferWrite;
+    barrier.srcStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe;
+    barrier.dstStageMask = vk::PipelineStageFlagBits2::eTransfer;
+  } else if (oldLayout == vk::ImageLayout::eTransferDstOptimal &&
+             newLayout == vk::ImageLayout::ePresentSrcKHR) {
+    barrier.srcAccessMask = vk::AccessFlagBits2::eTransferWrite;
+    barrier.dstAccessMask = vk::AccessFlagBits2::eNone;
+    barrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe;
   } else {
     throw std::runtime_error("Unsupported layout transition");

@@ -80,7 +80,8 @@ void VulkanSwapChain::create() {
   createInfo.imageColorSpace = m_surfaceFormat.colorSpace;
   createInfo.imageExtent = m_extent;
   createInfo.imageArrayLayers = 1;
-  createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+  createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment |
+                          vk::ImageUsageFlagBits::eTransferDst;
   createInfo.imageSharingMode = vk::SharingMode::eExclusive;
   createInfo.preTransform = vk::SurfaceTransformFlagBitsKHR::eIdentity;
   createInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;

@@ -32,6 +32,7 @@ class VulkanFrame {
   [[nodiscard]] VulkanImage* visibilityImage() const {
     return m_visibilityImage.get();
   }
+  [[nodiscard]] VulkanImage* renderImage() const { return m_renderImage.get(); }
 
   [[nodiscard]] VulkanBuffer* objectBuffer() const {
     return m_objectBuffer.get();
@@ -71,6 +72,7 @@ class VulkanFrame {
 
   std::unique_ptr<VulkanImage> m_visibilityImage;
   std::unique_ptr<VulkanImage> m_depthImage;
+  std::unique_ptr<VulkanImage> m_renderImage;
 
   std::unique_ptr<VulkanBuffer> m_objectBuffer;
   std::unique_ptr<VulkanBuffer> m_indirectBuffer;

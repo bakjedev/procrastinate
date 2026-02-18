@@ -71,7 +71,6 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
   m_swapChain = std::make_unique<VulkanSwapChain>(
       m_device->get(), m_device->getPhysical(), m_surface->get(),
       vk::Extent2D{.width = width, .height = height});
-
   // -----------------------------------------------------------
   // GET QUEUE FAMILIES FOR GRAPHICS, TRANSFER AND COMPUTE
   // -----------------------------------------------------------
@@ -101,6 +100,19 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
       },
       m_device->get());
 
+  // -----------------------------------------------------------
+  // TRANSITION SWAPCHAIN IMAGES TO PRESENT
+  // -----------------------------------------------------------
+  {
+    auto cmd = Util::beginSingleTimeCommandBuffer(*m_graphicsPool);
+    for (const auto& image : m_swapChain->images()) {
+      VulkanImage::transitionImageLayout(image, cmd,
+                                         vk::ImageLayout::eUndefined,
+                                         vk::ImageLayout::ePresentSrcKHR);
+    }
+    Util::endSingleTimeCommandBuffer(cmd, m_device->graphicsQueue(),
+                                     *m_graphicsPool);
+  }
   // -----------------------------------------------------------
   // LOAD AND CREATE GRAPHICS SHADERS
   // -----------------------------------------------------------
@@ -259,7 +271,7 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
   {
     GraphicsPipelineInfo pipelineInfo{};
     pipelineInfo.shaderStages = {debugLineVertStage, debugLineFragStage};
-    pipelineInfo.colorAttachmentFormats = {m_swapChain->format()};
+    pipelineInfo.colorAttachmentFormats = {vk::Format::eB8G8R8A8Unorm};
     pipelineInfo.layout = m_pipelineLayout->get();
     pipelineInfo.colorBlendAttachments = {{}};
     pipelineInfo.topology = vk::PrimitiveTopology::eLineList;
@@ -434,7 +446,7 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resourceManager,
   // -----------------------------------------------------------
   // INITIALIZE ImGui
   // -----------------------------------------------------------
-  auto format = m_swapChain->format();
+  auto format = vk::Format::eB8G8R8A8Unorm;
   vk::PipelineRenderingCreateInfo renderingInfo{
       .colorAttachmentCount = 1, .pColorAttachmentFormats = &format};
 
@@ -568,7 +580,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   constexpr vk::DebugUtilsLabelEXT labelInfo2{.pLabelName = "MeshPass"};
   cmd.beginDebugUtilsLabelEXT(labelInfo2, m_instance->getDynamicLoader());
 
-  VulkanImage::transitionImageLayout(m_swapChain->getImage(imageIndex), cmd,
+  VulkanImage::transitionImageLayout(frame->renderImage()->get(), cmd,
                                      vk::ImageLayout::eUndefined,
                                      vk::ImageLayout::eColorAttachmentOptimal);
 
@@ -646,7 +658,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   cmd.beginDebugUtilsLabelEXT(labelInfo3, m_instance->getDynamicLoader());
 
   const vk::RenderingAttachmentInfo debugLineColorAttachment{
-      .imageView = m_swapChain->imageViews().at(imageIndex),
+      .imageView = frame->renderImage()->view(),
       .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
       .loadOp = vk::AttachmentLoadOp::eClear,
       .storeOp = vk::AttachmentStoreOp::eStore,
@@ -697,7 +709,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   ImGui::Render();
 
   const vk::RenderingAttachmentInfo imguiColorAttachment{
-      .imageView = m_swapChain->imageViews().at(imageIndex),
+      .imageView = frame->renderImage()->view(),
       .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
       .loadOp = vk::AttachmentLoadOp::eLoad,  // Load existing scene
       .storeOp = vk::AttachmentStoreOp::eStore,
@@ -713,8 +725,54 @@ void VulkanRenderer::run(glm::mat4 world, float fov) {
   cmd.beginRendering(imguiRenderInfo);
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
   cmd.endRendering();
-  VulkanImage::transitionImageLayout(m_swapChain->getImage(imageIndex), cmd,
+
+  cmd.endDebugUtilsLabelEXT(m_instance->getDynamicLoader());
+
+  ZoneNamedN(blitzone, "Blitting", true);
+  constexpr vk::DebugUtilsLabelEXT labelInfo5{.pLabelName = "BlittingPass"};
+  cmd.beginDebugUtilsLabelEXT(labelInfo5, m_instance->getDynamicLoader());
+
+  VulkanImage::transitionImageLayout(frame->renderImage()->get(), cmd,
                                      vk::ImageLayout::eColorAttachmentOptimal,
+                                     vk::ImageLayout::eTransferSrcOptimal);
+  VulkanImage::transitionImageLayout(m_swapChain->getImage(imageIndex), cmd,
+                                     vk::ImageLayout::ePresentSrcKHR,
+                                     vk::ImageLayout::eTransferDstOptimal);
+
+  const vk::ImageBlit blitRegion{
+      .srcSubresource =
+          {
+              .aspectMask = vk::ImageAspectFlagBits::eColor,
+              .mipLevel = 0,
+              .baseArrayLayer = 0,
+              .layerCount = 1,
+          },
+      .srcOffsets = {{vk::Offset3D{.x = 0, .y = 0, .z = 0},
+                      vk::Offset3D{.x = static_cast<int32_t>(
+                                       m_swapChain->extent().width),
+                                   .y = static_cast<int32_t>(
+                                       m_swapChain->extent().height),
+                                   .z = 1}}},
+      .dstSubresource =
+          {
+              .aspectMask = vk::ImageAspectFlagBits::eColor,
+              .mipLevel = 0,
+              .baseArrayLayer = 0,
+              .layerCount = 1,
+          },
+      .dstOffsets = {
+          {vk::Offset3D{.x = 0, .y = 0, .z = 0},
+           vk::Offset3D{.x = static_cast<int32_t>(m_swapChain->extent().width),
+                        .y = static_cast<int32_t>(m_swapChain->extent().height),
+                        .z = 1}}}};
+
+  cmd.blitImage(
+      frame->renderImage()->get(), vk::ImageLayout::eTransferSrcOptimal,
+      m_swapChain->getImage(imageIndex), vk::ImageLayout::eTransferDstOptimal,
+      1U, &blitRegion, vk::Filter::eNearest);
+
+  VulkanImage::transitionImageLayout(m_swapChain->getImage(imageIndex), cmd,
+                                     vk::ImageLayout::eTransferDstOptimal,
                                      vk::ImageLayout::ePresentSrcKHR);
 
   cmd.endDebugUtilsLabelEXT(m_instance->getDynamicLoader());
