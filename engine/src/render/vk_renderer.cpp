@@ -611,9 +611,6 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   VulkanImage::TransitionImageLayout(frame->VisibilityImage()->get(), cmd, vk::ImageLayout::eShaderReadOnlyOptimal,
                                      vk::ImageLayout::eColorAttachmentOptimal);
 
-  VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eTransferSrcOptimal,
-                                     vk::ImageLayout::eColorAttachmentOptimal);
-
   const vk::RenderingAttachmentInfo depth_attachment{
       .imageView = frame->DepthImage()->view(),
       .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
@@ -682,7 +679,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   VulkanImage::TransitionImageLayout(frame->VisibilityImage()->get(), cmd, vk::ImageLayout::eColorAttachmentOptimal,
                                      vk::ImageLayout::eShaderReadOnlyOptimal);
 
-  VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eColorAttachmentOptimal,
+  VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eTransferSrcOptimal,
                                      vk::ImageLayout::eGeneral);
 
   cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, shading_pipeline_layout_->get(), 0, descriptor_sets.size(),

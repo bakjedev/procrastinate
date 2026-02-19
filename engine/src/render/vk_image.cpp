@@ -100,6 +100,12 @@ void VulkanImage::TransitionImageLayout(const vk::Image image, const vk::Command
     barrier.dstAccessMask = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eComputeShader;
+  } else if (old_layout == vk::ImageLayout::eTransferSrcOptimal && new_layout == vk::ImageLayout::eGeneral)
+  {
+    barrier.srcAccessMask = vk::AccessFlagBits2::eTransferRead;
+    barrier.dstAccessMask = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite;
+    barrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
+    barrier.dstStageMask = vk::PipelineStageFlagBits2::eComputeShader;
   } else if (old_layout == vk::ImageLayout::eGeneral && new_layout == vk::ImageLayout::eColorAttachmentOptimal)
   {
     barrier.srcAccessMask = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite;
