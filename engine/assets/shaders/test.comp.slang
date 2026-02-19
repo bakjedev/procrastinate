@@ -12,6 +12,7 @@ StructuredBuffer<MeshInfo> meshInfos;
 struct ComputePushConstants
 {
     Frustum frustum;
+    uint renderObjectCount;
 };
 
 [[vk::push_constant]]
@@ -56,10 +57,8 @@ bool isOnFrustum(Frustum frustum, MeshInfo info, float4x4 world) {
 void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     uint index = dispatchThreadID.x;
-    uint count, stride;
-    renderObjects.GetDimensions(count, stride);
 
-    if (index >= count)
+    if (index >= pushConst.renderObjectCount)
         return;
 
     RenderObject obj = renderObjects[index];

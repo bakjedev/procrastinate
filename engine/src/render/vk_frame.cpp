@@ -11,7 +11,7 @@
 
 constexpr uint32_t kMaxIndirectCommands = 65536;
 constexpr uint32_t kMaxLines = 10000;
-constexpr uint32_t kMaxObjects = 10000;
+constexpr uint32_t kMaxObjects = 16384;
 
 VulkanFrame::VulkanFrame(const VulkanCommandPool* graphics_pool, /*const VulkanCommandPool* compute_pool,*/
                          const VulkanDescriptorPool* descriptor_pool,

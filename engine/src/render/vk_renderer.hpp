@@ -44,6 +44,7 @@ struct PushConstant
 struct ComputePushConstant
 {
   Frustum frustum;
+  uint32_t render_object_count;
 };
 
 struct Vertex

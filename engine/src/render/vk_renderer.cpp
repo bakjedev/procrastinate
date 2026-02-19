@@ -578,15 +578,17 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, culling_pipeline_layout_->get(), 0, descriptor_sets.size(),
                          descriptor_sets.data(), 0, nullptr);
 
+  const auto render_objects_size = static_cast<uint32_t>(render_objects_.size());
   const ComputePushConstant compute_push_constant{
       .frustum = frustum,
+      .render_object_count = render_objects_size,
   };
 
   cmd.pushConstants(culling_pipeline_layout_->get(), vk::ShaderStageFlagBits::eCompute, 0, sizeof(ComputePushConstant),
                     &compute_push_constant);
 
   cmd.bindPipeline(vk::PipelineBindPoint::eCompute, culling_pipeline_->get());
-  const uint32_t workgroups = (render_objects_.size() + 255) / 256;
+  const uint32_t workgroups = (render_objects_size + 255) / 256;
   cmd.dispatch(workgroups, 1, 1);
 
   vulkan_barriers::BufferBarrier(
@@ -664,7 +666,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
                            .extent = {.width = swap_chain_->extent().width, .height = swap_chain_->extent().height}};
   cmd.setScissor(0, 1, &scissor);
 
-  cmd.drawIndexedIndirectCount(frame->IndirectBuffer()->get(), 0, frame->DrawCount()->get(), 0, render_objects_.size(),
+  cmd.drawIndexedIndirectCount(frame->IndirectBuffer()->get(), 0, frame->DrawCount()->get(), 0, render_objects_size,
                                sizeof(vk::DrawIndexedIndirectCommand));
   cmd.endRendering();
 

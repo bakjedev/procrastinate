@@ -16,6 +16,16 @@ struct RuntimeApplication
   void init(Engine& eng)
   {
     engine = &eng;
+    auto rootPath = files::GetResourceRoot();
+
+    const auto wallEntity = engine->GetScene().Create();
+    auto* wallTransform = engine->GetScene().AddComponent<CTransform>(wallEntity);
+    auto* wallMesh = engine->GetScene().AddComponent<CMesh>(wallEntity);
+    wallMesh->mesh = engine->GetResourceManager().create<MeshResource>(
+        "wallMesh", MeshResourceLoader{}, (rootPath / "engine/assets/wall.obj").string(), engine->GetRenderer());
+    wallTransform->world = glm::mat4(1.0F);
+    wallTransform->world = glm::translate(wallTransform->world, glm::vec3(30.0F, 0.0F, 180.0F));
+    wallTransform->world = glm::scale(wallTransform->world, glm::vec3(1.2F, 1.0F, 1.0F));
 
     cameraEntity = engine->GetScene().Create();
     auto* cameraTransform = engine->GetScene().AddComponent<CTransform>(cameraEntity);
@@ -23,7 +33,6 @@ struct RuntimeApplication
     cameraTransform->world = glm::mat4(1.0F);
     cameraComponent->fov = 70.0F;
 
-    auto rootPath = files::GetResourceRoot();
     constexpr int gridSize = 100;
     for (int j{}; j < gridSize; ++j)
     {
