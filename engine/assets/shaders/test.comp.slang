@@ -53,7 +53,7 @@ bool isOnFrustum(Frustum frustum, MeshInfo info, float4x4 world) {
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
-void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID)
+void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     uint index = dispatchThreadID.x;
     uint count, stride;

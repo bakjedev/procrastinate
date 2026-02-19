@@ -47,20 +47,65 @@ void VulkanImage::TransitionImageLayout(const vk::Image image, const vk::Command
     barrier.dstAccessMask = vk::AccessFlagBits2::eTransferWrite;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eTransfer;
+  } else if (old_layout == vk::ImageLayout::eUndefined && new_layout == vk::ImageLayout::eTransferSrcOptimal)
+  {
+    barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
+    barrier.dstAccessMask = vk::AccessFlagBits2::eTransferRead;
+    barrier.srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe;
+    barrier.dstStageMask = vk::PipelineStageFlagBits2::eTransfer;
   } else if (old_layout == vk::ImageLayout::eTransferDstOptimal &&
              new_layout == vk::ImageLayout::eShaderReadOnlyOptimal)
   {
     barrier.srcAccessMask = vk::AccessFlagBits2::eTransferWrite;
-    barrier.dstAccessMask = vk::AccessFlagBits2::eShaderRead;
+    barrier.dstAccessMask = vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eInputAttachmentRead;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
-    barrier.dstStageMask = vk::PipelineStageFlagBits2::eFragmentShader;
+    barrier.dstStageMask = vk::PipelineStageFlagBits2::eComputeShader | vk::PipelineStageFlagBits2::eFragmentShader;
+  } else if (old_layout == vk::ImageLayout::eUndefined && new_layout == vk::ImageLayout::eShaderReadOnlyOptimal)
+  {
+    barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
+    barrier.dstAccessMask = vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eInputAttachmentRead;
+    barrier.srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe;
+    barrier.dstStageMask = vk::PipelineStageFlagBits2::eComputeShader | vk::PipelineStageFlagBits2::eFragmentShader;
   } else if (old_layout == vk::ImageLayout::eColorAttachmentOptimal &&
              new_layout == vk::ImageLayout::eTransferSrcOptimal)
   {
-    barrier.srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite;
+    barrier.srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite | vk::AccessFlagBits2::eColorAttachmentRead;
     barrier.dstAccessMask = vk::AccessFlagBits2::eTransferRead;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eTransfer;
+  } else if (old_layout == vk::ImageLayout::eTransferSrcOptimal &&
+             new_layout == vk::ImageLayout::eColorAttachmentOptimal)
+  {
+    barrier.srcAccessMask = vk::AccessFlagBits2::eTransferRead;
+    barrier.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite | vk::AccessFlagBits2::eColorAttachmentRead;
+    barrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
+    barrier.dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+  } else if (old_layout == vk::ImageLayout::eColorAttachmentOptimal &&
+             new_layout == vk::ImageLayout::eShaderReadOnlyOptimal)
+  {
+    barrier.srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite | vk::AccessFlagBits2::eColorAttachmentRead;
+    barrier.dstAccessMask = vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eInputAttachmentRead;
+    barrier.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+    barrier.dstStageMask = vk::PipelineStageFlagBits2::eComputeShader | vk::PipelineStageFlagBits2::eFragmentShader;
+  } else if (old_layout == vk::ImageLayout::eShaderReadOnlyOptimal &&
+             new_layout == vk::ImageLayout::eColorAttachmentOptimal)
+  {
+    barrier.srcAccessMask = vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eInputAttachmentRead;
+    barrier.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite | vk::AccessFlagBits2::eColorAttachmentRead;
+    barrier.srcStageMask = vk::PipelineStageFlagBits2::eComputeShader | vk::PipelineStageFlagBits2::eFragmentShader;
+    barrier.dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+  } else if (old_layout == vk::ImageLayout::eColorAttachmentOptimal && new_layout == vk::ImageLayout::eGeneral)
+  {
+    barrier.srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite | vk::AccessFlagBits2::eColorAttachmentRead;
+    barrier.dstAccessMask = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite;
+    barrier.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+    barrier.dstStageMask = vk::PipelineStageFlagBits2::eComputeShader;
+  } else if (old_layout == vk::ImageLayout::eGeneral && new_layout == vk::ImageLayout::eColorAttachmentOptimal)
+  {
+    barrier.srcAccessMask = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite;
+    barrier.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite | vk::AccessFlagBits2::eColorAttachmentRead;
+    barrier.srcStageMask = vk::PipelineStageFlagBits2::eComputeShader;
+    barrier.dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
   } else if (old_layout == vk::ImageLayout::eUndefined && new_layout == vk::ImageLayout::eDepthStencilAttachmentOptimal)
   {
     barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
@@ -76,7 +121,7 @@ void VulkanImage::TransitionImageLayout(const vk::Image image, const vk::Command
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
   } else if (old_layout == vk::ImageLayout::eColorAttachmentOptimal && new_layout == vk::ImageLayout::ePresentSrcKHR)
   {
-    barrier.srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite;
+    barrier.srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite | vk::AccessFlagBits2::eColorAttachmentRead;
     barrier.dstAccessMask = vk::AccessFlagBits2::eNone;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe;

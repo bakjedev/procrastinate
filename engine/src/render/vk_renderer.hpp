@@ -96,7 +96,7 @@ private:
   void EndFrame(uint32_t image_index);
 
   void RecreateSwapChain();
-  void RecreateDepthImage(uint32_t width, uint32_t height) const;
+  void RecreateFrameImages(uint32_t width, uint32_t height) const;
 
   static constexpr uint32_t max_frames_in_flight_ = 2;
 
@@ -110,9 +110,10 @@ private:
   std::unique_ptr<VulkanCommandPool> graphics_pool_;
   std::unique_ptr<VulkanCommandPool> transfer_pool_;
 
-  std::unique_ptr<VulkanShader> vertex_shader_;
-  std::unique_ptr<VulkanShader> fragment_shader_;
-  std::unique_ptr<VulkanShader> compute_shader_;
+  std::unique_ptr<VulkanShader> pre_pass_vert_;
+  std::unique_ptr<VulkanShader> pre_pass_frag_;
+  std::unique_ptr<VulkanShader> culling_comp_;
+  std::unique_ptr<VulkanShader> shading_comp_;
 
   std::unique_ptr<VulkanShader> debug_line_vert_;
   std::unique_ptr<VulkanShader> debug_line_frag_;
@@ -123,12 +124,14 @@ private:
   std::unique_ptr<VulkanDescriptorSetLayout> frame_descriptor_set_layout_;
   vk::DescriptorSet static_descriptor_set_;
 
-  std::unique_ptr<VulkanPipelineLayout> pipeline_layout_;
-  std::unique_ptr<VulkanPipeline> pipeline_;
+  std::unique_ptr<VulkanPipelineLayout> pre_pass_pipeline_layout_;
+  std::unique_ptr<VulkanPipeline> pre_pass_pipeline_;
   std::unique_ptr<VulkanPipelineLayout> debug_line_pipeline_layout_;
   std::unique_ptr<VulkanPipeline> debug_line_pipeline_;
-  std::unique_ptr<VulkanPipelineLayout> comp_pipeline_layout_;
-  std::unique_ptr<VulkanPipeline> comp_pipeline_;
+  std::unique_ptr<VulkanPipelineLayout> culling_pipeline_layout_;
+  std::unique_ptr<VulkanPipeline> culling_pipeline_;
+  std::unique_ptr<VulkanPipelineLayout> shading_pipeline_layout_;
+  std::unique_ptr<VulkanPipeline> shading_pipeline_;
 
   // https://docs.vulkan.org/guide/latest/swapchain_semaphore_reuse.html
   std::vector<std::unique_ptr<VulkanFrame>> frames_;
@@ -147,6 +150,7 @@ private:
   std::unique_ptr<VulkanBuffer> vertex_buffer_;
   std::unique_ptr<VulkanBuffer> index_buffer_;
   std::unique_ptr<VulkanBuffer> mesh_info_buffer_;
+  vk::UniqueSampler visibility_sampler_;
 
   Window *window_ = nullptr;
   EventManager *event_manager_ = nullptr;

@@ -39,6 +39,8 @@ constexpr float kNearPlaneDistance = 0.01F;
 constexpr float kFarPlaneDistance = 1000.0F;
 constexpr uint32_t kMaxDescriptorSets = 1000;
 constexpr uint32_t kStorageBufferCount = 20;
+constexpr uint32_t kStorageImageCount = 20;
+constexpr uint32_t kCombinedImageSamplerCount = 20;
 
 VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager, EventManager& event_manager) :
     window_(window), event_manager_(&event_manager)
@@ -64,16 +66,13 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   // -----------------------------------------------------------
   swap_chain_ = std::make_unique<VulkanSwapChain>(device_->get(), device_->GetPhysical(), surface_->get(),
                                                   vk::Extent2D{.width = width, .height = height});
-  // -----------------------------------------------------------
-  // GET QUEUE FAMILIES FOR GRAPHICS, TRANSFER AND COMPUTE
-  // -----------------------------------------------------------
-  const uint32_t graphics_queue_family = device_->QueueFamilies().graphics.value();
-  const uint32_t transfer_queue_family = device_->QueueFamilies().transfer.value();
-  // const uint32_t compute_queue_family = device_->QueueFamilies().compute.value();
 
   // -----------------------------------------------------------
   // CREATE COMMAND POOLS FOR GRAPHICS AND TRANSFER
   // -----------------------------------------------------------
+  const uint32_t graphics_queue_family = device_->QueueFamilies().graphics.value();
+  const uint32_t transfer_queue_family = device_->QueueFamilies().transfer.value();
+
   graphics_pool_ =
       std::make_unique<VulkanCommandPool>(CommandPoolInfo{.queue_family_index = graphics_queue_family,
                                                           .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer},
@@ -95,38 +94,42 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   }
 
   // -----------------------------------------------------------
-  // LOAD AND CREATE GRAPHICS SHADERS
+  // CREATE VISIBILITY SAMPLER
   // -----------------------------------------------------------
-  const auto vert_code =
-      resource_manager.createFromFile<ShaderResource>("engine/assets/shaders/test.vert.spv", ShaderResourceLoader{});
-  vertex_shader_ = std::make_unique<VulkanShader>(device_->get(), vert_code->code);
+  vk::SamplerCreateInfo sampler_create_info{
+      .magFilter = vk::Filter::eNearest,
+      .minFilter = vk::Filter::eNearest,
+      .mipmapMode = vk::SamplerMipmapMode::eNearest,
+      .addressModeU = vk::SamplerAddressMode::eRepeat,
+      .addressModeV = vk::SamplerAddressMode::eRepeat,
+      .addressModeW = vk::SamplerAddressMode::eRepeat,
+      .mipLodBias = 0.0f,
+      .anisotropyEnable = vk::False,
+      .maxAnisotropy = 1.0f,
+      .compareEnable = vk::False,
+      .minLod = 0.0f,
+      .maxLod = vk::LodClampNone,
+      .borderColor = vk::BorderColor::eFloatOpaqueBlack,
+      .unnormalizedCoordinates = vk::False,
+  };
 
-  const auto frag_code =
-      resource_manager.createFromFile<ShaderResource>("engine/assets/shaders/test.frag.spv", ShaderResourceLoader{});
-  fragment_shader_ = std::make_unique<VulkanShader>(device_->get(), frag_code->code);
-
-  const vk::PipelineShaderStageCreateInfo vert_stage{
-      .stage = vk::ShaderStageFlagBits::eVertex, .module = vertex_shader_->get(), .pName = "main"};
-
-  const vk::PipelineShaderStageCreateInfo frag_stage{
-      .stage = vk::ShaderStageFlagBits::eFragment, .module = fragment_shader_->get(), .pName = "main"};
-
-  const auto debug_line_vert_code = resource_manager.createFromFile<ShaderResource>(
-      "engine/assets/shaders/debug_line.vert.spv", ShaderResourceLoader{});
-  debug_line_vert_ = std::make_unique<VulkanShader>(device_->get(), debug_line_vert_code->code);
-
-  const auto debug_line_frag_code = resource_manager.createFromFile<ShaderResource>(
-      "engine/assets/shaders/debug_line.frag.spv", ShaderResourceLoader{});
-  debug_line_frag_ = std::make_unique<VulkanShader>(device_->get(), debug_line_frag_code->code);
-
-  const vk::PipelineShaderStageCreateInfo debug_line_vert_stage{
-      .stage = vk::ShaderStageFlagBits::eVertex, .module = debug_line_vert_->get(), .pName = "main"};
-
-  const vk::PipelineShaderStageCreateInfo debug_line_frag_stage{
-      .stage = vk::ShaderStageFlagBits::eFragment, .module = debug_line_frag_->get(), .pName = "main"};
+  visibility_sampler_ = device_->get().createSamplerUnique(sampler_create_info);
 
   // -----------------------------------------------------------
-  // Descriptor Set Layouts
+  // CREATE DESCRIPTOR POOL
+  // -----------------------------------------------------------
+  DescriptorPoolInfo descriptor_pool_info{};
+  descriptor_pool_info.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
+  descriptor_pool_info.max_sets = kMaxDescriptorSets;
+  descriptor_pool_info.pool_sizes = {
+      {.type = vk::DescriptorType::eCombinedImageSampler, .descriptorCount = kCombinedImageSamplerCount},
+      {.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = kStorageBufferCount},
+      {.type = vk::DescriptorType::eStorageImage, .descriptorCount = kStorageImageCount}};
+
+  descriptor_pool_ = std::make_unique<VulkanDescriptorPool>(device_->get(), descriptor_pool_info);
+
+  // -----------------------------------------------------------
+  // CREATE DESCRIPTOR SET LAYOUTS
   // -----------------------------------------------------------
   frame_descriptor_set_layout_ = std::make_unique<VulkanDescriptorSetLayout>(
       device_->get(),
@@ -145,6 +148,16 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
                                                  .binding = 2,
                                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
                                                  .descriptorCount = 1,
+                                                 .stageFlags = vk::ShaderStageFlagBits::eCompute},
+                  vk::DescriptorSetLayoutBinding{// visibilityImage
+                                                 .binding = 3,
+                                                 .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                                                 .descriptorCount = 1,
+                                                 .stageFlags = vk::ShaderStageFlagBits::eCompute},
+                  vk::DescriptorSetLayoutBinding{// renderImage
+                                                 .binding = 4,
+                                                 .descriptorType = vk::DescriptorType::eStorageImage,
+                                                 .descriptorCount = 1,
                                                  .stageFlags = vk::ShaderStageFlagBits::eCompute}},
       std::vector<vk::DescriptorBindingFlags>{}, vk::DescriptorSetLayoutCreateFlags{});
 
@@ -160,148 +173,7 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
       },
       std::vector<vk::DescriptorBindingFlags>{}, vk::DescriptorSetLayoutCreateFlags{});
 
-  // -----------------------------------------------------------
-  // CREATE GRAPHICS PIPELINE LAYOUTS
-  // -----------------------------------------------------------
-  PipelineLayoutInfo pipeline_layout_info{};
-
-  constexpr vk::PushConstantRange push_constant_range{
-      .stageFlags = vk::ShaderStageFlagBits::eVertex, .offset = 0, .size = sizeof(PushConstant)};
-
-  pipeline_layout_info.push_constants.push_back(push_constant_range);
-  pipeline_layout_info.descriptor_sets.push_back(static_descriptor_set_layout_->get());
-  pipeline_layout_info.descriptor_sets.push_back(frame_descriptor_set_layout_->get());
-
-  pipeline_layout_ = std::make_unique<VulkanPipelineLayout>(device_->get(), pipeline_layout_info);
-
-  pipeline_layout_info.descriptor_sets.clear();
-
-  debug_line_pipeline_layout_ = std::make_unique<VulkanPipelineLayout>(device_->get(), pipeline_layout_info);
-
-  // -----------------------------------------------------------
-  // CREATE GRAPHICS PIPELINE
-  // -----------------------------------------------------------
-  {
-    GraphicsPipelineInfo pipeline_info{};
-    pipeline_info.shader_stages = {vert_stage, frag_stage};
-    pipeline_info.color_attachment_formats = {vk::Format::eR32Uint};
-    pipeline_info.layout = pipeline_layout_->get();
-    pipeline_info.color_blend_attachments = {{}};
-    pipeline_info.front_face = vk::FrontFace::eClockwise;
-
-    pipeline_info.depth_attachment_format = vk::Format::eD32Sfloat;
-
-    vk::VertexInputBindingDescription binding{};
-    binding.binding = 0;
-    binding.stride = sizeof(Vertex);
-    binding.inputRate = vk::VertexInputRate::eVertex;
-
-    vk::VertexInputAttributeDescription position_attr{};
-    position_attr.location = 0;
-    position_attr.binding = 0;
-    position_attr.format = vk::Format::eR32G32B32Sfloat;
-    position_attr.offset = offsetof(Vertex, position);
-
-    // vk::VertexInputAttributeDescription colorAttr{};
-    // colorAttr.location = 1;
-    // colorAttr.binding = 0;
-    // colorAttr.format = vk::Format::eR32G32B32Sfloat;
-    // colorAttr.offset = offsetof(Vertex, color);
-    //
-    // vk::VertexInputAttributeDescription normalAttr{};
-    // normalAttr.location = 2;
-    // normalAttr.binding = 0;
-    // normalAttr.format = vk::Format::eR32G32B32Sfloat;
-    // normalAttr.offset = offsetof(Vertex, normal);
-
-    pipeline_info.vertex_bindings.push_back(binding);
-    pipeline_info.vertex_attributes.push_back(position_attr);
-    // pipelineInfo.vertexAttributes.push_back(colorAttr);
-    // pipelineInfo.vertexAttributes.push_back(normalAttr);
-
-    pipeline_ = std::make_unique<VulkanPipeline>(device_->get(), pipeline_info);
-  }
-  // -----------------------------------------------------------
-  // CREATE DEBUG LINE GRAPHICS PIPELINE
-  // -----------------------------------------------------------
-  {
-    GraphicsPipelineInfo pipeline_info{};
-    pipeline_info.shader_stages = {debug_line_vert_stage, debug_line_frag_stage};
-    pipeline_info.color_attachment_formats = {vk::Format::eB8G8R8A8Unorm};
-    pipeline_info.layout = pipeline_layout_->get();
-    pipeline_info.color_blend_attachments = {{}};
-    pipeline_info.topology = vk::PrimitiveTopology::eLineList;
-
-    vk::VertexInputBindingDescription binding{};
-    binding.binding = 0;
-    binding.stride = sizeof(DebugLineVertex);
-    binding.inputRate = vk::VertexInputRate::eVertex;
-
-    vk::VertexInputAttributeDescription position_attr{};
-    position_attr.location = 0;
-    position_attr.binding = 0;
-    position_attr.format = vk::Format::eR32G32B32Sfloat;
-    position_attr.offset = offsetof(Vertex, position);
-
-    vk::VertexInputAttributeDescription color_attr{};
-    color_attr.location = 1;
-    color_attr.binding = 0;
-    color_attr.format = vk::Format::eR32G32B32Sfloat;
-    color_attr.offset = offsetof(Vertex, color);
-
-    pipeline_info.vertex_bindings.push_back(binding);
-    pipeline_info.vertex_attributes.push_back(position_attr);
-    pipeline_info.vertex_attributes.push_back(color_attr);
-
-    debug_line_pipeline_ = std::make_unique<VulkanPipeline>(device_->get(), pipeline_info);
-  }
-
-  // -----------------------------------------------------------
-  // LOAD AND CREATE COMPUTE SHADER
-  // -----------------------------------------------------------
-  const auto comp_code =
-      resource_manager.createFromFile<ShaderResource>("engine/assets/shaders/test.comp.spv", ShaderResourceLoader{});
-  compute_shader_ = std::make_unique<VulkanShader>(device_->get(), comp_code->code);
-
-  const vk::PipelineShaderStageCreateInfo comp_stage{
-      .stage = vk::ShaderStageFlagBits::eCompute, .module = compute_shader_->get(), .pName = "main"};
-
-  // -----------------------------------------------------------
-  // CREATE COMPUTE PIPELINE LAYOUT (DESCRIPTOR SET LAYOUT)
-  // -----------------------------------------------------------
-  pipeline_layout_info.push_constants.clear();
-  pipeline_layout_info.descriptor_sets.clear();
-
-  pipeline_layout_info.descriptor_sets.push_back(static_descriptor_set_layout_->get());
-  pipeline_layout_info.descriptor_sets.push_back(frame_descriptor_set_layout_->get());
-
-  constexpr vk::PushConstantRange compute_push_constant_range{
-      .stageFlags = vk::ShaderStageFlagBits::eCompute, .offset = 0, .size = sizeof(ComputePushConstant)};
-
-  pipeline_layout_info.push_constants.push_back(compute_push_constant_range);
-
-  comp_pipeline_layout_ = std::make_unique<VulkanPipelineLayout>(device_->get(), pipeline_layout_info);
-  // -----------------------------------------------------------
-  // CREATE COMPUTE PIPELINE
-  // -----------------------------------------------------------
-  ComputePipelineInfo comp_pipeline_info{
-      .shader_stage = comp_stage,
-      .layout = comp_pipeline_layout_->get(),
-  };
-
-  comp_pipeline_ = std::make_unique<VulkanPipeline>(device_->get(), comp_pipeline_info);
-
-  // -----------------------------------------------------------
-  // CREATE DESCRIPTOR POOL
-  // -----------------------------------------------------------
-  DescriptorPoolInfo descriptor_pool_info{};
-  descriptor_pool_info.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
-  descriptor_pool_info.max_sets = kMaxDescriptorSets;
-  descriptor_pool_info.pool_sizes = {
-      {.type = vk::DescriptorType::eCombinedImageSampler, .descriptorCount = 1},
-      {.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = kStorageBufferCount}};
-
-  descriptor_pool_ = std::make_unique<VulkanDescriptorPool>(device_->get(), descriptor_pool_info);
+  static_descriptor_set_ = descriptor_pool_->allocate(static_descriptor_set_layout_->get());
 
   // -----------------------------------------------------------
   // CREATE FRAME RESOURCES
@@ -314,30 +186,38 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
                                                     allocator_.get()));
   }
 
+  // submit semaphores
   const auto swap_chain_image_count = swap_chain_->imageCount();
   for (uint32_t i{}; i < swap_chain_image_count; i++)
   {
     constexpr vk::SemaphoreCreateInfo semaphore_create_info{};
     submit_semaphores_.push_back(device_->get().createSemaphoreUnique(semaphore_create_info));
   }
-  // -----------------------------------------------------------
-  // CREATE SHARED RESOURCES
-  // -----------------------------------------------------------
 
-  RecreateDepthImage(width, height);
+  RecreateFrameImages(width, height);
 
-  // -----------------------------------------------------------
-  // ALLOCATE STATIC DESCRIPTOR SET
-  // -----------------------------------------------------------
-  static_descriptor_set_ = descriptor_pool_->allocate(static_descriptor_set_layout_->get());
+  // Transition render images
+  {
+    auto cmd = util::BeginSingleTimeCommandBuffer(*graphics_pool_);
+    for (const auto& frame: frames_)
+    {
+      VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eUndefined,
+                                         vk::ImageLayout::eTransferSrcOptimal);
+      VulkanImage::TransitionImageLayout(frame->VisibilityImage()->get(), cmd, vk::ImageLayout::eUndefined,
+                                         vk::ImageLayout::eShaderReadOnlyOptimal);
+    }
+    util::EndSingleTimeCommandBuffer(cmd, device_->GraphicsQueue(), *graphics_pool_);
+  }
 
   // -----------------------------------------------------------
   // WRITE TO DESCRIPTOR SETS
   // -----------------------------------------------------------
   std::vector<vk::WriteDescriptorSet> writes;
-  writes.reserve(frames_.size() * 3);
+  writes.reserve(frames_.size() * 5);
   std::vector<vk::DescriptorBufferInfo> buffer_infos;
   buffer_infos.reserve(frames_.size() * 3);
+  std::vector<vk::DescriptorImageInfo> image_infos;
+  image_infos.reserve(frames_.size() * 2);
 
   for (const auto& frame: frames_)
   {
@@ -373,9 +253,221 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
                                         .pBufferInfo = &buffer_infos.back()};
 
     writes.push_back(write3);
+
+    image_infos.push_back(vk::DescriptorImageInfo{.sampler = visibility_sampler_.get(),
+                                                  .imageView = frame->VisibilityImage()->view(),
+                                                  .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal});
+
+    const vk::WriteDescriptorSet write4{.dstSet = frame->DescriptorSet(),
+                                        .dstBinding = 3,
+                                        .dstArrayElement = 0,
+                                        .descriptorCount = 1,
+                                        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                                        .pImageInfo = &image_infos.back()};
+
+    writes.push_back(write4);
+
+    image_infos.push_back(vk::DescriptorImageInfo{.sampler = VK_NULL_HANDLE,
+                                                  .imageView = frame->RenderImage()->view(),
+                                                  .imageLayout = vk::ImageLayout::eGeneral});
+
+    const vk::WriteDescriptorSet write5{.dstSet = frame->DescriptorSet(),
+                                        .dstBinding = 4,
+                                        .dstArrayElement = 0,
+                                        .descriptorCount = 1,
+                                        .descriptorType = vk::DescriptorType::eStorageImage,
+                                        .pImageInfo = &image_infos.back()};
+
+    writes.push_back(write5);
   }
 
   device_->get().updateDescriptorSets(writes.size(), writes.data(), 0, nullptr);
+
+  // -----------------------------------------------------------
+  // LOAD SHADERS
+  // -----------------------------------------------------------
+
+  // pre pass
+  const auto vert_code =
+      resource_manager.createFromFile<ShaderResource>("engine/assets/shaders/test.vert.spv", ShaderResourceLoader{});
+  pre_pass_vert_ = std::make_unique<VulkanShader>(device_->get(), vert_code->code);
+
+  const auto frag_code =
+      resource_manager.createFromFile<ShaderResource>("engine/assets/shaders/test.frag.spv", ShaderResourceLoader{});
+  pre_pass_frag_ = std::make_unique<VulkanShader>(device_->get(), frag_code->code);
+
+  const vk::PipelineShaderStageCreateInfo vert_stage{
+      .stage = vk::ShaderStageFlagBits::eVertex, .module = pre_pass_vert_->get(), .pName = "main"};
+
+  const vk::PipelineShaderStageCreateInfo frag_stage{
+      .stage = vk::ShaderStageFlagBits::eFragment, .module = pre_pass_frag_->get(), .pName = "main"};
+
+  // debug line
+  const auto debug_line_vert_code = resource_manager.createFromFile<ShaderResource>(
+      "engine/assets/shaders/debug_line.vert.spv", ShaderResourceLoader{});
+  debug_line_vert_ = std::make_unique<VulkanShader>(device_->get(), debug_line_vert_code->code);
+
+  const auto debug_line_frag_code = resource_manager.createFromFile<ShaderResource>(
+      "engine/assets/shaders/debug_line.frag.spv", ShaderResourceLoader{});
+  debug_line_frag_ = std::make_unique<VulkanShader>(device_->get(), debug_line_frag_code->code);
+
+  const vk::PipelineShaderStageCreateInfo debug_line_vert_stage{
+      .stage = vk::ShaderStageFlagBits::eVertex, .module = debug_line_vert_->get(), .pName = "main"};
+
+  const vk::PipelineShaderStageCreateInfo debug_line_frag_stage{
+      .stage = vk::ShaderStageFlagBits::eFragment, .module = debug_line_frag_->get(), .pName = "main"};
+
+  // culling
+  const auto culling_comp_code =
+      resource_manager.createFromFile<ShaderResource>("engine/assets/shaders/test.comp.spv", ShaderResourceLoader{});
+  culling_comp_ = std::make_unique<VulkanShader>(device_->get(), culling_comp_code->code);
+
+  const vk::PipelineShaderStageCreateInfo culling_comp_stage{
+      .stage = vk::ShaderStageFlagBits::eCompute, .module = culling_comp_->get(), .pName = "main"};
+
+  // shading
+  const auto shading_comp_code =
+      resource_manager.createFromFile<ShaderResource>("engine/assets/shaders/shading.comp.spv", ShaderResourceLoader{});
+  shading_comp_ = std::make_unique<VulkanShader>(device_->get(), shading_comp_code->code);
+
+  const vk::PipelineShaderStageCreateInfo shading_comp_stage{
+      .stage = vk::ShaderStageFlagBits::eCompute, .module = shading_comp_->get(), .pName = "main"};
+
+  // -----------------------------------------------------------
+  // CREATE PIPELINE LAYOUTS
+  // -----------------------------------------------------------
+  constexpr vk::PushConstantRange push_constant_range{
+      .stageFlags = vk::ShaderStageFlagBits::eVertex, .offset = 0, .size = sizeof(PushConstant)};
+
+  // pre pass
+  {
+    PipelineLayoutInfo pipeline_layout_info{};
+
+    pipeline_layout_info.push_constants.push_back(push_constant_range);
+    pipeline_layout_info.descriptor_sets.push_back(static_descriptor_set_layout_->get());
+    pipeline_layout_info.descriptor_sets.push_back(frame_descriptor_set_layout_->get());
+
+    pre_pass_pipeline_layout_ = std::make_unique<VulkanPipelineLayout>(device_->get(), pipeline_layout_info);
+  }
+
+  // debug line
+  {
+    PipelineLayoutInfo pipeline_layout_info{};
+
+    pipeline_layout_info.push_constants.push_back(push_constant_range);
+
+    debug_line_pipeline_layout_ = std::make_unique<VulkanPipelineLayout>(device_->get(), pipeline_layout_info);
+  }
+
+  // culling
+  {
+    PipelineLayoutInfo pipeline_layout_info{};
+
+    pipeline_layout_info.descriptor_sets.push_back(static_descriptor_set_layout_->get());
+    pipeline_layout_info.descriptor_sets.push_back(frame_descriptor_set_layout_->get());
+
+    constexpr vk::PushConstantRange compute_push_constant_range{
+        .stageFlags = vk::ShaderStageFlagBits::eCompute, .offset = 0, .size = sizeof(ComputePushConstant)};
+
+    pipeline_layout_info.push_constants.push_back(compute_push_constant_range);
+
+    culling_pipeline_layout_ = std::make_unique<VulkanPipelineLayout>(device_->get(), pipeline_layout_info);
+  }
+
+  // shading
+  {
+    PipelineLayoutInfo pipeline_layout_info{};
+
+    pipeline_layout_info.descriptor_sets.push_back(static_descriptor_set_layout_->get());
+    pipeline_layout_info.descriptor_sets.push_back(frame_descriptor_set_layout_->get());
+
+    shading_pipeline_layout_ = std::make_unique<VulkanPipelineLayout>(device_->get(), pipeline_layout_info);
+  }
+
+  // -----------------------------------------------------------
+  // CREATE PIPELINES
+  // -----------------------------------------------------------
+
+  // pre pass
+  {
+    GraphicsPipelineInfo pipeline_info{};
+    pipeline_info.shader_stages = {vert_stage, frag_stage};
+    pipeline_info.color_attachment_formats = {vk::Format::eR32Uint};
+    pipeline_info.layout = pre_pass_pipeline_layout_->get();
+    pipeline_info.color_blend_attachments = {{}};
+    pipeline_info.front_face = vk::FrontFace::eClockwise;
+
+    pipeline_info.depth_attachment_format = vk::Format::eD32Sfloat;
+
+    vk::VertexInputBindingDescription binding{};
+    binding.binding = 0;
+    binding.stride = sizeof(Vertex);
+    binding.inputRate = vk::VertexInputRate::eVertex;
+
+    vk::VertexInputAttributeDescription position_attr{};
+    position_attr.location = 0;
+    position_attr.binding = 0;
+    position_attr.format = vk::Format::eR32G32B32Sfloat;
+    position_attr.offset = offsetof(Vertex, position);
+
+    pipeline_info.vertex_bindings.push_back(binding);
+    pipeline_info.vertex_attributes.push_back(position_attr);
+
+    pre_pass_pipeline_ = std::make_unique<VulkanPipeline>(device_->get(), pipeline_info);
+  }
+
+  // debug line
+  {
+    GraphicsPipelineInfo pipeline_info{};
+    pipeline_info.shader_stages = {debug_line_vert_stage, debug_line_frag_stage};
+    pipeline_info.color_attachment_formats = {vk::Format::eB8G8R8A8Unorm};
+    pipeline_info.layout = pre_pass_pipeline_layout_->get();
+    pipeline_info.color_blend_attachments = {{}};
+    pipeline_info.topology = vk::PrimitiveTopology::eLineList;
+
+    vk::VertexInputBindingDescription binding{};
+    binding.binding = 0;
+    binding.stride = sizeof(DebugLineVertex);
+    binding.inputRate = vk::VertexInputRate::eVertex;
+
+    vk::VertexInputAttributeDescription position_attr{};
+    position_attr.location = 0;
+    position_attr.binding = 0;
+    position_attr.format = vk::Format::eR32G32B32Sfloat;
+    position_attr.offset = offsetof(Vertex, position);
+
+    vk::VertexInputAttributeDescription color_attr{};
+    color_attr.location = 1;
+    color_attr.binding = 0;
+    color_attr.format = vk::Format::eR32G32B32Sfloat;
+    color_attr.offset = offsetof(Vertex, color);
+
+    pipeline_info.vertex_bindings.push_back(binding);
+    pipeline_info.vertex_attributes.push_back(position_attr);
+    pipeline_info.vertex_attributes.push_back(color_attr);
+
+    debug_line_pipeline_ = std::make_unique<VulkanPipeline>(device_->get(), pipeline_info);
+  }
+
+  // culling
+  {
+    ComputePipelineInfo culling_pipeline_info{
+        .shader_stage = culling_comp_stage,
+        .layout = culling_pipeline_layout_->get(),
+    };
+
+    culling_pipeline_ = std::make_unique<VulkanPipeline>(device_->get(), culling_pipeline_info);
+  }
+
+  // shading
+  {
+    ComputePipelineInfo shading_pipeline_info{
+        .shader_stage = shading_comp_stage,
+        .layout = shading_pipeline_layout_->get(),
+    };
+
+    shading_pipeline_ = std::make_unique<VulkanPipeline>(device_->get(), shading_pipeline_info);
+  }
 
   // -----------------------------------------------------------
   // INITIALIZE ImGui
@@ -483,17 +575,17 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
 
   const auto descriptor_sets = std::array{static_descriptor_set_, frame->DescriptorSet()};
 
-  cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, comp_pipeline_layout_->get(), 0, descriptor_sets.size(),
+  cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, culling_pipeline_layout_->get(), 0, descriptor_sets.size(),
                          descriptor_sets.data(), 0, nullptr);
 
   const ComputePushConstant compute_push_constant{
       .frustum = frustum,
   };
 
-  cmd.pushConstants(comp_pipeline_layout_->get(), vk::ShaderStageFlagBits::eCompute, 0, sizeof(ComputePushConstant),
+  cmd.pushConstants(culling_pipeline_layout_->get(), vk::ShaderStageFlagBits::eCompute, 0, sizeof(ComputePushConstant),
                     &compute_push_constant);
 
-  cmd.bindPipeline(vk::PipelineBindPoint::eCompute, comp_pipeline_->get());
+  cmd.bindPipeline(vk::PipelineBindPoint::eCompute, culling_pipeline_->get());
   const uint32_t workgroups = (render_objects_.size() + 255) / 256;
   cmd.dispatch(workgroups, 1, 1);
 
@@ -508,13 +600,16 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
 
   // -----------------------------------------------------------
-  // Graphics pass - render meshes
+  // Graphics pass - render meshes visibility
   // -----------------------------------------------------------
   ZoneNamedN(graphicsmesheszone, "MeshPass", true);
   constexpr vk::DebugUtilsLabelEXT label_info2{.pLabelName = "MeshPass"};
   cmd.beginDebugUtilsLabelEXT(label_info2, instance_->getDynamicLoader());
 
-  VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eUndefined,
+  VulkanImage::TransitionImageLayout(frame->VisibilityImage()->get(), cmd, vk::ImageLayout::eShaderReadOnlyOptimal,
+                                     vk::ImageLayout::eColorAttachmentOptimal);
+
+  VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eTransferSrcOptimal,
                                      vk::ImageLayout::eColorAttachmentOptimal);
 
   const vk::RenderingAttachmentInfo depth_attachment{
@@ -539,9 +634,9 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
       .pDepthAttachment = &depth_attachment};
 
   cmd.beginRendering(render_info);
-  cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_->get());
+  cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pre_pass_pipeline_->get());
 
-  cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_->get(), 0, descriptor_sets.size(),
+  cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pre_pass_pipeline_layout_->get(), 0, descriptor_sets.size(),
                          descriptor_sets.data(), 0, nullptr);
 
   const PushConstant push_constant{
@@ -549,7 +644,8 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
       .proj = projection,
   };
 
-  cmd.pushConstants(pipeline_layout_->get(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstant), &push_constant);
+  cmd.pushConstants(pre_pass_pipeline_layout_->get(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstant),
+                    &push_constant);
   constexpr vk::DeviceSize offset = 0;
   const auto vertex_buffer = vertex_buffer_->get();
   cmd.bindVertexBuffers(0, 1, &vertex_buffer, &offset);
@@ -575,6 +671,30 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
 
   // -----------------------------------------------------------
+  // Compute pass - shade render image with meshes
+  // -----------------------------------------------------------
+  ZoneNamedN(computeshadingzone, "ComputeShadingPass", true);
+  constexpr vk::DebugUtilsLabelEXT label_info6{.pLabelName = "ShadingPass"};
+  cmd.beginDebugUtilsLabelEXT(label_info6, instance_->getDynamicLoader());
+
+  VulkanImage::TransitionImageLayout(frame->VisibilityImage()->get(), cmd, vk::ImageLayout::eColorAttachmentOptimal,
+                                     vk::ImageLayout::eShaderReadOnlyOptimal);
+
+  VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eColorAttachmentOptimal,
+                                     vk::ImageLayout::eGeneral);
+
+  cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, shading_pipeline_layout_->get(), 0, descriptor_sets.size(),
+                         descriptor_sets.data(), 0, nullptr);
+  cmd.bindPipeline(vk::PipelineBindPoint::eCompute, shading_pipeline_->get());
+  {
+    const auto [width, height] = window_->GetWindowSize();
+    cmd.dispatch((width + 15) / 16, (height + 15) / 16, 1);
+  }
+  VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eGeneral,
+                                     vk::ImageLayout::eColorAttachmentOptimal);
+
+  cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
+  // -----------------------------------------------------------
   // Graphics pass - render debug lines
   // -----------------------------------------------------------
   ZoneNamedN(graphicslineszone, "DebugLinesPass", true);
@@ -585,7 +705,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   const vk::RenderingAttachmentInfo debug_line_color_attachment{
       .imageView = frame->RenderImage()->view(),
       .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-      .loadOp = vk::AttachmentLoadOp::eClear,
+      .loadOp = vk::AttachmentLoadOp::eLoad,
       .storeOp = vk::AttachmentStoreOp::eStore,
   };
 
@@ -720,7 +840,7 @@ void VulkanRenderer::ClearLines() { debug_line_vertices_.clear(); }
 void VulkanRenderer::Upload()
 {
   device_->WaitIdle(); // THIS BAD
- // Destroy old buffers
+  // Destroy old buffers
   if (vertex_buffer_)
   {
     vertex_buffer_->Destroy();
@@ -897,20 +1017,51 @@ auto VulkanRenderer::EndFrame(const uint32_t image_index) -> void
 
   current_frame_ = (current_frame_ + 1) % max_frames_in_flight_;
 }
+
 void VulkanRenderer::RecreateSwapChain()
 {
   const auto [width, height] = window_->GetWindowSize();
 
   swap_chain_->Recreate({.width = width, .height = height});
 
-  RecreateDepthImage(width, height);
+  RecreateFrameImages(width, height);
 
   aspect_ratio_ = static_cast<float>(width) / static_cast<float>(height);
 }
-void VulkanRenderer::RecreateDepthImage(const uint32_t width, const uint32_t height) const
+
+void VulkanRenderer::RecreateFrameImages(const uint32_t width, const uint32_t height) const
 {
+  std::vector<vk::WriteDescriptorSet> writes;
+  writes.reserve(frames_.size() * 2);
+  std::vector<vk::DescriptorImageInfo> image_infos;
+  image_infos.reserve(frames_.size() * 2);
   for (const auto& frame: frames_)
   {
     frame->RecreateFrameImages(width, height);
+
+    image_infos.push_back(vk::DescriptorImageInfo{.sampler = visibility_sampler_.get(),
+                                                  .imageView = frame->VisibilityImage()->view(),
+                                                  .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal});
+    const vk::WriteDescriptorSet visibility_write{.dstSet = frame->DescriptorSet(),
+                                                  .dstBinding = 3,
+                                                  .dstArrayElement = 0,
+                                                  .descriptorCount = 1,
+                                                  .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                                                  .pImageInfo = &image_infos.back()};
+    writes.push_back(visibility_write);
+
+
+    image_infos.push_back(vk::DescriptorImageInfo{.sampler = VK_NULL_HANDLE,
+                                                  .imageView = frame->RenderImage()->view(),
+                                                  .imageLayout = vk::ImageLayout::eGeneral});
+    const vk::WriteDescriptorSet render_write{.dstSet = frame->DescriptorSet(),
+                                              .dstBinding = 4,
+                                              .dstArrayElement = 0,
+                                              .descriptorCount = 1,
+                                              .descriptorType = vk::DescriptorType::eStorageImage,
+                                              .pImageInfo = &image_infos.back()};
+    writes.push_back(render_write);
   }
+
+  device_->get().updateDescriptorSets(writes.size(), writes.data(), 0, nullptr);
 }
