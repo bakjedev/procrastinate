@@ -10,6 +10,7 @@ struct DebugLineVertex;
 struct RenderObject;
 class VulkanFrame;
 class VulkanBuffer;
+class VulkanImage;
 class VulkanPipeline;
 class VulkanPipelineLayout;
 class VulkanDescriptorSetLayout;
@@ -35,6 +36,13 @@ struct MeshInfo
   std::array<float, 3> pad;
 };
 
+struct TextureInfo
+{
+  uint32_t texture_id;
+  int32_t width;
+  int32_t height;
+};
+
 struct PushConstant
 {
   glm::mat4 view;
@@ -52,13 +60,15 @@ struct Vertex
   glm::vec3 position;
   glm::vec3 color;
   glm::vec3 normal;
+  glm::vec2 tex_coord;
 };
 
 struct RenderObject
 {
   glm::mat4 model;
   uint32_t mesh_id;
-  std::array<int32_t, 3> pad;
+  int32_t texture_id;
+  std::array<int32_t, 2> pad;
 };
 
 struct DebugLineVertex
@@ -82,9 +92,11 @@ public:
   uint32_t AddMesh(const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices, uint32_t first_index,
                    int32_t vertex_offset, const glm::vec3 &b_min, const glm::vec3 &b_max);
 
+  uint32_t AddTexture(const u_char *texture, int32_t width, int32_t height);
+
   void Upload();
 
-  void RenderMesh(glm::mat4 model, uint32_t mesh_id);
+  void RenderMesh(glm::mat4 model, uint32_t mesh_id, int32_t texture_id = -1);
   void ClearMeshes();
 
   void RenderLine(const glm::vec3 &point_a, const glm::vec3 &point_b, const glm::vec3 &color);
@@ -152,6 +164,12 @@ private:
   std::unique_ptr<VulkanBuffer> index_buffer_;
   std::unique_ptr<VulkanBuffer> mesh_info_buffer_;
   vk::UniqueSampler visibility_sampler_;
+
+  std::vector<const u_char *> textures_;
+  std::vector<TextureInfo> texture_infos_;
+  std::vector<std::unique_ptr<VulkanImage>> texture_images_;
+  vk::UniqueSampler texture_sampler_;
+
 
   Window *window_ = nullptr;
   EventManager *event_manager_ = nullptr;

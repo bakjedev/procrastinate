@@ -35,6 +35,7 @@ struct MeshInfo {
 struct RenderObject {
     float4x4 model;
     uint meshID;
+    int textureID;
 };
 
 struct Plane

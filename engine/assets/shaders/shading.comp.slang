@@ -12,6 +12,9 @@ RWTexture2D<float4> renderImage;
 [[vk::binding(0, 0)]]
 StructuredBuffer<MeshInfo> meshInfos;
 
+[[vk::binding(1, 0)]]
+Sampler2D textures[];
+
 [shader("compute")]
 [numthreads(16, 16, 1)]
 void main(uint3 dispatchThreadID : SV_DispatchThreadID)
@@ -26,6 +29,6 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
     float r = ((h >>  0) & 0xFF) / 255.0f;
     float g = ((h >>  8) & 0xFF) / 255.0f;
     float b = ((h >> 16) & 0xFF) / 255.0f;
-
+    
     renderImage[pixel] = float4(r, g, b, 1);
 }

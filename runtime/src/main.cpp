@@ -18,11 +18,21 @@ struct RuntimeApplication
     engine = &eng;
     auto rootPath = files::GetResourceRoot();
 
+    const auto catEntity = engine->GetScene().Create();
+    auto* catTransform = engine->GetScene().AddComponent<CTransform>(catEntity);
+    auto* catMesh = engine->GetScene().AddComponent<CMesh>(catEntity);
+    catMesh->mesh = engine->GetResourceManager().create<MeshResource>(
+        "catMesh", MeshResourceLoader{}, (rootPath / "engine/assets/concrete_cat_statue_1k.obj").string(), engine);
+    catTransform->world = glm::mat4(1.0F);
+    catTransform->world = glm::translate(catTransform->world, glm::vec3(0.0F, -20.0F, 0.0F));
+    catTransform->world = glm::scale(catTransform->world, glm::vec3(10.0F, -10.0F, 10.0F));
+
+
     const auto wallEntity = engine->GetScene().Create();
     auto* wallTransform = engine->GetScene().AddComponent<CTransform>(wallEntity);
     auto* wallMesh = engine->GetScene().AddComponent<CMesh>(wallEntity);
     wallMesh->mesh = engine->GetResourceManager().create<MeshResource>(
-        "wallMesh", MeshResourceLoader{}, (rootPath / "engine/assets/wall.obj").string(), engine->GetRenderer());
+        "wallMesh", MeshResourceLoader{}, (rootPath / "engine/assets/wall.obj").string(), engine);
     wallTransform->world = glm::mat4(1.0F);
     wallTransform->world = glm::translate(wallTransform->world, glm::vec3(30.0F, 0.0F, 180.0F));
     wallTransform->world = glm::scale(wallTransform->world, glm::vec3(1.2F, 1.0F, 1.0F));
@@ -52,13 +62,11 @@ struct RuntimeApplication
         if ((i + j) % 2 == 0)
         {
           meshComponent->mesh = engine->GetResourceManager().create<MeshResource>(
-              "firstmesh", MeshResourceLoader{}, (rootPath / "engine/assets/cylinder.obj").string(),
-              engine->GetRenderer());
+              "firstmesh", MeshResourceLoader{}, (rootPath / "engine/assets/cylinder.obj").string(), engine);
         } else
         {
           meshComponent->mesh = engine->GetResourceManager().create<MeshResource>(
-              "secondmesh", MeshResourceLoader{}, (rootPath / "engine/assets/icosphere.obj").string(),
-              engine->GetRenderer());
+              "secondmesh", MeshResourceLoader{}, (rootPath / "engine/assets/icosphere.obj").string(), engine);
         }
       }
     }

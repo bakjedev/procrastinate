@@ -4,6 +4,8 @@ target_link_libraries(engine PUBLIC glm::glm)
 target_link_libraries(engine PUBLIC Vulkan::Vulkan)
 target_link_libraries(engine PUBLIC Tracy::TracyClient)
 
+target_link_libraries(engine PUBLIC stb)
+
 target_link_libraries(engine PUBLIC vma)
 
 target_link_libraries(engine PUBLIC imgui)

@@ -51,7 +51,7 @@ void Engine::run(App& app)
     {
       const auto& mesh = view.get<CMesh>(entity);
       const auto& transform = view.get<CTransform>(entity);
-      renderer_->RenderMesh(transform.world, mesh.mesh->renderer_id);
+      renderer_->RenderMesh(transform.world, mesh.mesh->renderer_id, mesh.mesh->texture_id);
     }
 
     const auto camera_view = scene_->registry().view<CCamera, CTransform>();

@@ -41,6 +41,7 @@ constexpr uint32_t kMaxDescriptorSets = 1000;
 constexpr uint32_t kStorageBufferCount = 20;
 constexpr uint32_t kStorageImageCount = 20;
 constexpr uint32_t kCombinedImageSamplerCount = 20;
+constexpr uint32_t kMaxTextures = 20;
 
 VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager, EventManager& event_manager) :
     window_(window), event_manager_(&event_manager)
@@ -94,7 +95,7 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   }
 
   // -----------------------------------------------------------
-  // CREATE VISIBILITY SAMPLER
+  // CREATE SAMPLERS
   // -----------------------------------------------------------
   vk::SamplerCreateInfo sampler_create_info{
       .magFilter = vk::Filter::eNearest,
@@ -114,6 +115,25 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   };
 
   visibility_sampler_ = device_->get().createSamplerUnique(sampler_create_info);
+
+  vk::SamplerCreateInfo tex_sampler_create_info{
+      .magFilter = vk::Filter::eLinear,
+      .minFilter = vk::Filter::eLinear,
+      .mipmapMode = vk::SamplerMipmapMode::eLinear,
+      .addressModeU = vk::SamplerAddressMode::eRepeat,
+      .addressModeV = vk::SamplerAddressMode::eRepeat,
+      .addressModeW = vk::SamplerAddressMode::eRepeat,
+      .mipLodBias = 0.0f,
+      .anisotropyEnable = vk::False,
+      .maxAnisotropy = 1.0f,
+      .compareEnable = vk::False,
+      .minLod = 0.0f,
+      .maxLod = vk::LodClampNone,
+      .borderColor = vk::BorderColor::eFloatOpaqueBlack,
+      .unnormalizedCoordinates = vk::False,
+  };
+
+  texture_sampler_ = device_->get().createSamplerUnique(tex_sampler_create_info);
 
   // -----------------------------------------------------------
   // CREATE DESCRIPTOR POOL
@@ -170,8 +190,16 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
               .descriptorType = vk::DescriptorType::eStorageBuffer,
               .descriptorCount = 1,
               .stageFlags = vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eVertex},
+          vk::DescriptorSetLayoutBinding{
+              // Textures
+              .binding = 1,
+              .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+              .descriptorCount = kMaxTextures,
+              .stageFlags = vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eCompute},
       },
-      std::vector<vk::DescriptorBindingFlags>{}, vk::DescriptorSetLayoutCreateFlags{});
+      std::vector<vk::DescriptorBindingFlags>{vk::DescriptorBindingFlags{},
+                                              vk::DescriptorBindingFlagBits::ePartiallyBound},
+      vk::DescriptorSetLayoutCreateFlags{});
 
   static_descriptor_set_ = descriptor_pool_->allocate(static_descriptor_set_layout_->get());
 
@@ -693,6 +721,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
                                      vk::ImageLayout::eColorAttachmentOptimal);
 
   cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
+
   // -----------------------------------------------------------
   // Graphics pass - render debug lines
   // -----------------------------------------------------------
@@ -827,6 +856,14 @@ uint32_t VulkanRenderer::AddMesh(const std::vector<Vertex>& vertices, const std:
   mesh_infos_.emplace_back(b_min, indices.size(), b_max, first_index, vertex_offset);
   return mesh_id;
 }
+uint32_t VulkanRenderer::AddTexture(const u_char* texture, int32_t width, int32_t height)
+{
+  const uint32_t id = texture_infos_.size();
+  const uint32_t texture_id = textures_.size();
+  textures_.push_back(texture);
+  texture_infos_.emplace_back(texture_id, width, height);
+  return id;
+}
 
 void VulkanRenderer::RenderLine(const glm::vec3& point_a, const glm::vec3& point_b, const glm::vec3& color)
 {
@@ -858,10 +895,13 @@ void VulkanRenderer::Upload()
     mesh_info_buffer_ = nullptr;
   }
 
+  texture_images_.clear();
+
   // Create staging buffers and write the vertices, indices and mesh info to them.
   const auto vertices_size = sizeof(Vertex) * vertices_.size();
   const auto indices_size = sizeof(uint32_t) * indices_.size();
   const auto meshes_size = sizeof(MeshInfo) * mesh_infos_.size();
+  const auto texture_infos_count = texture_infos_.size();
 
   vertex_buffer_ = std::make_unique<VulkanBuffer>(
       BufferInfo{.size = vertices_size,
@@ -883,6 +923,29 @@ void VulkanRenderer::Upload()
                  .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
                  .memoryFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT},
       allocator_->get(), device_.get());
+
+  std::vector<std::unique_ptr<VulkanBuffer>> texture_staging_buffers;
+  texture_staging_buffers.reserve(texture_infos_count);
+  texture_images_.reserve(texture_infos_count);
+  for (const auto& texture_info: texture_infos_)
+  {
+    texture_images_.emplace_back(std::make_unique<VulkanImage>(
+        ImageInfo{.width = static_cast<uint32_t>(texture_info.width),
+                  .height = static_cast<uint32_t>(texture_info.height),
+                  .format = vk::Format::eR8G8B8A8Srgb,
+                  .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
+                  .aspect_flags = vk::ImageAspectFlagBits::eColor},
+        allocator_->get()));
+
+    const auto& staging_buffer = texture_staging_buffers.emplace_back(std::make_unique<VulkanBuffer>(
+        BufferInfo{
+            .size = static_cast<size_t>(texture_info.width * texture_info.height * 4),
+            .usage = vk::BufferUsageFlagBits::eTransferSrc,
+            .memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY,
+            .memoryFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT},
+        allocator_->get(), device_.get()));
+    staging_buffer->Write(textures_.at(texture_info.texture_id));
+  }
 
   auto staging_vertex_buffer =
       VulkanBuffer(BufferInfo{.size = vertices_size,
@@ -911,6 +974,7 @@ void VulkanRenderer::Upload()
                    allocator_->get(), device_.get());
   staging_mesh_info_buffer.Write(mesh_infos_.data());
 
+
   // Copy staging buffers to real buffers
   const auto cmd = util::BeginSingleTimeCommandBuffer(*transfer_pool_);
 
@@ -934,6 +998,27 @@ void VulkanRenderer::Upload()
 
   util::EndSingleTimeCommandBuffer(cmd, device_->TransferQueue(), *transfer_pool_);
 
+  const auto gcmd = util::BeginSingleTimeCommandBuffer(*graphics_pool_);
+  for (size_t i{}; i < texture_infos_count; i++)
+  {
+    const auto& staging = texture_staging_buffers.at(i);
+    const auto& image = texture_images_.at(i);
+    const auto& info = texture_infos_.at(i);
+
+    image->TransitionLayout(gcmd, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+    vk::BufferImageCopy texture_image_copy_region = {};
+    texture_image_copy_region.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+    texture_image_copy_region.imageSubresource.layerCount = 1;
+    texture_image_copy_region.imageExtent =
+        vk::Extent3D{static_cast<uint32_t>(info.width), static_cast<uint32_t>(info.height), 1};
+
+    gcmd.copyBufferToImage(staging->get(), image->get(), vk::ImageLayout::eTransferDstOptimal, 1,
+                           &texture_image_copy_region);
+
+    image->TransitionLayout(gcmd, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+  }
+  util::EndSingleTimeCommandBuffer(gcmd, device_->GraphicsQueue(), *graphics_pool_);
+
   // Update the mesh info descriptor set
   auto buffer_info = vk::DescriptorBufferInfo{.buffer = mesh_info_buffer_->get(), .offset = 0, .range = vk::WholeSize};
 
@@ -944,12 +1029,29 @@ void VulkanRenderer::Upload()
                                      .descriptorType = vk::DescriptorType::eStorageBuffer,
                                      .pBufferInfo = &buffer_info};
   device_->get().updateDescriptorSets(1, &write, 0, nullptr);
+
+  std::vector<vk::DescriptorImageInfo> image_infos;
+  for (const auto& img: texture_images_)
+  {
+    image_infos.push_back({.sampler = texture_sampler_.get(),
+                           .imageView = img->view(),
+                           .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal});
+  }
+
+  const vk::WriteDescriptorSet image_write{.dstSet = static_descriptor_set_,
+                                           .dstBinding = 1,
+                                           .dstArrayElement = 0,
+                                           .descriptorCount = static_cast<uint32_t>(image_infos.size()),
+                                           .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                                           .pImageInfo = image_infos.data()};
+  device_->get().updateDescriptorSets(1, &image_write, 0, nullptr);
+
   device_->WaitIdle(); // THIS BAD
 }
 
-void VulkanRenderer::RenderMesh(glm::mat4 model, const uint32_t mesh_id)
+void VulkanRenderer::RenderMesh(glm::mat4 model, const uint32_t mesh_id, int32_t texture_id)
 {
-  render_objects_.emplace_back(model, mesh_id);
+  render_objects_.emplace_back(model, mesh_id, texture_id);
 }
 
 void VulkanRenderer::ClearMeshes() { render_objects_.clear(); }
