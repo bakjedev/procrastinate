@@ -26,7 +26,6 @@ public:
   [[nodiscard]] vk::CommandBuffer GraphicsCmd() const { return graphics_cmd_; }
 
   [[nodiscard]] VulkanImage* DepthImage() const { return depth_image_.get(); }
-  [[nodiscard]] VulkanImage* VisibilityImage() const { return visibility_image_.get(); }
   [[nodiscard]] VulkanImage* RenderImage() const { return render_image_.get(); }
 
   [[nodiscard]] VulkanBuffer* ObjectBuffer() const { return object_buffer_.get(); }
@@ -51,7 +50,6 @@ private:
   vk::UniqueSemaphore image_available_;
   vk::UniqueFence in_flight_;
 
-  std::unique_ptr<VulkanImage> visibility_image_;
   std::unique_ptr<VulkanImage> depth_image_;
   std::unique_ptr<VulkanImage> render_image_;
 

@@ -126,7 +126,6 @@ private:
   std::unique_ptr<VulkanShader> pre_pass_vert_;
   std::unique_ptr<VulkanShader> pre_pass_frag_;
   std::unique_ptr<VulkanShader> culling_comp_;
-  std::unique_ptr<VulkanShader> shading_comp_;
 
   std::unique_ptr<VulkanShader> debug_line_vert_;
   std::unique_ptr<VulkanShader> debug_line_frag_;
@@ -143,8 +142,6 @@ private:
   std::unique_ptr<VulkanPipeline> debug_line_pipeline_;
   std::unique_ptr<VulkanPipelineLayout> culling_pipeline_layout_;
   std::unique_ptr<VulkanPipeline> culling_pipeline_;
-  std::unique_ptr<VulkanPipelineLayout> shading_pipeline_layout_;
-  std::unique_ptr<VulkanPipeline> shading_pipeline_;
 
   // https://docs.vulkan.org/guide/latest/swapchain_semaphore_reuse.html
   std::vector<std::unique_ptr<VulkanFrame>> frames_;
@@ -163,7 +160,6 @@ private:
   std::unique_ptr<VulkanBuffer> vertex_buffer_;
   std::unique_ptr<VulkanBuffer> index_buffer_;
   std::unique_ptr<VulkanBuffer> mesh_info_buffer_;
-  vk::UniqueSampler visibility_sampler_;
 
   std::vector<std::vector<unsigned char>> textures_;
   std::vector<TextureInfo> texture_infos_;

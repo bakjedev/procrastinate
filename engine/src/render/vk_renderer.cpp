@@ -97,25 +97,6 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   // -----------------------------------------------------------
   // CREATE SAMPLERS
   // -----------------------------------------------------------
-  vk::SamplerCreateInfo sampler_create_info{
-      .magFilter = vk::Filter::eNearest,
-      .minFilter = vk::Filter::eNearest,
-      .mipmapMode = vk::SamplerMipmapMode::eNearest,
-      .addressModeU = vk::SamplerAddressMode::eRepeat,
-      .addressModeV = vk::SamplerAddressMode::eRepeat,
-      .addressModeW = vk::SamplerAddressMode::eRepeat,
-      .mipLodBias = 0.0f,
-      .anisotropyEnable = vk::False,
-      .maxAnisotropy = 1.0f,
-      .compareEnable = vk::False,
-      .minLod = 0.0f,
-      .maxLod = vk::LodClampNone,
-      .borderColor = vk::BorderColor::eFloatOpaqueBlack,
-      .unnormalizedCoordinates = vk::False,
-  };
-
-  visibility_sampler_ = device_->get().createSamplerUnique(sampler_create_info);
-
   vk::SamplerCreateInfo tex_sampler_create_info{
       .magFilter = vk::Filter::eLinear,
       .minFilter = vk::Filter::eLinear,
@@ -231,8 +212,6 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
     {
       VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eUndefined,
                                          vk::ImageLayout::eTransferSrcOptimal);
-      VulkanImage::TransitionImageLayout(frame->VisibilityImage()->get(), cmd, vk::ImageLayout::eUndefined,
-                                         vk::ImageLayout::eShaderReadOnlyOptimal);
     }
     util::EndSingleTimeCommandBuffer(cmd, device_->GraphicsQueue(), *graphics_pool_);
   }
@@ -241,11 +220,9 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   // WRITE TO DESCRIPTOR SETS
   // -----------------------------------------------------------
   std::vector<vk::WriteDescriptorSet> writes;
-  writes.reserve(frames_.size() * 5);
+  writes.reserve(frames_.size() * 3);
   std::vector<vk::DescriptorBufferInfo> buffer_infos;
   buffer_infos.reserve(frames_.size() * 3);
-  std::vector<vk::DescriptorImageInfo> image_infos;
-  image_infos.reserve(frames_.size() * 2);
 
   for (const auto& frame: frames_)
   {
@@ -281,32 +258,6 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
                                         .pBufferInfo = &buffer_infos.back()};
 
     writes.push_back(write3);
-
-    image_infos.push_back(vk::DescriptorImageInfo{.sampler = visibility_sampler_.get(),
-                                                  .imageView = frame->VisibilityImage()->view(),
-                                                  .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal});
-
-    const vk::WriteDescriptorSet write4{.dstSet = frame->DescriptorSet(),
-                                        .dstBinding = 3,
-                                        .dstArrayElement = 0,
-                                        .descriptorCount = 1,
-                                        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-                                        .pImageInfo = &image_infos.back()};
-
-    writes.push_back(write4);
-
-    image_infos.push_back(vk::DescriptorImageInfo{.sampler = VK_NULL_HANDLE,
-                                                  .imageView = frame->RenderImage()->view(),
-                                                  .imageLayout = vk::ImageLayout::eGeneral});
-
-    const vk::WriteDescriptorSet write5{.dstSet = frame->DescriptorSet(),
-                                        .dstBinding = 4,
-                                        .dstArrayElement = 0,
-                                        .descriptorCount = 1,
-                                        .descriptorType = vk::DescriptorType::eStorageImage,
-                                        .pImageInfo = &image_infos.back()};
-
-    writes.push_back(write5);
   }
 
   device_->get().updateDescriptorSets(writes.size(), writes.data(), 0, nullptr);
@@ -353,14 +304,6 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   const vk::PipelineShaderStageCreateInfo culling_comp_stage{
       .stage = vk::ShaderStageFlagBits::eCompute, .module = culling_comp_->get(), .pName = "main"};
 
-  // shading
-  const auto shading_comp_code =
-      resource_manager.createFromFile<ShaderResource>("engine/assets/shaders/shading.comp.spv", ShaderResourceLoader{});
-  shading_comp_ = std::make_unique<VulkanShader>(device_->get(), shading_comp_code->code);
-
-  const vk::PipelineShaderStageCreateInfo shading_comp_stage{
-      .stage = vk::ShaderStageFlagBits::eCompute, .module = shading_comp_->get(), .pName = "main"};
-
   // -----------------------------------------------------------
   // CREATE PIPELINE LAYOUTS
   // -----------------------------------------------------------
@@ -402,16 +345,6 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
     culling_pipeline_layout_ = std::make_unique<VulkanPipelineLayout>(device_->get(), pipeline_layout_info);
   }
 
-  // shading
-  {
-    PipelineLayoutInfo pipeline_layout_info{};
-
-    pipeline_layout_info.descriptor_sets.push_back(static_descriptor_set_layout_->get());
-    pipeline_layout_info.descriptor_sets.push_back(frame_descriptor_set_layout_->get());
-
-    shading_pipeline_layout_ = std::make_unique<VulkanPipelineLayout>(device_->get(), pipeline_layout_info);
-  }
-
   // -----------------------------------------------------------
   // CREATE PIPELINES
   // -----------------------------------------------------------
@@ -420,7 +353,7 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   {
     GraphicsPipelineInfo pipeline_info{};
     pipeline_info.shader_stages = {vert_stage, frag_stage};
-    pipeline_info.color_attachment_formats = {vk::Format::eR32Uint};
+    pipeline_info.color_attachment_formats = {vk::Format::eB8G8R8A8Unorm};
     pipeline_info.layout = pre_pass_pipeline_layout_->get();
     pipeline_info.color_blend_attachments = {{}};
     pipeline_info.front_face = vk::FrontFace::eClockwise;
@@ -438,8 +371,29 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
     position_attr.format = vk::Format::eR32G32B32Sfloat;
     position_attr.offset = offsetof(Vertex, position);
 
+    vk::VertexInputAttributeDescription color_attr{};
+    color_attr.location = 1;
+    color_attr.binding = 0;
+    color_attr.format = vk::Format::eR32G32B32Sfloat;
+    color_attr.offset = offsetof(Vertex, color);
+
+    vk::VertexInputAttributeDescription normal_attr{};
+    normal_attr.location = 2;
+    normal_attr.binding = 0;
+    normal_attr.format = vk::Format::eR32G32B32Sfloat;
+    normal_attr.offset = offsetof(Vertex, normal);
+
+    vk::VertexInputAttributeDescription tex_coord_attr{};
+    tex_coord_attr.location = 3;
+    tex_coord_attr.binding = 0;
+    tex_coord_attr.format = vk::Format::eR32G32Sfloat;
+    tex_coord_attr.offset = offsetof(Vertex, tex_coord);
+
     pipeline_info.vertex_bindings.push_back(binding);
     pipeline_info.vertex_attributes.push_back(position_attr);
+    pipeline_info.vertex_attributes.push_back(color_attr);
+    pipeline_info.vertex_attributes.push_back(normal_attr);
+    pipeline_info.vertex_attributes.push_back(tex_coord_attr);
 
     pre_pass_pipeline_ = std::make_unique<VulkanPipeline>(device_->get(), pipeline_info);
   }
@@ -485,16 +439,6 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
     };
 
     culling_pipeline_ = std::make_unique<VulkanPipeline>(device_->get(), culling_pipeline_info);
-  }
-
-  // shading
-  {
-    ComputePipelineInfo shading_pipeline_info{
-        .shader_stage = shading_comp_stage,
-        .layout = shading_pipeline_layout_->get(),
-    };
-
-    shading_pipeline_ = std::make_unique<VulkanPipeline>(device_->get(), shading_pipeline_info);
   }
 
   // -----------------------------------------------------------
@@ -630,13 +574,13 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
 
   // -----------------------------------------------------------
-  // Graphics pass - render meshes visibility
+  // Graphics pass - render meshes
   // -----------------------------------------------------------
   ZoneNamedN(graphicsmesheszone, "MeshPass", true);
   constexpr vk::DebugUtilsLabelEXT label_info2{.pLabelName = "MeshPass"};
   cmd.beginDebugUtilsLabelEXT(label_info2, instance_->getDynamicLoader());
 
-  VulkanImage::TransitionImageLayout(frame->VisibilityImage()->get(), cmd, vk::ImageLayout::eShaderReadOnlyOptimal,
+  VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eTransferSrcOptimal,
                                      vk::ImageLayout::eColorAttachmentOptimal);
 
   const vk::RenderingAttachmentInfo depth_attachment{
@@ -647,7 +591,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
       .clearValue = vk::ClearValue{.depthStencil = {.depth = 1.0F, .stencil = 0}}};
 
   const vk::RenderingAttachmentInfo color_attachment{
-      .imageView = frame->VisibilityImage()->view(),
+      .imageView = frame->RenderImage()->view(),
       .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
       .loadOp = vk::AttachmentLoadOp::eClear,
       .storeOp = vk::AttachmentStoreOp::eStore,
@@ -694,31 +638,6 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   cmd.drawIndexedIndirectCount(frame->IndirectBuffer()->get(), 0, frame->DrawCount()->get(), 0, render_objects_size,
                                sizeof(vk::DrawIndexedIndirectCommand));
   cmd.endRendering();
-
-  cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
-
-  // -----------------------------------------------------------
-  // Compute pass - shade render image with meshes
-  // -----------------------------------------------------------
-  ZoneNamedN(computeshadingzone, "ComputeShadingPass", true);
-  constexpr vk::DebugUtilsLabelEXT label_info6{.pLabelName = "ShadingPass"};
-  cmd.beginDebugUtilsLabelEXT(label_info6, instance_->getDynamicLoader());
-
-  VulkanImage::TransitionImageLayout(frame->VisibilityImage()->get(), cmd, vk::ImageLayout::eColorAttachmentOptimal,
-                                     vk::ImageLayout::eShaderReadOnlyOptimal);
-
-  VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eTransferSrcOptimal,
-                                     vk::ImageLayout::eGeneral);
-
-  cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, shading_pipeline_layout_->get(), 0, descriptor_sets.size(),
-                         descriptor_sets.data(), 0, nullptr);
-  cmd.bindPipeline(vk::PipelineBindPoint::eCompute, shading_pipeline_->get());
-  {
-    const auto [width, height] = window_->GetWindowSize();
-    cmd.dispatch((width + 15) / 16, (height + 15) / 16, 1);
-  }
-  VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eGeneral,
-                                     vk::ImageLayout::eColorAttachmentOptimal);
 
   cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
 
@@ -1132,37 +1051,8 @@ void VulkanRenderer::RecreateSwapChain()
 
 void VulkanRenderer::RecreateFrameImages(const uint32_t width, const uint32_t height) const
 {
-  std::vector<vk::WriteDescriptorSet> writes;
-  writes.reserve(frames_.size() * 2);
-  std::vector<vk::DescriptorImageInfo> image_infos;
-  image_infos.reserve(frames_.size() * 2);
   for (const auto& frame: frames_)
   {
     frame->RecreateFrameImages(width, height);
-
-    image_infos.push_back(vk::DescriptorImageInfo{.sampler = visibility_sampler_.get(),
-                                                  .imageView = frame->VisibilityImage()->view(),
-                                                  .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal});
-    const vk::WriteDescriptorSet visibility_write{.dstSet = frame->DescriptorSet(),
-                                                  .dstBinding = 3,
-                                                  .dstArrayElement = 0,
-                                                  .descriptorCount = 1,
-                                                  .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-                                                  .pImageInfo = &image_infos.back()};
-    writes.push_back(visibility_write);
-
-
-    image_infos.push_back(vk::DescriptorImageInfo{.sampler = VK_NULL_HANDLE,
-                                                  .imageView = frame->RenderImage()->view(),
-                                                  .imageLayout = vk::ImageLayout::eGeneral});
-    const vk::WriteDescriptorSet render_write{.dstSet = frame->DescriptorSet(),
-                                              .dstBinding = 4,
-                                              .dstArrayElement = 0,
-                                              .descriptorCount = 1,
-                                              .descriptorType = vk::DescriptorType::eStorageImage,
-                                              .pImageInfo = &image_infos.back()};
-    writes.push_back(render_write);
   }
-
-  device_->get().updateDescriptorSets(writes.size(), writes.data(), 0, nullptr);
 }

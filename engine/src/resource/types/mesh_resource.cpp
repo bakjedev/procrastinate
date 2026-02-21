@@ -52,10 +52,11 @@ MeshResource MeshResourceLoader::operator()(const std::string &path, Engine *eng
         nor = {attrib.normals[index.normal_index * 3], attrib.normals[(index.normal_index * 3) + 1],
                attrib.normals[(index.normal_index * 3) + 2]};
       }
-      glm::ivec2 tex_coord = glm::vec2(0.0F);
+      auto tex_coord = glm::vec2(0.0F);
       if (!attrib.texcoords.empty())
       {
-        tex_coord = {attrib.texcoords.at(index.texcoord_index * 2), attrib.texcoords.at(index.texcoord_index * 2) + 1};
+        tex_coord = {attrib.texcoords.at(index.texcoord_index * 2),
+                     1.0F - attrib.texcoords.at(index.texcoord_index * 2 + 1)};
       }
 
       vertices.emplace_back(pos, col, nor, tex_coord);
@@ -97,9 +98,8 @@ MeshResource MeshResourceLoader::operator()(const std::string &path, Engine *eng
       renderer.AddMesh(vertices, indices, renderer.GetIndexCount(), renderer.GetVertexCount(), b_min, b_max);
   if (texture != nullptr)
   {
-    res.texture_id =
-        renderer.AddTexture({texture, static_cast<size_t>(texture_width * texture_height * texture_channels)},
-                            texture_width, texture_height);
+    res.texture_id = renderer.AddTexture({texture, static_cast<size_t>(texture_width * texture_height * 4)},
+                                         texture_width, texture_height);
   } else
   {
     res.texture_id = -1;

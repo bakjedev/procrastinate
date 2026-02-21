@@ -92,23 +92,12 @@ void VulkanFrame::RecreateFrameImages(const uint32_t width, const uint32_t heigh
   };
   depth_image_ = std::make_unique<VulkanImage>(depth_image_info, allocator_->get());
 
-  visibility_image_ = nullptr;
-  const ImageInfo visibility_image_info{
-      .width = width,
-      .height = height,
-      .format = vk::Format::eR32Uint,
-      .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
-      .aspect_flags = vk::ImageAspectFlagBits::eColor,
-  };
-  visibility_image_ = std::make_unique<VulkanImage>(visibility_image_info, allocator_->get());
-
   render_image_ = nullptr;
   const ImageInfo render_image_info{
       .width = width,
       .height = height,
       .format = vk::Format::eB8G8R8A8Unorm,
-      .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc |
-               vk::ImageUsageFlagBits::eStorage,
+      .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc,
       .aspect_flags = vk::ImageAspectFlagBits::eColor,
   };
   render_image_ = std::make_unique<VulkanImage>(render_image_info, allocator_->get());
