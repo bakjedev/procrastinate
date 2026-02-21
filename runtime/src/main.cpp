@@ -25,7 +25,8 @@ struct RuntimeApplication
         "catMesh", MeshResourceLoader{}, (rootPath / "engine/assets/concrete_cat_statue_1k.obj").string(), engine);
     catTransform->world = glm::mat4(1.0F);
     catTransform->world = glm::translate(catTransform->world, glm::vec3(0.0F, -20.0F, 0.0F));
-    catTransform->world = glm::scale(catTransform->world, glm::vec3(10.0F, -10.0F, 10.0F));
+    catTransform->world = glm::scale(catTransform->world, glm::vec3(10.0F, 10.0F, 10.0F));
+    catTransform->world = glm::rotate(catTransform->world, glm::radians(180.0F), glm::vec3(1.0F, 0.0F, 0.0F));
 
 
     const auto wallEntity = engine->GetScene().Create();
