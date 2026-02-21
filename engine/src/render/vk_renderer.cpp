@@ -856,11 +856,11 @@ uint32_t VulkanRenderer::AddMesh(const std::vector<Vertex>& vertices, const std:
   mesh_infos_.emplace_back(b_min, indices.size(), b_max, first_index, vertex_offset);
   return mesh_id;
 }
-uint32_t VulkanRenderer::AddTexture(const unsigned char* texture, int32_t width, int32_t height)
+uint32_t VulkanRenderer::AddTexture(std::span<const unsigned char> texture, int32_t width, int32_t height)
 {
   const uint32_t id = texture_infos_.size();
   const uint32_t texture_id = textures_.size();
-  textures_.push_back(texture);
+  textures_.emplace_back(texture.begin(), texture.end());
   texture_infos_.emplace_back(texture_id, width, height);
   return id;
 }
@@ -944,7 +944,7 @@ void VulkanRenderer::Upload()
             .memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY,
             .memoryFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT},
         allocator_->get(), device_.get()));
-    staging_buffer->Write(textures_.at(texture_info.texture_id));
+    staging_buffer->Write(textures_.at(texture_info.texture_id).data());
   }
 
   auto staging_vertex_buffer =

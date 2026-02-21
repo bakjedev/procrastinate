@@ -92,7 +92,7 @@ public:
   uint32_t AddMesh(const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices, uint32_t first_index,
                    int32_t vertex_offset, const glm::vec3 &b_min, const glm::vec3 &b_max);
 
-  uint32_t AddTexture(const unsigned char *texture, int32_t width, int32_t height);
+  uint32_t AddTexture(std::span<const unsigned char> texture, int32_t width, int32_t height);
 
   void Upload();
 
@@ -165,7 +165,7 @@ private:
   std::unique_ptr<VulkanBuffer> mesh_info_buffer_;
   vk::UniqueSampler visibility_sampler_;
 
-  std::vector<const unsigned char *> textures_;
+  std::vector<std::vector<unsigned char>> textures_;
   std::vector<TextureInfo> texture_infos_;
   std::vector<std::unique_ptr<VulkanImage>> texture_images_;
   vk::UniqueSampler texture_sampler_;

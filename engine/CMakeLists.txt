@@ -33,6 +33,8 @@ target_sources(engine PRIVATE
         src/render/vk_barriers.cpp
 )
 
+target_compile_definitions(engine PRIVATE NOMINMAX)
+
 target_compile_options(engine PRIVATE
         -Wall
         -Wextra

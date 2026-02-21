@@ -66,6 +66,7 @@ MeshResource MeshResourceLoader::operator()(const std::string &path, Engine *eng
   const unsigned char *texture{};
   int32_t texture_width{};
   int32_t texture_height{};
+  int32_t texture_channels{};
   for (const auto &material: materials)
   {
     if (!material.diffuse_texname.empty())
@@ -78,8 +79,8 @@ MeshResource MeshResourceLoader::operator()(const std::string &path, Engine *eng
       }
 
 
-      int32_t image_channels{};
-      const auto *image = stbi_load(tex_path.c_str(), &texture_width, &texture_height, &image_channels, STBI_rgb_alpha);
+      const auto *image =
+          stbi_load(tex_path.c_str(), &texture_width, &texture_height, &texture_channels, STBI_rgb_alpha);
 
       if (image == nullptr)
       {
@@ -96,7 +97,9 @@ MeshResource MeshResourceLoader::operator()(const std::string &path, Engine *eng
       renderer.AddMesh(vertices, indices, renderer.GetIndexCount(), renderer.GetVertexCount(), b_min, b_max);
   if (texture != nullptr)
   {
-    res.texture_id = renderer.AddTexture(texture, texture_width, texture_height);
+    res.texture_id =
+        renderer.AddTexture({texture, static_cast<size_t>(texture_width * texture_height * texture_channels)},
+                            texture_width, texture_height);
   } else
   {
     res.texture_id = -1;
