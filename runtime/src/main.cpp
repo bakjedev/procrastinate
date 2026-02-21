@@ -13,70 +13,70 @@
 
 struct RuntimeApplication
 {
-  void init(Engine& eng)
+  void Init(Engine& eng)
   {
     engine = &eng;
-    auto rootPath = files::GetAssetsPathRoot();
+    const auto& root_path = files::GetAssetsPathRoot();
 
-    const auto catEntity = engine->GetScene().Create();
-    auto* catTransform = engine->GetScene().AddComponent<CTransform>(catEntity);
-    auto* catMesh = engine->GetScene().AddComponent<CMesh>(catEntity);
-    catMesh->mesh = engine->GetResourceManager().create<MeshResource>(
-        "catMesh", MeshResourceLoader{}, (rootPath / "engine/assets/concrete_cat_statue_1k.obj").string(), engine);
-    catTransform->world = glm::mat4(1.0F);
-    catTransform->world = glm::translate(catTransform->world, glm::vec3(0.0F, -20.0F, 0.0F));
-    catTransform->world = glm::scale(catTransform->world, glm::vec3(10.0F, 10.0F, 10.0F));
-    catTransform->world = glm::rotate(catTransform->world, glm::radians(180.0F), glm::vec3(1.0F, 0.0F, 0.0F));
+    const auto cat_entity = engine->GetScene().Create();
+    auto* cat_transform = engine->GetScene().AddComponent<CTransform>(cat_entity);
+    auto* cat_mesh = engine->GetScene().AddComponent<CMesh>(cat_entity);
+    cat_mesh->mesh = engine->GetResourceManager().create<MeshResource>(
+        "catMesh", MeshResourceLoader{}, (root_path / "engine/assets/concrete_cat_statue_1k.obj").string(), engine);
+    cat_transform->world = glm::mat4(1.0F);
+    cat_transform->world = glm::translate(cat_transform->world, glm::vec3(0.0F, -20.0F, 0.0F));
+    cat_transform->world = glm::scale(cat_transform->world, glm::vec3(10.0F, 10.0F, 10.0F));
+    cat_transform->world = glm::rotate(cat_transform->world, glm::radians(180.0F), glm::vec3(1.0F, 0.0F, 0.0F));
 
 
-    const auto wallEntity = engine->GetScene().Create();
-    auto* wallTransform = engine->GetScene().AddComponent<CTransform>(wallEntity);
-    auto* wallMesh = engine->GetScene().AddComponent<CMesh>(wallEntity);
-    wallMesh->mesh = engine->GetResourceManager().create<MeshResource>(
-        "wallMesh", MeshResourceLoader{}, (rootPath / "engine/assets/wall.obj").string(), engine);
-    wallTransform->world = glm::mat4(1.0F);
-    wallTransform->world = glm::translate(wallTransform->world, glm::vec3(30.0F, 0.0F, 180.0F));
-    wallTransform->world = glm::scale(wallTransform->world, glm::vec3(1.2F, 1.0F, 1.0F));
+    const auto wall_entity = engine->GetScene().Create();
+    auto* wall_transform = engine->GetScene().AddComponent<CTransform>(wall_entity);
+    auto* wall_mesh = engine->GetScene().AddComponent<CMesh>(wall_entity);
+    wall_mesh->mesh = engine->GetResourceManager().create<MeshResource>(
+        "wallMesh", MeshResourceLoader{}, (root_path / "engine/assets/wall.obj").string(), engine);
+    wall_transform->world = glm::mat4(1.0F);
+    wall_transform->world = glm::translate(wall_transform->world, glm::vec3(30.0F, 0.0F, 180.0F));
+    wall_transform->world = glm::scale(wall_transform->world, glm::vec3(1.2F, 1.0F, 1.0F));
 
-    cameraEntity = engine->GetScene().Create();
-    auto* cameraTransform = engine->GetScene().AddComponent<CTransform>(cameraEntity);
-    auto* cameraComponent = engine->GetScene().AddComponent<CCamera>(cameraEntity);
-    cameraTransform->world = glm::mat4(1.0F);
-    cameraComponent->fov = 70.0F;
+    camera_entity = engine->GetScene().Create();
+    auto* camera_transform = engine->GetScene().AddComponent<CTransform>(camera_entity);
+    auto* camera_component = engine->GetScene().AddComponent<CCamera>(camera_entity);
+    camera_transform->world = glm::mat4(1.0F);
+    camera_component->fov = 70.0F;
 
-    constexpr int gridSize = 100;
-    for (int j{}; j < gridSize; ++j)
+    constexpr int grid_size = 100;
+    for (int j{}; j < grid_size; ++j)
     {
-      for (int i{}; i < gridSize; ++i)
+      for (int i{}; i < grid_size; ++i)
       {
         const auto entity = engine->GetScene().Create();
-        auto* transformComponent = engine->GetScene().AddComponent<CTransform>(entity);
-        auto* meshComponent = engine->GetScene().AddComponent<CMesh>(entity);
+        auto* transform_component = engine->GetScene().AddComponent<CTransform>(entity);
+        auto* mesh_component = engine->GetScene().AddComponent<CMesh>(entity);
 
         constexpr float spacing = 2.6F;
-        transformComponent->world = glm::translate(
+        transform_component->world = glm::translate(
             glm::mat4(1.0F), glm::vec3(static_cast<float>(j) * spacing, 0.0F, static_cast<float>(i) * spacing));
-        transformComponent->world =
-            glm::translate(transformComponent->world, glm::vec3(-static_cast<float>(gridSize), 6.0F, -100.0F));
-        transformComponent->world = glm::scale(transformComponent->world, glm::vec3(1.0F));
+        transform_component->world =
+            glm::translate(transform_component->world, glm::vec3(-static_cast<float>(grid_size), 6.0F, -100.0F));
+        transform_component->world = glm::scale(transform_component->world, glm::vec3(1.0F));
 
         if ((i + j) % 2 == 0)
         {
-          meshComponent->mesh = engine->GetResourceManager().create<MeshResource>(
-              "firstmesh", MeshResourceLoader{}, (rootPath / "engine/assets/cylinder.obj").string(), engine);
+          mesh_component->mesh = engine->GetResourceManager().create<MeshResource>(
+              "firstmesh", MeshResourceLoader{}, (root_path / "engine/assets/cylinder.obj").string(), engine);
         } else
         {
-          meshComponent->mesh = engine->GetResourceManager().create<MeshResource>(
-              "secondmesh", MeshResourceLoader{}, (rootPath / "engine/assets/icosphere.obj").string(), engine);
+          mesh_component->mesh = engine->GetResourceManager().create<MeshResource>(
+              "secondmesh", MeshResourceLoader{}, (root_path / "engine/assets/icosphere.obj").string(), engine);
         }
       }
     }
   }
 
-  void update(float deltaTime) const
+  void Update(const float delta_time) const
   {
     auto& renderer = engine->GetRenderer();
-    auto& input = engine->GetInput();
+    const auto& input = engine->GetInput();
 
     // H
     renderer.RenderLine(glm::vec3(0.0F, -5.0F, 0.0F), glm::vec3(0.0F, -8.0F, 0.0F), glm::vec3(1.0F, 0.5F, 0.0F));
@@ -151,44 +151,44 @@ struct RuntimeApplication
       engine->GetWindow().quit();
     }
 
-    auto& transform = engine->GetScene().registry().get<CTransform>(static_cast<entt::entity>(cameraEntity));
-    constexpr float cameraSpeed = 50.0F;
+    auto& [camera_world] = engine->GetScene().registry().get<CTransform>(static_cast<entt::entity>(camera_entity));
+    constexpr float camera_speed = 50.0F;
     if (input.KeyDown(KeyboardKey::W))
     {
-      transform.world = glm::translate(transform.world, glm::vec3(0.0F, 0.0F, -deltaTime * cameraSpeed));
+      camera_world = glm::translate(camera_world, glm::vec3(0.0F, 0.0F, -delta_time * camera_speed));
     } else if (input.KeyDown(KeyboardKey::S))
     {
-      transform.world = glm::translate(transform.world, glm::vec3(0.0F, 0.0F, deltaTime * cameraSpeed));
+      camera_world = glm::translate(camera_world, glm::vec3(0.0F, 0.0F, delta_time * camera_speed));
     }
     if (input.KeyDown(KeyboardKey::A))
     {
-      transform.world = glm::translate(transform.world, glm::vec3(-deltaTime * cameraSpeed, 0.0F, 0.0F));
+      camera_world = glm::translate(camera_world, glm::vec3(-delta_time * camera_speed, 0.0F, 0.0F));
     } else if (input.KeyDown(KeyboardKey::D))
     {
-      transform.world = glm::translate(transform.world, glm::vec3(deltaTime * cameraSpeed, 0.0F, 0.0F));
+      camera_world = glm::translate(camera_world, glm::vec3(delta_time * camera_speed, 0.0F, 0.0F));
     }
     if (input.KeyDown(KeyboardKey::Space))
     {
-      transform.world = glm::translate(transform.world, glm::vec3(0.0F, -deltaTime * cameraSpeed, 0.0F));
+      camera_world = glm::translate(camera_world, glm::vec3(0.0F, -delta_time * camera_speed, 0.0F));
     } else if (input.KeyDown(KeyboardKey::LeftControl))
     {
-      transform.world = glm::translate(transform.world, glm::vec3(0.0F, deltaTime * cameraSpeed, 0.0F));
+      camera_world = glm::translate(camera_world, glm::vec3(0.0F, delta_time * camera_speed, 0.0F));
     }
 
     if (input.KeyDown(KeyboardKey::Left))
     {
-      transform.world = glm::rotate(transform.world, deltaTime, glm::vec3(0.0F, 1.0F, 0.0F));
+      camera_world = glm::rotate(camera_world, delta_time, glm::vec3(0.0F, 1.0F, 0.0F));
     } else if (input.KeyDown(KeyboardKey::Right))
     {
-      transform.world = glm::rotate(transform.world, deltaTime, glm::vec3(0.0F, -1.0F, 0.0F));
+      camera_world = glm::rotate(camera_world, delta_time, glm::vec3(0.0F, -1.0F, 0.0F));
     }
   }
 
-  void fixedUpdate(float /*unused*/) {}
-  void render() {}
-  void shutdown() const {}
+  void FixedUpdate(float /*unused*/) {}
+  void Render() {}
+  void Shutdown() const {}
 
-  uint32_t cameraEntity;
+  uint32_t camera_entity;
 
   Engine* engine = nullptr;
 };
@@ -201,7 +201,7 @@ int main()
 
     RuntimeApplication app{};
 
-    engine.run(app);
+    engine.Run(app);
   } catch (const std::exception& err)
   {
     util::println("Fatal error: {}", err.what());

@@ -13,9 +13,9 @@
 #include "window.hpp"
 
 template<Application App>
-void Engine::run(App& app)
+void Engine::Run(App& app)
 {
-  app.init(*this);
+  app.Init(*this);
 
   using Clock = std::chrono::steady_clock;
 
@@ -36,12 +36,12 @@ void Engine::run(App& app)
     input_->update();
     renderer_->ClearLines();
 
-    app.update(delta_time);
+    app.Update(delta_time);
 
     accumulator += delta_time;
     while (accumulator >= fixed_dt)
     {
-      app.fixedUpdate(fixed_dt);
+      app.FixedUpdate(fixed_dt);
       accumulator -= fixed_dt;
     }
 
@@ -65,11 +65,11 @@ void Engine::run(App& app)
     {
       const auto& camera = camera_view.get<CCamera>(camera_entity);
       const auto& transform = camera_view.get<CTransform>(camera_entity);
-      app.render();
+      app.Render();
       renderer_->run(transform.world, camera.fov);
     }
     FrameMark;
   }
 
-  app.shutdown();
+  app.Shutdown();
 }

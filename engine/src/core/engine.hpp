@@ -11,12 +11,12 @@ class Engine;
 class Scene;
 
 template<typename T>
-concept Application = requires(T app, float deltaTime, Engine& engine) {
-  { app.init(engine) } -> std::same_as<void>;
-  { app.update(deltaTime) } -> std::same_as<void>;
-  { app.fixedUpdate(deltaTime) } -> std::same_as<void>;
-  { app.render() } -> std::same_as<void>;
-  { app.shutdown() } -> std::same_as<void>;
+concept Application = requires(T app, float delta_time, Engine& engine) {
+  { app.Init(engine) } -> std::same_as<void>;
+  { app.Update(delta_time) } -> std::same_as<void>;
+  { app.FixedUpdate(delta_time) } -> std::same_as<void>;
+  { app.Render() } -> std::same_as<void>;
+  { app.Shutdown() } -> std::same_as<void>;
 };
 
 class Engine
@@ -30,7 +30,7 @@ public:
   ~Engine();
 
   template<Application App>
-  void run(App& app);
+  void Run(App& app);
 
   [[nodiscard]] EventManager& GetEventManager() const;
   [[nodiscard]] Window& GetWindow() const;
