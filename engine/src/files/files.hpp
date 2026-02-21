@@ -12,25 +12,20 @@
 namespace files
 {
 
-  inline std::filesystem::path GetExecutablePath()
+  inline constexpr int kAssetDirSearchLevels = 5;
+
+  inline const std::filesystem::path& GetWorkingDirectory()
   {
-#ifdef _WIN32
-    char buffer[MAX_PATH];
-    GetModuleFileNameA(NULL, buffer, MAX_PATH);
-    return std::filesystem::path(buffer);
-#elif __linux__
-    return std::filesystem::canonical("/proc/self/exe");
-#else
-#error "Unsupported platform"
-#endif
+    static const auto dir = std::filesystem::current_path();
+    return dir;
   }
 
-  inline std::filesystem::path GetResourceRoot()
+  inline std::filesystem::path GetAssetsPathRoot()
   {
-    const auto exe_dir = GetExecutablePath().parent_path();
+    const auto exe_dir = GetWorkingDirectory().parent_path();
 
     auto current = exe_dir;
-    for (int i = 0; i < 5; ++i)
+    for (int i = 0; i < kAssetDirSearchLevels; ++i)
     {
       if (std::filesystem::exists(current / "engine/assets") || std::filesystem::exists(current / "runtime/assets"))
       {

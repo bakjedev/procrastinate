@@ -856,7 +856,7 @@ uint32_t VulkanRenderer::AddMesh(const std::vector<Vertex>& vertices, const std:
   mesh_infos_.emplace_back(b_min, indices.size(), b_max, first_index, vertex_offset);
   return mesh_id;
 }
-uint32_t VulkanRenderer::AddTexture(const u_char* texture, int32_t width, int32_t height)
+uint32_t VulkanRenderer::AddTexture(const unsigned char* texture, int32_t width, int32_t height)
 {
   const uint32_t id = texture_infos_.size();
   const uint32_t texture_id = textures_.size();

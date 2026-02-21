@@ -16,7 +16,7 @@ struct RuntimeApplication
   void init(Engine& eng)
   {
     engine = &eng;
-    auto rootPath = files::GetResourceRoot();
+    auto rootPath = files::GetAssetsPathRoot();
 
     const auto catEntity = engine->GetScene().Create();
     auto* catTransform = engine->GetScene().AddComponent<CTransform>(catEntity);

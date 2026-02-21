@@ -63,14 +63,14 @@ MeshResource MeshResourceLoader::operator()(const std::string &path, Engine *eng
     }
   }
 
-  const u_char *texture{};
+  const unsigned char *texture{};
   int32_t texture_width{};
   int32_t texture_height{};
   for (const auto &material: materials)
   {
     if (!material.diffuse_texname.empty())
     {
-      const auto tex_path = files::GetResourceRoot().string() + "/engine/assets/" + material.diffuse_texname;
+      const auto tex_path = files::GetAssetsPathRoot().string() + "/engine/assets/" + material.diffuse_texname;
       if (!std::filesystem::exists(tex_path))
       {
         util::println("Failed to find texture");
