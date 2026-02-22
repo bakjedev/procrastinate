@@ -11,35 +11,35 @@
 class ResourceManager
 {
 public:
-  ResourceManager() { m_rootPath = files::GetAssetsPathRoot(); }
+  ResourceManager() { root_path_ = files::GetAssetsPathRoot(); }
 
   template<typename T>
-  ResourceStorage<T> &getStorage()
+  ResourceStorage<T> &GetStorage()
   {
-    return std::get<ResourceStorage<T>>(m_storages);
+    return std::get<ResourceStorage<T>>(storages_);
   }
 
   template<typename T>
-  const ResourceStorage<T> &getStorage() const
+  const ResourceStorage<T> &GetStorage() const
   {
-    return std::get<ResourceStorage<T>>(m_storages);
+    return std::get<ResourceStorage<T>>(storages_);
   }
 
   template<typename T, typename Loader, typename... Args>
-  ResourceRef<T> create(const std::string &key, Loader &&loader, Args &&...args)
+  ResourceRef<T> load(const std::string &key, Loader &&loader, Args &&...args)
   {
-    return getStorage<T>().create(key, std::forward<Loader>(loader), std::forward<Args>(args)...);
+    return GetStorage<T>().load(key, std::forward<Loader>(loader), std::forward<Args>(args)...);
   }
 
   template<typename T, typename Loader, typename... Args>
-  ResourceRef<T> createFromFile(const std::string &key, Loader &&loader, Args &&...args)
+  ResourceRef<T> CreateFromFile(const std::string &key, Loader &&loader, Args &&...args)
   {
-    const std::string fullPath = (m_rootPath / key).string();
-    return getStorage<T>().create(key, std::forward<Loader>(loader), fullPath, std::forward<Args>(args)...);
+    const std::string full_path = (root_path_ / key).string();
+    return GetStorage<T>().load(key, std::forward<Loader>(loader), full_path, std::forward<Args>(args)...);
   }
 
 private:
-  std::tuple<ResourceStorage<ShaderResource>, ResourceStorage<MeshResource>> m_storages;
+  std::tuple<ResourceStorage<ShaderResource>, ResourceStorage<MeshResource>> storages_;
 
-  std::filesystem::path m_rootPath;
+  std::filesystem::path root_path_;
 };

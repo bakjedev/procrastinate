@@ -21,7 +21,7 @@ struct RuntimeApplication
     const auto cat_entity = engine->GetScene().Create();
     auto* cat_transform = engine->GetScene().AddComponent<CTransform>(cat_entity);
     auto* cat_mesh = engine->GetScene().AddComponent<CMesh>(cat_entity);
-    cat_mesh->mesh = engine->GetResourceManager().create<MeshResource>(
+    cat_mesh->mesh = engine->GetResourceManager().load<MeshResource>(
         "catMesh", MeshResourceLoader{}, (root_path / "engine/assets/concrete_cat_statue_1k.obj").string(), engine);
     cat_mesh->mesh_id = cat_mesh->mesh->renderer_id;
     cat_mesh->texture_id = cat_mesh->mesh->texture_id;
@@ -34,7 +34,7 @@ struct RuntimeApplication
     const auto wall_entity = engine->GetScene().Create();
     auto* wall_transform = engine->GetScene().AddComponent<CTransform>(wall_entity);
     auto* wall_mesh = engine->GetScene().AddComponent<CMesh>(wall_entity);
-    wall_mesh->mesh = engine->GetResourceManager().create<MeshResource>(
+    wall_mesh->mesh = engine->GetResourceManager().load<MeshResource>(
         "wallMesh", MeshResourceLoader{}, (root_path / "engine/assets/wall.obj").string(), engine);
     wall_mesh->mesh_id = wall_mesh->mesh->renderer_id;
     wall_mesh->texture_id = wall_mesh->mesh->texture_id;
@@ -66,11 +66,11 @@ struct RuntimeApplication
 
         if ((i + j) % 2 == 0)
         {
-          mesh_component->mesh = engine->GetResourceManager().create<MeshResource>(
+          mesh_component->mesh = engine->GetResourceManager().load<MeshResource>(
               "firstmesh", MeshResourceLoader{}, (root_path / "engine/assets/cylinder.obj").string(), engine);
         } else
         {
-          mesh_component->mesh = engine->GetResourceManager().create<MeshResource>(
+          mesh_component->mesh = engine->GetResourceManager().load<MeshResource>(
               "secondmesh", MeshResourceLoader{}, (root_path / "engine/assets/icosphere.obj").string(), engine);
         }
         mesh_component->mesh_id = mesh_component->mesh->renderer_id;

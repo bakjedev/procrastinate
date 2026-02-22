@@ -317,11 +317,11 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
 
   // pre pass
   const auto vert_code =
-      resource_manager.createFromFile<ShaderResource>("engine/assets/shaders/test.vert.spv", ShaderResourceLoader{});
+      resource_manager.CreateFromFile<ShaderResource>("engine/assets/shaders/test.vert.spv", ShaderResourceLoader{});
   pre_pass_vert_ = std::make_unique<VulkanShader>(device_->get(), vert_code->code);
 
   const auto frag_code =
-      resource_manager.createFromFile<ShaderResource>("engine/assets/shaders/test.frag.spv", ShaderResourceLoader{});
+      resource_manager.CreateFromFile<ShaderResource>("engine/assets/shaders/test.frag.spv", ShaderResourceLoader{});
   pre_pass_frag_ = std::make_unique<VulkanShader>(device_->get(), frag_code->code);
 
   const vk::PipelineShaderStageCreateInfo vert_stage{
@@ -331,11 +331,11 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
       .stage = vk::ShaderStageFlagBits::eFragment, .module = pre_pass_frag_->get(), .pName = "main"};
 
   // debug line
-  const auto debug_line_vert_code = resource_manager.createFromFile<ShaderResource>(
+  const auto debug_line_vert_code = resource_manager.CreateFromFile<ShaderResource>(
       "engine/assets/shaders/debug_line.vert.spv", ShaderResourceLoader{});
   debug_line_vert_ = std::make_unique<VulkanShader>(device_->get(), debug_line_vert_code->code);
 
-  const auto debug_line_frag_code = resource_manager.createFromFile<ShaderResource>(
+  const auto debug_line_frag_code = resource_manager.CreateFromFile<ShaderResource>(
       "engine/assets/shaders/debug_line.frag.spv", ShaderResourceLoader{});
   debug_line_frag_ = std::make_unique<VulkanShader>(device_->get(), debug_line_frag_code->code);
 
@@ -347,7 +347,7 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
 
   // culling
   const auto culling_comp_code =
-      resource_manager.createFromFile<ShaderResource>("engine/assets/shaders/test.comp.spv", ShaderResourceLoader{});
+      resource_manager.CreateFromFile<ShaderResource>("engine/assets/shaders/test.comp.spv", ShaderResourceLoader{});
   culling_comp_ = std::make_unique<VulkanShader>(device_->get(), culling_comp_code->code);
 
   const vk::PipelineShaderStageCreateInfo culling_comp_stage{
@@ -355,7 +355,7 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
 
   // shading
   const auto shading_comp_code =
-      resource_manager.createFromFile<ShaderResource>("engine/assets/shaders/shading.comp.spv", ShaderResourceLoader{});
+      resource_manager.CreateFromFile<ShaderResource>("engine/assets/shaders/shading.comp.spv", ShaderResourceLoader{});
   shading_comp_ = std::make_unique<VulkanShader>(device_->get(), shading_comp_code->code);
 
   const vk::PipelineShaderStageCreateInfo shading_comp_stage{
