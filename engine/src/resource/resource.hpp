@@ -160,7 +160,7 @@ public:
     {
       return {};
     }
-    ++ref_counts_[iter->second];
+    ++ref_counts_.at(iter->second);
     return ResourceRef<T>{iter->second, this};
   }
 };
