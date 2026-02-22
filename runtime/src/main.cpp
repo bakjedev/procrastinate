@@ -23,6 +23,8 @@ struct RuntimeApplication
     auto* cat_mesh = engine->GetScene().AddComponent<CMesh>(cat_entity);
     cat_mesh->mesh = engine->GetResourceManager().create<MeshResource>(
         "catMesh", MeshResourceLoader{}, (root_path / "engine/assets/concrete_cat_statue_1k.obj").string(), engine);
+    cat_mesh->mesh_id = cat_mesh->mesh->renderer_id;
+    cat_mesh->texture_id = cat_mesh->mesh->texture_id;
     cat_transform->world = glm::mat4(1.0F);
     cat_transform->world = glm::translate(cat_transform->world, glm::vec3(0.0F, -20.0F, 0.0F));
     cat_transform->world = glm::scale(cat_transform->world, glm::vec3(10.0F, 10.0F, 10.0F));
@@ -34,6 +36,8 @@ struct RuntimeApplication
     auto* wall_mesh = engine->GetScene().AddComponent<CMesh>(wall_entity);
     wall_mesh->mesh = engine->GetResourceManager().create<MeshResource>(
         "wallMesh", MeshResourceLoader{}, (root_path / "engine/assets/wall.obj").string(), engine);
+    wall_mesh->mesh_id = wall_mesh->mesh->renderer_id;
+    wall_mesh->texture_id = wall_mesh->mesh->texture_id;
     wall_transform->world = glm::mat4(1.0F);
     wall_transform->world = glm::translate(wall_transform->world, glm::vec3(30.0F, 0.0F, 180.0F));
     wall_transform->world = glm::scale(wall_transform->world, glm::vec3(1.2F, 1.0F, 1.0F));
@@ -69,6 +73,8 @@ struct RuntimeApplication
           mesh_component->mesh = engine->GetResourceManager().create<MeshResource>(
               "secondmesh", MeshResourceLoader{}, (root_path / "engine/assets/icosphere.obj").string(), engine);
         }
+        mesh_component->mesh_id = mesh_component->mesh->renderer_id;
+        mesh_component->texture_id = mesh_component->mesh->texture_id;
       }
     }
   }

@@ -9,32 +9,45 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
+
+namespace fs = std::filesystem;
+
 namespace files
 {
-
   inline constexpr int kAssetDirSearchLevels = 5;
 
-  inline const std::filesystem::path& GetWorkingDirectory()
+  inline const fs::path& GetWorkingDirectory()
   {
-    static const auto dir = std::filesystem::current_path();
+    static const fs::path dir = []
+    {
+#if defined(_WIN32)
+      char buf[MAX_PATH];
+      GetModuleFileNameA(nullptr, buf, MAX_PATH);
+      return fs::path(buf).parent_path();
+#elif defined(__linux__)
+      return fs::read_symlink("/proc/self/exe").parent_path();
+#else
+      throw std::runtime_error("Unsupported platform");
+#endif
+    }();
     return dir;
   }
 
-  inline std::filesystem::path GetAssetsPathRoot()
+  inline fs::path GetAssetsPathRoot()
   {
-    const auto exe_dir = GetWorkingDirectory().parent_path();
+    const auto& exe_dir = GetWorkingDirectory();
 
     auto current = exe_dir;
     for (int i = 0; i < kAssetDirSearchLevels; ++i)
     {
-      if (std::filesystem::exists(current / "engine/assets") || std::filesystem::exists(current / "runtime/assets"))
+      if (fs::exists(current / "engine/assets") || fs::exists(current / "runtime/assets"))
       {
         return current;
       }
       current = current.parent_path();
     }
 
-    throw std::runtime_error("Resource root not found");
+    throw std::runtime_error("Resource root not found " + exe_dir.string());
   }
 
   inline std::optional<std::vector<uint32_t>> ReadBinaryFile(const std::string& path)

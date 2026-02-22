@@ -5,4 +5,6 @@
 struct CMesh
 {
   ResourceRef<MeshResource> mesh;
+  uint32_t mesh_id;
+  int32_t texture_id;
 };
