@@ -43,6 +43,11 @@ struct RuntimeApplication
     engine->GetScene().AddComponent<CTransform>(camera_entity, glm::mat4(1.0F));
     engine->GetScene().AddComponent<CCamera>(camera_entity, 70.0F);
 
+    const auto cylinder_mesh = engine->GetResourceManager().load<MeshResource>(
+        "firstmesh", MeshResourceLoader{}, (root_path / "engine/assets/cylinder.obj").string(), engine);
+    const auto icosphere_mesh = engine->GetResourceManager().load<MeshResource>(
+        "secondmesh", MeshResourceLoader{}, (root_path / "engine/assets/icosphere.obj").string(), engine);
+
     constexpr int grid_size = 100;
     for (int j{}; j < grid_size; ++j)
     {
@@ -58,11 +63,6 @@ struct RuntimeApplication
         transform_component->world =
             glm::translate(transform_component->world, glm::vec3(-static_cast<float>(grid_size), 6.0F, -100.0F));
         transform_component->world = glm::scale(transform_component->world, glm::vec3(1.0F));
-
-        const auto cylinder_mesh = engine->GetResourceManager().load<MeshResource>(
-            "firstmesh", MeshResourceLoader{}, (root_path / "engine/assets/cylinder.obj").string(), engine);
-        const auto icosphere_mesh = engine->GetResourceManager().load<MeshResource>(
-            "secondmesh", MeshResourceLoader{}, (root_path / "engine/assets/icosphere.obj").string(), engine);
 
         if ((i + j) % 2 == 0)
         {
