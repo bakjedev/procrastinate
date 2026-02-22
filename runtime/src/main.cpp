@@ -19,62 +19,59 @@ struct RuntimeApplication
     const auto& root_path = files::GetAssetsPathRoot();
 
     const auto cat_entity = engine->GetScene().Create();
-    auto* cat_transform = engine->GetScene().AddComponent<CTransform>(cat_entity);
-    auto* cat_mesh = engine->GetScene().AddComponent<CMesh>(cat_entity);
-    cat_mesh->mesh = engine->GetResourceManager().load<MeshResource>(
-        "catMesh", MeshResourceLoader{}, (root_path / "engine/assets/concrete_cat_statue_1k.obj").string(), engine);
-    cat_mesh->mesh_id = cat_mesh->mesh->renderer_id;
-    cat_mesh->texture_id = cat_mesh->mesh->texture_id;
-    cat_transform->world = glm::mat4(1.0F);
+
+    auto* cat_transform = engine->GetScene().AddComponent<CTransform>(cat_entity, glm::mat4(1.0F));
     cat_transform->world = glm::translate(cat_transform->world, glm::vec3(0.0F, -20.0F, 0.0F));
     cat_transform->world = glm::scale(cat_transform->world, glm::vec3(10.0F, 10.0F, 10.0F));
     cat_transform->world = glm::rotate(cat_transform->world, glm::radians(180.0F), glm::vec3(1.0F, 0.0F, 0.0F));
 
+    const auto cat_mesh = engine->GetResourceManager().load<MeshResource>(
+        "catMesh", MeshResourceLoader{}, (root_path / "engine/assets/concrete_cat_statue_1k.obj").string(), engine);
+    engine->GetScene().AddComponent<CMesh>(cat_entity, cat_mesh);
 
     const auto wall_entity = engine->GetScene().Create();
-    auto* wall_transform = engine->GetScene().AddComponent<CTransform>(wall_entity);
-    auto* wall_mesh = engine->GetScene().AddComponent<CMesh>(wall_entity);
-    wall_mesh->mesh = engine->GetResourceManager().load<MeshResource>(
-        "wallMesh", MeshResourceLoader{}, (root_path / "engine/assets/wall.obj").string(), engine);
-    wall_mesh->mesh_id = wall_mesh->mesh->renderer_id;
-    wall_mesh->texture_id = wall_mesh->mesh->texture_id;
-    wall_transform->world = glm::mat4(1.0F);
+
+    auto* wall_transform = engine->GetScene().AddComponent<CTransform>(wall_entity, glm::mat4(1.0F));
     wall_transform->world = glm::translate(wall_transform->world, glm::vec3(30.0F, 0.0F, 180.0F));
     wall_transform->world = glm::scale(wall_transform->world, glm::vec3(1.2F, 1.0F, 1.0F));
 
+    const auto wall_mesh = engine->GetResourceManager().load<MeshResource>(
+        "wallMesh", MeshResourceLoader{}, (root_path / "engine/assets/wall.obj").string(), engine);
+    engine->GetScene().AddComponent<CMesh>(wall_entity, wall_mesh);
+
     camera_entity = engine->GetScene().Create();
-    auto* camera_transform = engine->GetScene().AddComponent<CTransform>(camera_entity);
-    auto* camera_component = engine->GetScene().AddComponent<CCamera>(camera_entity);
-    camera_transform->world = glm::mat4(1.0F);
-    camera_component->fov = 70.0F;
+    engine->GetScene().AddComponent<CTransform>(camera_entity, glm::mat4(1.0F));
+    engine->GetScene().AddComponent<CCamera>(camera_entity, 70.0F);
 
     constexpr int grid_size = 100;
     for (int j{}; j < grid_size; ++j)
     {
       for (int i{}; i < grid_size; ++i)
       {
-        const auto entity = engine->GetScene().Create();
-        auto* transform_component = engine->GetScene().AddComponent<CTransform>(entity);
-        auto* mesh_component = engine->GetScene().AddComponent<CMesh>(entity);
-
         constexpr float spacing = 2.6F;
+
+        const auto entity = engine->GetScene().Create();
+
+        auto* transform_component = engine->GetScene().AddComponent<CTransform>(entity);
         transform_component->world = glm::translate(
             glm::mat4(1.0F), glm::vec3(static_cast<float>(j) * spacing, 0.0F, static_cast<float>(i) * spacing));
         transform_component->world =
             glm::translate(transform_component->world, glm::vec3(-static_cast<float>(grid_size), 6.0F, -100.0F));
         transform_component->world = glm::scale(transform_component->world, glm::vec3(1.0F));
 
+        const auto cylinder_mesh = engine->GetResourceManager().load<MeshResource>(
+            "firstmesh", MeshResourceLoader{}, (root_path / "engine/assets/cylinder.obj").string(), engine);
+        const auto icosphere_mesh = engine->GetResourceManager().load<MeshResource>(
+            "secondmesh", MeshResourceLoader{}, (root_path / "engine/assets/icosphere.obj").string(), engine);
+
         if ((i + j) % 2 == 0)
         {
-          mesh_component->mesh = engine->GetResourceManager().load<MeshResource>(
-              "firstmesh", MeshResourceLoader{}, (root_path / "engine/assets/cylinder.obj").string(), engine);
+          engine->GetScene().AddComponent<CMesh>(entity, cylinder_mesh);
+
         } else
         {
-          mesh_component->mesh = engine->GetResourceManager().load<MeshResource>(
-              "secondmesh", MeshResourceLoader{}, (root_path / "engine/assets/icosphere.obj").string(), engine);
+          engine->GetScene().AddComponent<CMesh>(entity, icosphere_mesh);
         }
-        mesh_component->mesh_id = mesh_component->mesh->renderer_id;
-        mesh_component->texture_id = mesh_component->mesh->texture_id;
       }
     }
   }
