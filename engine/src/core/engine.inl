@@ -9,6 +9,7 @@
 #include "events.hpp"
 #include "input/input.hpp"
 #include "render/vk_renderer.hpp"
+#include "resource/resource_manager.hpp"
 #include "tracy/Tracy.hpp"
 #include "window.hpp"
 
@@ -16,6 +17,8 @@ template<Application App>
 void Engine::Run(App& app)
 {
   app.Init(*this);
+  resource_manager_->GetStorage<MeshResource>().AddOnDestroyCallback(
+      ResourceCallback<MeshResource>::Create<&VulkanRenderer::OnMeshResourceDestroyed>(renderer_.get()));
 
   using Clock = std::chrono::steady_clock;
 

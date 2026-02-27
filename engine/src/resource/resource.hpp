@@ -6,6 +6,8 @@
 #include <utility>
 #include <vector>
 
+#include "resource_callback.hpp"
+
 template<typename T>
 class ResourceStorage;
 
@@ -101,6 +103,8 @@ class ResourceStorage
 
   std::unordered_map<std::string, uint32_t> key_to_index_;
 
+  std::vector<ResourceCallback<T>> on_destroy_;
+
   void acquire(const uint32_t index) { ++ref_counts_.at(index); }
 
   void release(const uint32_t index)
@@ -108,6 +112,10 @@ class ResourceStorage
     assert(ref_counts_.at(index) > 0);
     if (--ref_counts_.at(index) == 0)
     {
+      for (const auto& callback: on_destroy_)
+      {
+        callback(resources_[index]);
+      }
       key_to_index_.erase(keys_.at(index));
       keys_.at(index).clear();
       // resources_[index] = T{};
@@ -163,4 +171,6 @@ public:
     ++ref_counts_.at(iter->second);
     return ResourceRef<T>{iter->second, this};
   }
+
+  void AddOnDestroyCallback(const ResourceCallback<T>& callback) { on_destroy_.push_back(callback); }
 };

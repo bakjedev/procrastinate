@@ -1059,6 +1059,11 @@ void VulkanRenderer::ClearMeshes() { render_objects_.clear(); }
 int32_t VulkanRenderer::GetVertexCount() const { return static_cast<int32_t>(vertices_.size()); }
 uint32_t VulkanRenderer::GetIndexCount() const { return indices_.size(); }
 
+void VulkanRenderer::OnMeshResourceDestroyed(const MeshResource& resource)
+{
+  util::println("Yo: {}", resource.renderer_id);
+}
+
 std::optional<uint32_t> VulkanRenderer::BeginFrame() const
 {
   ZoneScopedN("VulkanRenderer::beginFrame");

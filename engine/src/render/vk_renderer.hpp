@@ -6,6 +6,8 @@
 
 #include "util/frustum.hpp"
 
+
+struct MeshResource;
 struct DebugLineVertex;
 struct RenderObject;
 class VulkanFrame;
@@ -103,6 +105,8 @@ public:
   void ClearLines();
   [[nodiscard]] int32_t GetVertexCount() const;
   [[nodiscard]] uint32_t GetIndexCount() const;
+
+  void OnMeshResourceDestroyed(const MeshResource &resource);
 
 private:
   [[nodiscard]] std::optional<uint32_t> BeginFrame() const;
