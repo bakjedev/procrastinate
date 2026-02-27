@@ -26,13 +26,13 @@ public:
   }
 
   template<typename T, typename Loader, typename... Args>
-  ResourceRef<T> load(const std::string &key, Loader &&loader, Args &&...args)
+  ResourceHandle<T> load(const std::string &key, Loader &&loader, Args &&...args)
   {
     return GetStorage<T>().load(key, std::forward<Loader>(loader), std::forward<Args>(args)...);
   }
 
   template<typename T, typename Loader, typename... Args>
-  ResourceRef<T> CreateFromFile(const std::string &key, Loader &&loader, Args &&...args)
+  ResourceHandle<T> CreateFromFile(const std::string &key, Loader &&loader, Args &&...args)
   {
     const std::string full_path = (root_path_ / key).string();
     return GetStorage<T>().load(key, std::forward<Loader>(loader), full_path, std::forward<Args>(args)...);

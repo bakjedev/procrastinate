@@ -12,13 +12,13 @@ template<typename T>
 class ResourceStorage;
 
 template<typename T>
-class ResourceRef
+class ResourceHandle
 {
 public:
-  ResourceRef() = default;
-  ~ResourceRef() { release(); }
+  ResourceHandle() = default;
+  ~ResourceHandle() { release(); }
 
-  ResourceRef(const ResourceRef& other) : index_(other.index_), storage_(other.storage_)
+  ResourceHandle(const ResourceHandle& other) : index_(other.index_), storage_(other.storage_)
   {
     if (valid())
     {
@@ -26,12 +26,12 @@ public:
     }
   }
 
-  ResourceRef(ResourceRef&& other) noexcept : index_(other.index_), storage_(other.storage_)
+  ResourceHandle(ResourceHandle&& other) noexcept : index_(other.index_), storage_(other.storage_)
   {
     other.storage_ = nullptr;
   }
 
-  ResourceRef& operator=(const ResourceRef& other)
+  ResourceHandle& operator=(const ResourceHandle& other)
   {
     if (this != &other)
     {
@@ -46,7 +46,7 @@ public:
     return *this;
   }
 
-  ResourceRef& operator=(ResourceRef&& other) noexcept
+  ResourceHandle& operator=(ResourceHandle&& other) noexcept
   {
     if (this != &other)
     {
@@ -69,7 +69,7 @@ public:
 private:
   friend class ResourceStorage<T>;
 
-  ResourceRef(const uint32_t index, ResourceStorage<T>* storage) : index_(index), storage_(storage) {}
+  ResourceHandle(const uint32_t index, ResourceStorage<T>* storage) : index_(index), storage_(storage) {}
 
   void release()
   {
@@ -92,9 +92,8 @@ concept LoaderFor = std::invocable<Loader, Args...> && std::same_as<std::invoke_
 template<typename T>
 class ResourceStorage
 {
-  using Ref = ResourceRef<T>;
-
-  friend class ResourceRef<T>;
+  friend class ResourceHandle<T>;
+  using Handle = ResourceHandle<T>;
 
   std::vector<T> resources_;
   std::vector<uint32_t> ref_counts_;
@@ -128,13 +127,13 @@ class ResourceStorage
 public:
   template<typename Loader, typename... Args>
     requires LoaderFor<Loader, T, Args...>
-  ResourceRef<T> load(const std::string& key, Loader&& loader, Args&&... args)
+  Handle load(const std::string& key, Loader&& loader, Args&&... args)
   {
     auto iter = key_to_index_.find(key);
     if (iter != key_to_index_.end())
     {
       ++ref_counts_.at(iter->second);
-      return ResourceRef<T>{iter->second, this};
+      return Handle{iter->second, this};
     }
 
     // load before touching indices because might throw exception
@@ -158,10 +157,10 @@ public:
     keys_.at(index) = key;
     key_to_index_[key] = index;
 
-    return ResourceRef<T>{index, this};
+    return Handle{index, this};
   }
 
-  ResourceRef<T> get(const std::string& key)
+  Handle get(const std::string& key)
   {
     auto iter = key_to_index_.find(key);
     if (iter == key_to_index_.end())
@@ -169,7 +168,7 @@ public:
       return {};
     }
     ++ref_counts_.at(iter->second);
-    return ResourceRef<T>{iter->second, this};
+    return Handle{iter->second, this};
   }
 
   void AddOnDestroyCallback(const ResourceCallback<T>& callback) { on_destroy_.push_back(callback); }
