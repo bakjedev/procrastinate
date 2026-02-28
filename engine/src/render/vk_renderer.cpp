@@ -1049,7 +1049,7 @@ void VulkanRenderer::Upload()
   device_->WaitIdle(); // THIS BAD
 }
 
-void VulkanRenderer::RenderMesh(glm::mat4 model, const uint32_t mesh_id, int32_t texture_id)
+void VulkanRenderer::RenderMesh(const glm::mat4& model, const uint32_t mesh_id, int32_t texture_id)
 {
   render_objects_.emplace_back(model, mesh_id, texture_id);
 }
