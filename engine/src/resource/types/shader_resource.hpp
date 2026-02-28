@@ -8,8 +8,6 @@
 struct ShaderResource
 {
   std::vector<uint32_t> code;
-
-  explicit ShaderResource(std::vector<uint32_t> data) : code(std::move(data)) {}
 };
 
 struct ShaderResourceLoader
@@ -21,6 +19,6 @@ struct ShaderResourceLoader
     {
       throw std::runtime_error("Failed to load shader: " + path);
     }
-    return ShaderResource{std::move(*data)};
+    return ShaderResource{.code = std::move(*data)};
   }
 };
