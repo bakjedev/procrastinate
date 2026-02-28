@@ -5,11 +5,4 @@
 struct CMesh
 {
   ResourceHandle<MeshResource> mesh;
-  uint32_t mesh_id;
-  int32_t texture_id;
-
-  explicit CMesh(const ResourceHandle<MeshResource>& mesh) :
-      mesh(mesh), mesh_id(this->mesh->renderer_id), texture_id(this->mesh->texture_id)
-  {
-  }
 };

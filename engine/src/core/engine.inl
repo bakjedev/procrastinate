@@ -52,9 +52,10 @@ void Engine::Run(App& app)
     auto view = scene_->registry().view<CMesh, CTransform>();
     for (const auto entity: view)
     {
-      const auto& mesh = view.get<CMesh>(entity);
+      const auto& mesh_comp = view.get<CMesh>(entity);
+      const auto& mesh = *mesh_comp.mesh;
       const auto& transform = view.get<CTransform>(entity);
-      renderer_->RenderMesh(transform.world, mesh.mesh_id, mesh.texture_id);
+      renderer_->RenderMesh(transform.world, mesh.renderer_id, mesh.texture_id);
     }
 
     const auto camera_view = scene_->registry().view<CCamera, CTransform>();
