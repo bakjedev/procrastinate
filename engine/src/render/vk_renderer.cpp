@@ -1054,7 +1054,11 @@ void VulkanRenderer::RenderMesh(glm::mat4 model, const uint32_t mesh_id, int32_t
   render_objects_.emplace_back(model, mesh_id, texture_id);
 }
 
-void VulkanRenderer::ClearMeshes() { render_objects_.clear(); }
+void VulkanRenderer::ClearMeshes(const uint32_t reserve)
+{
+  render_objects_.clear();
+  render_objects_.reserve(reserve);
+}
 
 int32_t VulkanRenderer::GetVertexCount() const { return static_cast<int32_t>(vertices_.size()); }
 uint32_t VulkanRenderer::GetIndexCount() const { return indices_.size(); }

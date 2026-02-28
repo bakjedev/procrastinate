@@ -48,8 +48,8 @@ void Engine::Run(App& app)
       accumulator -= fixed_dt;
     }
 
-    renderer_->ClearMeshes();
     auto view = scene_->registry().view<CMesh, CTransform>();
+    renderer_->ClearMeshes(view.size_hint());
     for (const auto entity: view)
     {
       const auto& mesh_comp = view.get<CMesh>(entity);

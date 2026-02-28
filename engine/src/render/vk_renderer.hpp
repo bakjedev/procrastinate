@@ -99,7 +99,7 @@ public:
   void Upload();
 
   void RenderMesh(glm::mat4 model, uint32_t mesh_id, int32_t texture_id = -1);
-  void ClearMeshes();
+  void ClearMeshes(uint32_t reserve = 0);
 
   void RenderLine(const glm::vec3 &point_a, const glm::vec3 &point_b, const glm::vec3 &color);
   void ClearLines();
