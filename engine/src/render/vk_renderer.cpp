@@ -719,15 +719,6 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eTransferSrcOptimal,
                                      vk::ImageLayout::eGeneral);
 
-  vulkan_barriers::BufferBarrier(
-      cmd, vulkan_barriers::BufferInfo{.buffer = vertex_buffer_->get(), .size = vk::WholeSize},
-      vulkan_barriers::BufferUsageBit::VertexOrIndex, vulkan_barriers::BufferUsageBit::RCompute);
-
-  vulkan_barriers::BufferBarrier(
-      cmd, vulkan_barriers::BufferInfo{.buffer = index_buffer_->get(), .size = vk::WholeSize},
-      vulkan_barriers::BufferUsageBit::VertexOrIndex, vulkan_barriers::BufferUsageBit::RCompute);
-
-
   cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, shading_pipeline_layout_->get(), 0, descriptor_sets.size(),
                          descriptor_sets.data(), 0, nullptr);
   cmd.bindPipeline(vk::PipelineBindPoint::eCompute, shading_pipeline_->get());
@@ -737,14 +728,6 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   }
   VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eGeneral,
                                      vk::ImageLayout::eColorAttachmentOptimal);
-
-  vulkan_barriers::BufferBarrier(
-      cmd, vulkan_barriers::BufferInfo{.buffer = vertex_buffer_->get(), .size = vk::WholeSize},
-      vulkan_barriers::BufferUsageBit::RCompute, vulkan_barriers::BufferUsageBit::VertexOrIndex);
-
-  vulkan_barriers::BufferBarrier(
-      cmd, vulkan_barriers::BufferInfo{.buffer = index_buffer_->get(), .size = vk::WholeSize},
-      vulkan_barriers::BufferUsageBit::RCompute, vulkan_barriers::BufferUsageBit::VertexOrIndex);
 
   cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
 
@@ -1050,13 +1033,6 @@ void VulkanRenderer::Upload()
     image->TransitionLayout(gcmd, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
   }
 
-  vulkan_barriers::BufferBarrier(gcmd,
-                                 vulkan_barriers::BufferInfo{.buffer = vertex_buffer_->get(), .size = vk::WholeSize},
-                                 vulkan_barriers::BufferUsageBit::None, vulkan_barriers::BufferUsageBit::VertexOrIndex);
-
-  vulkan_barriers::BufferBarrier(gcmd,
-                                 vulkan_barriers::BufferInfo{.buffer = index_buffer_->get(), .size = vk::WholeSize},
-                                 vulkan_barriers::BufferUsageBit::None, vulkan_barriers::BufferUsageBit::VertexOrIndex);
   util::EndSingleTimeCommandBuffer(gcmd, device_->GraphicsQueue(), *graphics_pool_);
 
   // Update the mesh info descriptor set
