@@ -16,8 +16,14 @@ Engine::Engine()
 {
   util::println("procrastinating");
 
-  constexpr uint32_t width = 1920;
-  constexpr uint32_t height = 1080;
+  if (!SDL_Init(SDL_INIT_VIDEO))
+  {
+    throw std::runtime_error(std::string("Failed to initialize SDL: ") + SDL_GetError());
+  }
+
+  const auto [display_width, display_height] = Window::GetDisplaySize();
+  const auto width = static_cast<uint32_t>(static_cast<float>(display_width) / 1.5F);
+  const auto height = static_cast<uint32_t>(static_cast<float>(display_height) / 1.5F);
 
   event_manager_ = std::make_unique<EventManager>();
   window_ = std::make_unique<Window>(

@@ -31,6 +31,7 @@ public:
   void update();
 
   [[nodiscard]] std::pair<uint32_t, uint32_t> GetWindowSize() const;
+  static std::pair<uint32_t, uint32_t> GetDisplaySize();
 
 private:
   bool quit_ = false;

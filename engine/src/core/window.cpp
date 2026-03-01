@@ -8,11 +8,6 @@
 Window::Window(const WindowInfo& info, EventManager& event_manager) :
     width_(info.width), height_(info.height), fullscreen_(info.fullscreen), event_manager_(&event_manager)
 {
-  if (!SDL_Init(SDL_INIT_VIDEO))
-  {
-    throw std::runtime_error(std::string("Failed to initialize SDL: ") + SDL_GetError());
-  }
-
   if (width_ == 0 || height_ == 0)
   {
     throw std::runtime_error("Invalid window size");
@@ -61,4 +56,14 @@ std::pair<uint32_t, uint32_t> Window::GetWindowSize() const
   SDL_GetWindowSizeInPixels(window_, &width, &height);
 
   return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+}
+std::pair<uint32_t, uint32_t> Window::GetDisplaySize()
+{
+  const SDL_DisplayID display = SDL_GetPrimaryDisplay();
+  SDL_Rect rect;
+  if (!SDL_GetDisplayBounds(display, &rect))
+  {
+    throw std::runtime_error(std::string("Failed to get display bounds: ") + SDL_GetError());
+  }
+  return {static_cast<uint32_t>(rect.w), static_cast<uint32_t>(rect.h)};
 }
