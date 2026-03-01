@@ -82,6 +82,7 @@ void VulkanDevice::CreateDevice()
   enabled_features13_ = {};
 
   enabled_features_.features.multiDrawIndirect = available_features_.features.multiDrawIndirect;
+  enabled_features_.features.geometryShader = available_features_.features.geometryShader;
 
   enabled_features11_.shaderDrawParameters = available_features11_.shaderDrawParameters;
 

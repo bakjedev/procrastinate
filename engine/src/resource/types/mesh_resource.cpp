@@ -43,8 +43,12 @@ MeshResource MeshResourceLoader::operator()(const std::string &path, Engine *eng
       b_min = glm::min(pos, b_min);
       b_max = glm::max(pos, b_max);
 
-      const glm::vec3 col = {attrib.colors[index.vertex_index * 3], attrib.colors[(index.vertex_index * 3) + 1],
-                             attrib.colors[(index.vertex_index * 3) + 2]};
+      auto col = glm::vec3(0.0F);
+      if (!attrib.colors.empty())
+      {
+        col = {attrib.colors[index.vertex_index * 3], attrib.colors[(index.vertex_index * 3) + 1],
+               attrib.colors[(index.vertex_index * 3) + 2]};
+      }
 
       auto nor = glm::vec3(0.0F);
       if (!attrib.normals.empty())
@@ -59,7 +63,7 @@ MeshResource MeshResourceLoader::operator()(const std::string &path, Engine *eng
                      1.0F - attrib.texcoords.at(index.texcoord_index * 2 + 1)};
       }
 
-      vertices.emplace_back(pos, col, nor, tex_coord);
+      vertices.push_back({.position = pos, .color = col, .normal = nor, .tex_coord = tex_coord});
       indices.push_back(static_cast<uint32_t>(vertices.size() - 1));
     }
   }

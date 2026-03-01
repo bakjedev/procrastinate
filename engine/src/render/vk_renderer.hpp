@@ -31,11 +31,12 @@ class VulkanDevice;
 struct MeshInfo
 {
   glm::vec3 b_min;
-  uint32_t index_count;
+  float padding1{};
   glm::vec3 b_max;
+  uint32_t index_count;
   uint32_t first_index;
   int32_t vertex_offset;
-  std::array<float, 3> pad;
+  std::array<int32_t, 2> padding2{};
 };
 
 struct TextureInfo
@@ -60,9 +61,13 @@ struct ComputePushConstant
 struct Vertex
 {
   glm::vec3 position;
+  float padding1{};
   glm::vec3 color;
+  float padding2{};
   glm::vec3 normal;
+  float padding3{};
   glm::vec2 tex_coord;
+  std::array<float, 2> padding4{};
 };
 
 struct RenderObject
@@ -76,7 +81,9 @@ struct RenderObject
 struct DebugLineVertex
 {
   glm::vec3 position;
+  float pad1{};
   glm::vec3 color;
+  float pad2{};
 };
 
 class VulkanRenderer
