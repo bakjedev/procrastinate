@@ -242,6 +242,8 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
                                          vk::ImageLayout::eTransferSrcOptimal);
       VulkanImage::TransitionImageLayout(frame->VisibilityImage()->get(), cmd, vk::ImageLayout::eUndefined,
                                          vk::ImageLayout::eShaderReadOnlyOptimal);
+      VulkanImage::TransitionImageLayout(frame->DepthImage()->get(), cmd, vk::ImageLayout::eUndefined,
+                                         vk::ImageLayout::eDepthAttachmentOptimal);
     }
     util::EndSingleTimeCommandBuffer(cmd, device_->GraphicsQueue(), *graphics_pool_);
   }
@@ -318,7 +320,7 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
     writes.push_back(write5);
   }
 
-  device_->get().updateDescriptorSets(writes.size(), writes.data(), 0, nullptr);
+  device_->get().updateDescriptorSets(static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 
   // -----------------------------------------------------------
   // LOAD SHADERS
@@ -520,7 +522,7 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   init_info.Queue = device_->GraphicsQueue();
   init_info.DescriptorPool = descriptor_pool_->get();
   init_info.MinImageCount = max_frames_in_flight_;
-  init_info.ImageCount = frames_.size();
+  init_info.ImageCount = static_cast<uint32_t>(frames_.size());
   init_info.UseDynamicRendering = true;
   init_info.PipelineInfoMain.PipelineRenderingCreateInfo = rendering_info;
 
@@ -575,10 +577,11 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   // Upload render objects
   // -----------------------------------------------------------
   ZoneNamedN(objectszone, "UploadObjects", true);
-  frame->ObjectBuffer()->WriteRange(render_objects_.data(), sizeof(RenderObject) * render_objects_.size());
+  frame->ObjectBuffer()->WriteRange(render_objects_.data(),
+                                    static_cast<uint32_t>(sizeof(RenderObject) * render_objects_.size()));
 
-  frame->DebugLineVertexBuffer()->WriteRange(debug_line_vertices_.data(),
-                                             sizeof(DebugLineVertex) * debug_line_vertices_.size());
+  frame->DebugLineVertexBuffer()->WriteRange(
+      debug_line_vertices_.data(), static_cast<uint32_t>(sizeof(DebugLineVertex) * debug_line_vertices_.size()));
 
   // -----------------------------------------------------------
   // Calculate view, projection and frustum
@@ -765,7 +768,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
 
   cmd.setScissor(0, 1, &scissor);
 
-  cmd.draw(debug_line_vertices_.size(), 1, 0, 0);
+  cmd.draw(static_cast<uint32_t>(debug_line_vertices_.size()), 1, 0, 0);
 
   cmd.endRendering();
 
@@ -860,7 +863,7 @@ uint32_t VulkanRenderer::AddMesh(const std::vector<Vertex>& vertices, const std:
                                  uint32_t first_index, int32_t vertex_offset, const glm::vec3& b_min,
                                  const glm::vec3& b_max)
 {
-  const uint32_t mesh_id = mesh_infos_.size();
+  const uint32_t mesh_id = static_cast<uint32_t>(mesh_infos_.size());
   vertices_.insert(vertices_.end(), vertices.begin(), vertices.end());
   indices_.insert(indices_.end(), indices.begin(), indices.end());
   mesh_infos_.push_back(MeshInfo{.b_min = b_min,
@@ -872,8 +875,8 @@ uint32_t VulkanRenderer::AddMesh(const std::vector<Vertex>& vertices, const std:
 }
 uint32_t VulkanRenderer::AddTexture(std::span<const unsigned char> texture, int32_t width, int32_t height)
 {
-  const uint32_t idx = texture_infos_.size();
-  const uint32_t texture_id = textures_.size();
+  const uint32_t idx = static_cast<uint32_t>(texture_infos_.size());
+  const uint32_t texture_id = static_cast<uint32_t>(textures_.size());
   textures_.emplace_back(texture.begin(), texture.end());
   texture_infos_.emplace_back(texture_id, width, height);
   return idx;
@@ -1089,7 +1092,7 @@ void VulkanRenderer::Upload()
                     .descriptorType = vk::DescriptorType::eStorageBuffer,
                     .pBufferInfo = &buffer_infos.back()});
 
-  device_->get().updateDescriptorSets(writes.size(), writes.data(), 0, nullptr);
+  device_->get().updateDescriptorSets(static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 
   device_->WaitIdle(); // THIS BAD
 }
@@ -1099,14 +1102,14 @@ void VulkanRenderer::RenderMesh(const glm::mat4& model, const uint32_t mesh_id, 
   render_objects_.emplace_back(model, mesh_id, texture_id);
 }
 
-void VulkanRenderer::ClearMeshes(const uint32_t reserve)
+void VulkanRenderer::ClearMeshes(const size_t reserve)
 {
   render_objects_.clear();
   render_objects_.reserve(reserve);
 }
 
 int32_t VulkanRenderer::GetVertexCount() const { return static_cast<int32_t>(vertices_.size()); }
-uint32_t VulkanRenderer::GetIndexCount() const { return indices_.size(); }
+uint32_t VulkanRenderer::GetIndexCount() const { return static_cast<uint32_t>(indices_.size()); }
 
 void VulkanRenderer::OnMeshResourceDestroyed(const MeshResource& resource)
 {
@@ -1218,5 +1221,5 @@ void VulkanRenderer::RecreateFrameImages(const uint32_t width, const uint32_t he
     writes.push_back(render_write);
   }
 
-  device_->get().updateDescriptorSets(writes.size(), writes.data(), 0, nullptr);
+  device_->get().updateDescriptorSets(static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }

@@ -53,6 +53,13 @@ void VulkanImage::TransitionImageLayout(const vk::Image image, const vk::Command
     barrier.dstAccessMask = vk::AccessFlagBits2::eTransferRead;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eTransfer;
+  } else if (old_layout == vk::ImageLayout::eUndefined && new_layout == vk::ImageLayout::eDepthAttachmentOptimal)
+  {
+    barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
+    barrier.dstAccessMask =
+        vk::AccessFlagBits2::eDepthStencilAttachmentRead | vk::AccessFlagBits2::eDepthStencilAttachmentWrite;
+    barrier.srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe;
+    barrier.dstStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests;
   } else if (old_layout == vk::ImageLayout::eTransferDstOptimal &&
              new_layout == vk::ImageLayout::eShaderReadOnlyOptimal)
   {

@@ -37,8 +37,9 @@ MeshResource MeshResourceLoader::operator()(const std::string &path, Engine *eng
   {
     for (const auto &index: shape.mesh.indices)
     {
-      const glm::vec3 pos = {attrib.vertices[index.vertex_index * 3], attrib.vertices[(index.vertex_index * 3) + 1],
-                             attrib.vertices[(index.vertex_index * 3) + 2]};
+      const auto vertex_index = static_cast<size_t>(index.vertex_index) * 3;
+      const glm::vec3 pos = {attrib.vertices[vertex_index], attrib.vertices[vertex_index + 1],
+                             attrib.vertices[vertex_index + 2]};
 
       b_min = glm::min(pos, b_min);
       b_max = glm::max(pos, b_max);
@@ -46,21 +47,21 @@ MeshResource MeshResourceLoader::operator()(const std::string &path, Engine *eng
       auto col = glm::vec3(0.0F);
       if (!attrib.colors.empty())
       {
-        col = {attrib.colors[index.vertex_index * 3], attrib.colors[(index.vertex_index * 3) + 1],
-               attrib.colors[(index.vertex_index * 3) + 2]};
+        col = {attrib.colors[vertex_index], attrib.colors[vertex_index + 1], attrib.colors[vertex_index + 2]};
       }
 
+      const auto normal_index = static_cast<size_t>(index.normal_index) * 3;
       auto nor = glm::vec3(0.0F);
       if (!attrib.normals.empty())
       {
-        nor = {attrib.normals[index.normal_index * 3], attrib.normals[(index.normal_index * 3) + 1],
-               attrib.normals[(index.normal_index * 3) + 2]};
+        nor = {attrib.normals[normal_index], attrib.normals[normal_index + 1], attrib.normals[normal_index + 2]};
       }
+
+      const auto texcoord_index = static_cast<size_t>(index.texcoord_index) * 2;
       auto tex_coord = glm::vec2(0.0F);
       if (!attrib.texcoords.empty())
       {
-        tex_coord = {attrib.texcoords.at(index.texcoord_index * 2),
-                     1.0F - attrib.texcoords.at(index.texcoord_index * 2 + 1)};
+        tex_coord = {attrib.texcoords.at(texcoord_index), 1.0F - attrib.texcoords.at(texcoord_index + 1)};
       }
 
       vertices.push_back({.position = pos, .color = col, .normal = nor, .tex_coord = tex_coord});
@@ -102,8 +103,8 @@ MeshResource MeshResourceLoader::operator()(const std::string &path, Engine *eng
       renderer.AddMesh(vertices, indices, renderer.GetIndexCount(), renderer.GetVertexCount(), b_min, b_max);
   if (texture != nullptr)
   {
-    res.texture_id = renderer.AddTexture({texture, static_cast<size_t>(texture_width * texture_height * 4)},
-                                         texture_width, texture_height);
+    res.texture_id = static_cast<int32_t>(renderer.AddTexture(
+        {texture, static_cast<size_t>(texture_width * texture_height * 4)}, texture_width, texture_height));
   } else
   {
     res.texture_id = -1;

@@ -42,12 +42,12 @@ public:
 
   [[nodiscard]] vk::Buffer get() const { return buffer_; }
   [[nodiscard]] VmaAllocation allocation() const { return allocation_; }
-  [[nodiscard]] uint32_t size() const { return size_; }
+  [[nodiscard]] size_t size() const { return size_; }
 
 private:
   vk::Buffer buffer_;
   VmaAllocation allocation_ = VK_NULL_HANDLE;
-  uint32_t size_ = 0;
+  size_t size_ = 0;
   void* mapped_data_ = nullptr;
   VmaAllocator allocator_;
   VulkanDevice* device_;

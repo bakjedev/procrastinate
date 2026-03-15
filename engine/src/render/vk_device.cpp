@@ -169,7 +169,7 @@ bool VulkanDevice::FindQueueFamilies(const vk::SurfaceKHR surface)
       queue_family_indices_.graphics = idx;
     }
 
-    const auto present_support = physical_device_.getSurfaceSupportKHR(idx, surface);
+    const auto present_support = physical_device_.getSurfaceSupportKHR(static_cast<uint32_t>(idx), surface);
     if (present_support != 0U)
     {
       queue_family_indices_.present = idx;

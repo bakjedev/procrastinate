@@ -65,7 +65,7 @@ add_library(imgui STATIC
         ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
 )
 
-target_include_directories(imgui PUBLIC
+target_include_directories(imgui SYSTEM PUBLIC
         ${imgui_SOURCE_DIR}
         ${imgui_SOURCE_DIR}/backends
         ${imgui_SOURCE_DIR}/misc/cpp
@@ -88,7 +88,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(stb)
 
 add_library(stb INTERFACE)
-target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
+target_include_directories(stb SYSTEM INTERFACE ${stb_SOURCE_DIR})
 
 target_link_libraries(imgui PUBLIC Vulkan::Vulkan SDL3::SDL3)
 

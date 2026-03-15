@@ -58,7 +58,7 @@ namespace files
       return std::nullopt;
     }
 
-    const auto size = file.tellg();
+    const uint32_t size = static_cast<uint32_t>(file.tellg());
     file.seekg(0, std::ios::beg);
 
     if (size % sizeof(uint32_t) != 0)
