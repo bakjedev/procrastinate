@@ -660,7 +660,8 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
       .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
       .loadOp = vk::AttachmentLoadOp::eClear,
       .storeOp = vk::AttachmentStoreOp::eStore,
-      .clearValue = vk::ClearValue{.color = vk::ClearColorValue{.uint32 = std::array{0U, 0U, 0U, 0U}}}};
+      .clearValue = vk::ClearValue{
+          .color = vk::ClearColorValue{.uint32 = std::array{0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU}}}};
 
   const vk::RenderingInfo render_info{
       .renderArea = vk::Rect2D{.offset = {.x = 0, .y = 0}, .extent = swap_chain_->extent()},

@@ -28,23 +28,27 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
     uint2 pixel = uint2(dispatchThreadID.xy);
 
     uint packed = visibilityImage.Load(int3(pixel.x, pixel.y, 0));
+
+    if (packed == 0xFFFFFFFFu) {
+        renderImage[pixel] = float4(float3(0.0), 1.0);
+        return;
+    }
+
     uint objectID = packed >> 16;
     uint primitiveID = packed & 0xFFFF;
 
     RenderObject object = renderObjects[objectID];
     MeshInfo mesh = meshInfos[object.meshID];
 
-    uint triangle_0 = indexBuffer[mesh.firstIndex + primitiveID * 3];
-    VertexInputShading vertex = vertexBuffer[mesh.vertexOffset + triangle_0];
+    uint triangle_0 = indexBuffer[mesh.firstIndex + primitiveID * 3 + 0];
+    uint triangle_1 = indexBuffer[mesh.firstIndex + primitiveID * 3 + 1];
+    uint triangle_2 = indexBuffer[mesh.firstIndex + primitiveID * 3 + 2];
 
-    if (all(abs(vertex.color - float3(1.0, 1.0, 1.0)) < float3(0.001))) {
-        uint h = (objectID * 2654435761u) ^ (primitiveID * 2246822519u);
-        float r = ((h >>  0) & 0xFF) / 255.0f;
-        float g = ((h >>  8) & 0xFF) / 255.0f;
-        float b = ((h >> 16) & 0xFF) / 255.0f;
+    VertexInputShading vertex_0 = vertexBuffer[mesh.vertexOffset + triangle_0];
+    VertexInputShading vertex_1 = vertexBuffer[mesh.vertexOffset + triangle_1];
+    VertexInputShading vertex_2 = vertexBuffer[mesh.vertexOffset + triangle_2];
 
-        renderImage[pixel] = float4(r, g, b, 1);
-    } else {
-        renderImage[pixel] = float4(vertex.color, 1.0);
-    }
+    float3 color = (vertex_0.color + vertex_1.color + vertex_2.color) / 3.0;
+
+    renderImage[pixel] = float4(color, 1.0);
 }
