@@ -21,6 +21,9 @@ StructuredBuffer<uint> indexBuffer;
 [[vk::binding(1, 0)]]
 Sampler2D textures[];
 
+[[vk::push_constant]]
+PushConstants pushConst;
+
 [shader("compute")]
 [numthreads(16, 16, 1)]
 void main(uint3 dispatchThreadID : SV_DispatchThreadID)

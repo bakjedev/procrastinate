@@ -376,7 +376,9 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   // CREATE PIPELINE LAYOUTS
   // -----------------------------------------------------------
   constexpr vk::PushConstantRange push_constant_range{
-      .stageFlags = vk::ShaderStageFlagBits::eVertex, .offset = 0, .size = sizeof(PushConstant)};
+      .stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
+      .offset = 0,
+      .size = sizeof(PushConstant)};
 
   // pre pass
   {
@@ -419,6 +421,8 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
 
     pipeline_layout_info.descriptor_sets.push_back(static_descriptor_set_layout_->get());
     pipeline_layout_info.descriptor_sets.push_back(frame_descriptor_set_layout_->get());
+
+    pipeline_layout_info.push_constants.push_back(push_constant_range);
 
     shading_pipeline_layout_ = std::make_unique<VulkanPipelineLayout>(device_->get(), pipeline_layout_info);
   }
@@ -684,7 +688,8 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
       .proj = projection,
   };
 
-  cmd.pushConstants(pre_pass_pipeline_layout_->get(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstant),
+  cmd.pushConstants(pre_pass_pipeline_layout_->get(),
+                    vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute, 0, sizeof(PushConstant),
                     &push_constant);
   constexpr vk::DeviceSize offset = 0;
   const auto vertex_buffer = vertex_buffer_->get();
@@ -726,6 +731,11 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, shading_pipeline_layout_->get(), 0, descriptor_sets.size(),
                          descriptor_sets.data(), 0, nullptr);
   cmd.bindPipeline(vk::PipelineBindPoint::eCompute, shading_pipeline_->get());
+
+  cmd.pushConstants(shading_pipeline_layout_->get(),
+                    vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute, 0, sizeof(PushConstant),
+                    &push_constant);
+
   {
     const auto [width, height] = window_->GetWindowSize();
     cmd.dispatch((width + 15) / 16, (height + 15) / 16, 1);
@@ -759,7 +769,8 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   cmd.beginRendering(debug_line_render_info);
   cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, debug_line_pipeline_->get());
 
-  cmd.pushConstants(debug_line_pipeline_layout_->get(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstant),
+  cmd.pushConstants(debug_line_pipeline_layout_->get(),
+                    vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute, 0, sizeof(PushConstant),
                     &push_constant);
   const auto debug_line_vertex_buffer = frame->DebugLineVertexBuffer()->get();
   cmd.bindVertexBuffers(0, 1, &debug_line_vertex_buffer, &offset);
