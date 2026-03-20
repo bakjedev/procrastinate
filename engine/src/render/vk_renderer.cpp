@@ -42,6 +42,7 @@ constexpr uint32_t kStorageBufferCount = 20;
 constexpr uint32_t kStorageImageCount = 20;
 constexpr uint32_t kCombinedImageSamplerCount = 20;
 constexpr uint32_t kMaxTextures = 20;
+constexpr uint32_t kUniformBufferCount = 20;
 
 VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager, EventManager& event_manager) :
     window_(window), event_manager_(&event_manager)
@@ -81,18 +82,6 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
 
   transfer_pool_ = std::make_unique<VulkanCommandPool>(
       CommandPoolInfo{.queue_family_index = transfer_queue_family, .flags = {}}, device_->get());
-
-  // -----------------------------------------------------------
-  // TRANSITION SWAPCHAIN IMAGES TO PRESENT
-  // -----------------------------------------------------------
-  {
-    auto cmd = util::BeginSingleTimeCommandBuffer(*graphics_pool_);
-    for (const auto& image: swap_chain_->images())
-    {
-      VulkanImage::TransitionImageLayout(image, cmd, vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR);
-    }
-    util::EndSingleTimeCommandBuffer(cmd, device_->GraphicsQueue(), *graphics_pool_);
-  }
 
   // -----------------------------------------------------------
   // CREATE SAMPLERS
@@ -144,7 +133,8 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   descriptor_pool_info.pool_sizes = {
       {.type = vk::DescriptorType::eCombinedImageSampler, .descriptorCount = kCombinedImageSamplerCount},
       {.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = kStorageBufferCount},
-      {.type = vk::DescriptorType::eStorageImage, .descriptorCount = kStorageImageCount}};
+      {.type = vk::DescriptorType::eStorageImage, .descriptorCount = kStorageImageCount},
+      {.type = vk::DescriptorType::eUniformBuffer, .descriptorCount = kUniformBufferCount}};
 
   descriptor_pool_ = std::make_unique<VulkanDescriptorPool>(device_->get(), descriptor_pool_info);
 
@@ -204,10 +194,15 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
                                                  .binding = 3,
                                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
                                                  .descriptorCount = 1,
+                                                 .stageFlags = vk::ShaderStageFlagBits::eCompute},
+                  vk::DescriptorSetLayoutBinding{// ubo
+                                                 .binding = 4,
+                                                 .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                                 .descriptorCount = 1,
                                                  .stageFlags = vk::ShaderStageFlagBits::eCompute}},
-      std::vector<vk::DescriptorBindingFlags>{vk::DescriptorBindingFlags{},
-                                              vk::DescriptorBindingFlagBits::ePartiallyBound,
-                                              vk::DescriptorBindingFlags{}, vk::DescriptorBindingFlags{}},
+      std::vector<vk::DescriptorBindingFlags>{
+          vk::DescriptorBindingFlags{}, vk::DescriptorBindingFlagBits::ePartiallyBound, vk::DescriptorBindingFlags{},
+          vk::DescriptorBindingFlags{}, vk::DescriptorBindingFlags{}},
       vk::DescriptorSetLayoutCreateFlags{});
 
   static_descriptor_set_ = descriptor_pool_->allocate(static_descriptor_set_layout_->get());
@@ -232,21 +227,6 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   }
 
   RecreateFrameImages(width, height);
-
-  // Transition render images
-  {
-    auto cmd = util::BeginSingleTimeCommandBuffer(*graphics_pool_);
-    for (const auto& frame: frames_)
-    {
-      VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eUndefined,
-                                         vk::ImageLayout::eTransferSrcOptimal);
-      VulkanImage::TransitionImageLayout(frame->VisibilityImage()->get(), cmd, vk::ImageLayout::eUndefined,
-                                         vk::ImageLayout::eShaderReadOnlyOptimal);
-      VulkanImage::TransitionImageLayout(frame->DepthImage()->get(), cmd, vk::ImageLayout::eUndefined,
-                                         vk::ImageLayout::eDepthAttachmentOptimal);
-    }
-    util::EndSingleTimeCommandBuffer(cmd, device_->GraphicsQueue(), *graphics_pool_);
-  }
 
   // -----------------------------------------------------------
   // WRITE TO DESCRIPTOR SETS
@@ -375,16 +355,14 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   // -----------------------------------------------------------
   // CREATE PIPELINE LAYOUTS
   // -----------------------------------------------------------
-  constexpr vk::PushConstantRange push_constant_range{
-      .stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
-      .offset = 0,
-      .size = sizeof(PushConstant)};
+  constexpr vk::PushConstantRange render_push_constant_range{
+      .stageFlags = vk::ShaderStageFlagBits::eVertex, .offset = 0, .size = sizeof(RenderPushConstant)};
 
   // pre pass
   {
     PipelineLayoutInfo pipeline_layout_info{};
 
-    pipeline_layout_info.push_constants.push_back(push_constant_range);
+    pipeline_layout_info.push_constants.push_back(render_push_constant_range);
     pipeline_layout_info.descriptor_sets.push_back(static_descriptor_set_layout_->get());
     pipeline_layout_info.descriptor_sets.push_back(frame_descriptor_set_layout_->get());
 
@@ -395,7 +373,7 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   {
     PipelineLayoutInfo pipeline_layout_info{};
 
-    pipeline_layout_info.push_constants.push_back(push_constant_range);
+    pipeline_layout_info.push_constants.push_back(render_push_constant_range);
 
     debug_line_pipeline_layout_ = std::make_unique<VulkanPipelineLayout>(device_->get(), pipeline_layout_info);
   }
@@ -407,10 +385,10 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
     pipeline_layout_info.descriptor_sets.push_back(static_descriptor_set_layout_->get());
     pipeline_layout_info.descriptor_sets.push_back(frame_descriptor_set_layout_->get());
 
-    constexpr vk::PushConstantRange compute_push_constant_range{
-        .stageFlags = vk::ShaderStageFlagBits::eCompute, .offset = 0, .size = sizeof(ComputePushConstant)};
+    constexpr vk::PushConstantRange culling_push_constant_range{
+        .stageFlags = vk::ShaderStageFlagBits::eCompute, .offset = 0, .size = sizeof(CullingPushConstant)};
 
-    pipeline_layout_info.push_constants.push_back(compute_push_constant_range);
+    pipeline_layout_info.push_constants.push_back(culling_push_constant_range);
 
     culling_pipeline_layout_ = std::make_unique<VulkanPipelineLayout>(device_->get(), pipeline_layout_info);
   }
@@ -422,7 +400,9 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
     pipeline_layout_info.descriptor_sets.push_back(static_descriptor_set_layout_->get());
     pipeline_layout_info.descriptor_sets.push_back(frame_descriptor_set_layout_->get());
 
-    pipeline_layout_info.push_constants.push_back(push_constant_range);
+    constexpr vk::PushConstantRange shading_push_constant_range{
+        .stageFlags = vk::ShaderStageFlagBits::eCompute, .offset = 0, .size = sizeof(ShadingPushConstant)};
+    pipeline_layout_info.push_constants.push_back(shading_push_constant_range);
 
     shading_pipeline_layout_ = std::make_unique<VulkanPipelineLayout>(device_->get(), pipeline_layout_info);
   }
@@ -623,13 +603,13 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
                          descriptor_sets.data(), 0, nullptr);
 
   const auto render_objects_size = static_cast<uint32_t>(render_objects_.size());
-  const ComputePushConstant compute_push_constant{
+  const CullingPushConstant culling_push_constant{
       .frustum = frustum,
       .render_object_count = render_objects_size,
   };
 
-  cmd.pushConstants(culling_pipeline_layout_->get(), vk::ShaderStageFlagBits::eCompute, 0, sizeof(ComputePushConstant),
-                    &compute_push_constant);
+  cmd.pushConstants(culling_pipeline_layout_->get(), vk::ShaderStageFlagBits::eCompute, 0, sizeof(CullingPushConstant),
+                    &culling_push_constant);
 
   cmd.bindPipeline(vk::PipelineBindPoint::eCompute, culling_pipeline_->get());
   const uint32_t workgroups = (render_objects_size + 255) / 256;
@@ -683,14 +663,13 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pre_pass_pipeline_layout_->get(), 0, descriptor_sets.size(),
                          descriptor_sets.data(), 0, nullptr);
 
-  const PushConstant push_constant{
+  const RenderPushConstant render_push_constant{
       .view = view,
       .proj = projection,
   };
 
-  cmd.pushConstants(pre_pass_pipeline_layout_->get(),
-                    vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute, 0, sizeof(PushConstant),
-                    &push_constant);
+  cmd.pushConstants(pre_pass_pipeline_layout_->get(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(RenderPushConstant),
+                    &render_push_constant);
   constexpr vk::DeviceSize offset = 0;
   const auto vertex_buffer = vertex_buffer_->get();
   cmd.bindVertexBuffers(0, 1, &vertex_buffer, &offset);
@@ -732,9 +711,10 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
                          descriptor_sets.data(), 0, nullptr);
   cmd.bindPipeline(vk::PipelineBindPoint::eCompute, shading_pipeline_->get());
 
-  cmd.pushConstants(shading_pipeline_layout_->get(),
-                    vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute, 0, sizeof(PushConstant),
-                    &push_constant);
+  const ShadingPushConstant shading_push_constant{.view = view, .proj = projection};
+
+  cmd.pushConstants(shading_pipeline_layout_->get(), vk::ShaderStageFlagBits::eCompute, 0, sizeof(ShadingPushConstant),
+                    &shading_push_constant);
 
   {
     const auto [width, height] = window_->GetWindowSize();
@@ -769,9 +749,8 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   cmd.beginRendering(debug_line_render_info);
   cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, debug_line_pipeline_->get());
 
-  cmd.pushConstants(debug_line_pipeline_layout_->get(),
-                    vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute, 0, sizeof(PushConstant),
-                    &push_constant);
+  cmd.pushConstants(debug_line_pipeline_layout_->get(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(RenderPushConstant),
+                    &render_push_constant);
   const auto debug_line_vertex_buffer = frame->DebugLineVertexBuffer()->get();
   cmd.bindVertexBuffers(0, 1, &debug_line_vertex_buffer, &offset);
 
@@ -1198,12 +1177,45 @@ void VulkanRenderer::RecreateSwapChain()
   aspect_ratio_ = static_cast<float>(width) / static_cast<float>(height);
 }
 
-void VulkanRenderer::RecreateFrameImages(const uint32_t width, const uint32_t height) const
+void VulkanRenderer::RecreateFrameImages(const uint32_t width, const uint32_t height)
 {
   std::vector<vk::WriteDescriptorSet> writes;
-  writes.reserve(frames_.size() * 2);
   std::vector<vk::DescriptorImageInfo> image_infos;
+
   image_infos.reserve(frames_.size() * 2);
+
+  vk::DescriptorBufferInfo ubo_buffer_info{.buffer = nullptr, .offset = 0, .range = vk::WholeSize};
+
+  if (!uniform_buffer_)
+  {
+    constexpr BufferInfo info{.size = sizeof(UniformBuffer),
+                              .usage = vk::BufferUsageFlagBits::eUniformBuffer,
+                              .memoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU,
+                              .memoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT};
+    uniform_buffer_ = std::make_unique<VulkanBuffer>(info, allocator_->get(), device_.get());
+
+    writes.reserve((frames_.size() * 2) + 1);
+
+    ubo_buffer_info.buffer = uniform_buffer_->get();
+    const vk::WriteDescriptorSet ubo_write{.dstSet = static_descriptor_set_,
+                                           .dstBinding = 4,
+                                           .dstArrayElement = 0,
+                                           .descriptorCount = 1,
+                                           .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                           .pBufferInfo = &ubo_buffer_info};
+
+    writes.push_back(ubo_write);
+  } else
+  {
+    writes.reserve(frames_.size() * 2);
+  }
+
+  uniform_buffer_->map();
+  auto* ubo = uniform_buffer_->GetMappedDataAs<UniformBuffer>();
+  ubo->viewport.x = static_cast<float>(width);
+  ubo->viewport.y = static_cast<float>(height);
+  uniform_buffer_->unmap();
+
   for (const auto& frame: frames_)
   {
     frame->RecreateFrameImages(width, height);
@@ -1233,4 +1245,21 @@ void VulkanRenderer::RecreateFrameImages(const uint32_t width, const uint32_t he
   }
 
   device_->get().updateDescriptorSets(static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+
+  auto cmd = util::BeginSingleTimeCommandBuffer(*graphics_pool_);
+  for (const auto& image: swap_chain_->images())
+  {
+    VulkanImage::TransitionImageLayout(image, cmd, vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR);
+  }
+
+  for (const auto& frame: frames_)
+  {
+    VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eUndefined,
+                                       vk::ImageLayout::eTransferSrcOptimal);
+    VulkanImage::TransitionImageLayout(frame->VisibilityImage()->get(), cmd, vk::ImageLayout::eUndefined,
+                                       vk::ImageLayout::eShaderReadOnlyOptimal);
+    VulkanImage::TransitionImageLayout(frame->DepthImage()->get(), cmd, vk::ImageLayout::eUndefined,
+                                       vk::ImageLayout::eDepthAttachmentOptimal);
+  }
+  util::EndSingleTimeCommandBuffer(cmd, device_->GraphicsQueue(), *graphics_pool_);
 }

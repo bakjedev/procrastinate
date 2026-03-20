@@ -46,13 +46,24 @@ struct TextureInfo
   int32_t height;
 };
 
-struct PushConstant
+struct RenderPushConstant
 {
   glm::mat4 view;
   glm::mat4 proj;
 };
 
-struct ComputePushConstant
+struct ShadingPushConstant
+{
+  glm::mat4 view;
+  glm::mat4 proj;
+};
+
+struct UniformBuffer
+{
+  glm::vec2 viewport;
+};
+
+struct CullingPushConstant
 {
   Frustum frustum;
   uint32_t render_object_count;
@@ -120,7 +131,7 @@ private:
   void EndFrame(uint32_t image_index);
 
   void RecreateSwapChain();
-  void RecreateFrameImages(uint32_t width, uint32_t height) const;
+  void RecreateFrameImages(uint32_t width, uint32_t height);
 
   static constexpr uint32_t max_frames_in_flight_ = 2;
 
@@ -180,7 +191,7 @@ private:
   std::vector<TextureInfo> texture_infos_;
   std::vector<std::unique_ptr<VulkanImage>> texture_images_;
   vk::UniqueSampler texture_sampler_;
-
+  std::unique_ptr<VulkanBuffer> uniform_buffer_;
 
   Window *window_ = nullptr;
   EventManager *event_manager_ = nullptr;

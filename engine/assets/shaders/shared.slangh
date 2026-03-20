@@ -4,6 +4,11 @@ struct PushConstants
     float4x4 proj;
 };
 
+struct UniformBuffer
+{
+    float2 viewport;
+};
+
 struct VertexOutput
 {
     float4 position : SV_Position;
