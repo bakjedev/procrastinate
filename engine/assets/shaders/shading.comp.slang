@@ -27,6 +27,10 @@ ConstantBuffer<UniformBuffer> ubo;
 [[vk::push_constant]]
 PushConstants pushConst;
 
+float cross2d(float2 u, float2 v) {
+    return u.x * v.y - u.y * v.x;
+}
+
 [shader("compute")]
 [numthreads(16, 16, 1)]
 void main(uint3 dispatchThreadID : SV_DispatchThreadID)
@@ -54,15 +58,14 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
     VertexInputShading vertex_2 = vertexBuffer[mesh.vertexOffset + triangle_2];
 
     // calculate screen position of each triangle corner
-    float4x4 model = object.model;
-    float4x4 worldPos = mul(pushConst.proj, mul(pushConst.view, model));
-    float4 worldPos_0 = mul(worldPos, float4(vertex_0.position, 1.0));
-    float4 worldPos_1 = mul(worldPos, float4(vertex_1.position, 1.0));
-    float4 worldPos_2 = mul(worldPos, float4(vertex_2.position, 1.0));
+    float4x4 mvp = mul(pushConst.proj, mul(pushConst.view, object.model));
+    float4 clip_0 = mul(mvp, float4(vertex_0.position, 1.0));
+    float4 clip_1 = mul(mvp, float4(vertex_1.position, 1.0));
+    float4 clip_2 = mul(mvp, float4(vertex_2.position, 1.0));
 
-    float3 ndc_0 = worldPos_0.xyz / worldPos_0.w;
-    float3 ndc_1 = worldPos_1.xyz / worldPos_1.w;
-    float3 ndc_2 = worldPos_2.xyz / worldPos_2.w;
+    float3 ndc_0 = clip_0.xyz / clip_0.w;
+    float3 ndc_1 = clip_1.xyz / clip_1.w;
+    float3 ndc_2 = clip_2.xyz / clip_2.w;
 
     float2 screen_0 = (ndc_0.xy * 0.5 + 0.5) * ubo.viewport;
     float2 screen_1 = (ndc_1.xy * 0.5 + 0.5) * ubo.viewport;
@@ -70,7 +73,39 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     float2 pixel_pos = (float2)pixel + 0.5;
 
-    float3 color = (vertex_0.color + vertex_1.color + vertex_2.color) / 3.0;
+    float2 ab = screen_1 - screen_0;
+    float2 ac = screen_2 - screen_0;
+    float abc = cross2d(ab, ac);
+
+    float2 bc = screen_2 - screen_1;
+    float2 bp = pixel_pos - screen_1;
+    float bcp = cross2d(bc, bp);
+
+    float2 ca = -ac;
+    float2 cp = pixel_pos - screen_2;
+    float cap = cross2d(ca, cp);
+
+    float bary_0 = bcp / abc;
+    float bary_1 = cap / abc;
+    float bary_2 = 1.0 - bary_0 - bary_1;
+
+    float inv_w0 = 1.0 / clip_0.w;
+    float inv_w1 = 1.0 / clip_1.w;
+    float inv_w2 = 1.0 / clip_2.w;
+
+    float denom = bary_0 * inv_w0 + bary_1 * inv_w1 + bary_2 * inv_w2;
+
+    float3 color = (vertex_0.color * bary_0 * inv_w0 + vertex_1.color * bary_1* inv_w1 + vertex_2.color * bary_2* inv_w2) / denom;
+    float2 uv = (vertex_0.tex_coord * bary_0 * inv_w0 + vertex_1.tex_coord * bary_1 * inv_w1 + vertex_2.tex_coord * bary_2 * inv_w2) / denom;
+    float3 normal = (vertex_0.normal * bary_0 * inv_w0 + vertex_1.normal * bary_1 * inv_w1 + vertex_2.normal * bary_2 * inv_w2) / denom;
+
+    if (object.textureID >= 0) {
+	    float3 texture_color = textures[object.textureID].SampleLevel(uv, 0).xyz;
+        color *= texture_color;
+    }
+
+    float cosTheta = dot(normal, float3(0.3, -0.6, 0.1));
+    color *= max(0.3, cosTheta);
 
     renderImage[pixel] = float4(color, 1.0);
 }

@@ -22,7 +22,7 @@ struct RuntimeApplication
 
     auto* cat_transform = engine->GetScene().AddComponent<CTransform>(cat_entity, glm::mat4(1.0F));
     cat_transform->world = glm::translate(cat_transform->world, glm::vec3(0.0F, -20.0F, 0.0F));
-    cat_transform->world = glm::scale(cat_transform->world, glm::vec3(10.0F, 10.0F, 10.0F));
+    cat_transform->world = glm::scale(cat_transform->world, glm::vec3(100.0F, 100.0F, 100.0F));
     cat_transform->world = glm::rotate(cat_transform->world, glm::radians(180.0F), glm::vec3(1.0F, 0.0F, 0.0F));
 
     const auto cat_mesh = engine->GetResourceManager().load<MeshResource>(
