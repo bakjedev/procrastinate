@@ -12,7 +12,7 @@ struct UniformBuffer
 struct VertexOutput
 {
     float4 position : SV_Position;
-    uint objectID;
+    uint drawID;
 };
 
 struct VertexInputShading

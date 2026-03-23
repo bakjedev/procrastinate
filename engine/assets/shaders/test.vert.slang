@@ -15,7 +15,7 @@ StructuredBuffer<RenderObject> renderObjects;
 StructuredBuffer<MeshInfo> meshInfos;
 
 [shader("vertex")]
-VertexOutput main(VertexInput input, uint instanceID : SV_InstanceID, uint baseInstance : SV_StartInstanceLocation)
+VertexOutput main(VertexInput input, uint instanceID : SV_InstanceID, uint baseInstance : SV_StartInstanceLocation, uint drawID : SV_DrawIndex)
 {
     VertexOutput output;
 
@@ -28,6 +28,6 @@ VertexOutput main(VertexInput input, uint instanceID : SV_InstanceID, uint baseI
 
     output.position = mul(pushConst.proj, viewPos);
 
-    output.objectID = index;
+    output.drawID = drawID;
     return output;
 }

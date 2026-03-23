@@ -1,5 +1,8 @@
 #include "shared.slangh"
 
+[[vk::binding(0, 1)]]
+RWStructuredBuffer<DrawIndexedIndirectCommand> outputCommands;
+
 [[vk::binding(1, 1)]]
 StructuredBuffer<RenderObject> renderObjects;
 
@@ -43,19 +46,18 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
-    uint objectID = packed >> 16;
-    uint primitiveID = packed & 0xFFFF;
+    uint primitiveID = packed >> 16;
+    uint drawID = packed & 0xFFFF;
+    DrawIndexedIndirectCommand command = outputCommands[drawID];
+    RenderObject object = renderObjects[command.firstInstance];
 
-    RenderObject object = renderObjects[objectID];
-    MeshInfo mesh = meshInfos[object.meshID];
+    uint triangle_0 = indexBuffer[command.firstIndex + primitiveID * 3 + 0];
+    uint triangle_1 = indexBuffer[command.firstIndex + primitiveID * 3 + 1];
+    uint triangle_2 = indexBuffer[command.firstIndex + primitiveID * 3 + 2];
 
-    uint triangle_0 = indexBuffer[mesh.firstIndex + primitiveID * 3 + 0];
-    uint triangle_1 = indexBuffer[mesh.firstIndex + primitiveID * 3 + 1];
-    uint triangle_2 = indexBuffer[mesh.firstIndex + primitiveID * 3 + 2];
-
-    VertexInputShading vertex_0 = vertexBuffer[mesh.vertexOffset + triangle_0];
-    VertexInputShading vertex_1 = vertexBuffer[mesh.vertexOffset + triangle_1];
-    VertexInputShading vertex_2 = vertexBuffer[mesh.vertexOffset + triangle_2];
+    VertexInputShading vertex_0 = vertexBuffer[command.vertexOffset + triangle_0];
+    VertexInputShading vertex_1 = vertexBuffer[command.vertexOffset + triangle_1];
+    VertexInputShading vertex_2 = vertexBuffer[command.vertexOffset + triangle_2];
 
     // calculate screen position of each triangle corner
     float4x4 mvp = mul(pushConst.proj, mul(pushConst.view, object.model));
