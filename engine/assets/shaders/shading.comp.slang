@@ -93,7 +93,7 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
     float bary_1 = cap / abc;
     float bary_2 = 1.0 - bary_0 - bary_1;
 
-    // Getting the weights based on depth. so further something is the smaller the weight
+    // Getting the weights based on depth. so the further something is the smaller the weight
     float inv_w0 = 1.0 / clip_0.w;
     float inv_w1 = 1.0 / clip_1.w;
     float inv_w2 = 1.0 / clip_2.w;
