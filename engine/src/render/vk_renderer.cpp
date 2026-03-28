@@ -850,10 +850,12 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
 }
 
 uint32_t VulkanRenderer::AddMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices,
-                                 uint32_t first_index, int32_t vertex_offset, const glm::vec3& b_min,
-                                 const glm::vec3& b_max)
+                                 const glm::vec3& b_min, const glm::vec3& b_max)
 {
-  const uint32_t mesh_id = static_cast<uint32_t>(mesh_infos_.size());
+  const auto mesh_id = static_cast<uint32_t>(mesh_infos_.size());
+  const auto first_index = static_cast<uint32_t>(indices_.size());
+  const auto vertex_offset = static_cast<int32_t>(vertices_.size());
+
   vertices_.insert(vertices_.end(), vertices.begin(), vertices.end());
   indices_.insert(indices_.end(), indices.begin(), indices.end());
   mesh_infos_.push_back(MeshInfo{.b_min = b_min,
@@ -863,10 +865,10 @@ uint32_t VulkanRenderer::AddMesh(const std::vector<Vertex>& vertices, const std:
                                  .vertex_offset = vertex_offset});
   return mesh_id;
 }
-uint32_t VulkanRenderer::AddTexture(std::span<const unsigned char> texture, int32_t width, int32_t height)
+int32_t VulkanRenderer::AddTexture(std::span<const unsigned char> texture, int32_t width, int32_t height)
 {
-  const uint32_t idx = static_cast<uint32_t>(texture_infos_.size());
-  const uint32_t texture_id = static_cast<uint32_t>(textures_.size());
+  const auto idx = static_cast<int32_t>(texture_infos_.size());
+  const auto texture_id = static_cast<uint32_t>(textures_.size());
   textures_.emplace_back(texture.begin(), texture.end());
   texture_infos_.emplace_back(texture_id, width, height);
   return idx;

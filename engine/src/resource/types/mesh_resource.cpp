@@ -69,10 +69,10 @@ MeshResource MeshResourceLoader::operator()(const std::string &path, Engine *eng
     }
   }
 
-  const unsigned char *texture{};
-  int32_t texture_width{};
-  int32_t texture_height{};
-  int32_t texture_channels{};
+  const stbi_uc *texture{};
+  int texture_width{};
+  int texture_height{};
+  int texture_channels{};
   for (const auto &material: materials)
   {
     if (!material.diffuse_texname.empty())
@@ -83,7 +83,6 @@ MeshResource MeshResourceLoader::operator()(const std::string &path, Engine *eng
         util::println("Failed to find texture");
         continue;
       }
-
 
       const auto *image =
           stbi_load(tex_path.c_str(), &texture_width, &texture_height, &texture_channels, STBI_rgb_alpha);
@@ -99,12 +98,11 @@ MeshResource MeshResourceLoader::operator()(const std::string &path, Engine *eng
   }
 
   auto &renderer = engine->GetRenderer();
-  res.renderer_id =
-      renderer.AddMesh(vertices, indices, renderer.GetIndexCount(), renderer.GetVertexCount(), b_min, b_max);
+  res.renderer_id = renderer.AddMesh(vertices, indices, b_min, b_max);
   if (texture != nullptr)
   {
-    res.texture_id = static_cast<int32_t>(renderer.AddTexture(
-        {texture, static_cast<size_t>(texture_width * texture_height * 4)}, texture_width, texture_height));
+    const auto size = static_cast<size_t>(texture_width) * static_cast<size_t>(texture_height) * 4;
+    res.texture_id = renderer.AddTexture({texture, size}, texture_width, texture_height);
   } else
   {
     res.texture_id = -1;
