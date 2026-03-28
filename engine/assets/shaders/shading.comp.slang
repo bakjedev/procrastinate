@@ -75,6 +75,7 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     float2 pixel_pos = (float2)pixel + 0.5;
 
+    // calculate the areas of the full triangle and the 3 smaller triangles inside
     float2 ab = screen_1 - screen_0;
     float2 ac = screen_2 - screen_0;
     float abc = cross2d(ab, ac);
@@ -87,19 +88,28 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
     float2 cp = pixel_pos - screen_2;
     float cap = cross2d(ca, cp);
 
+    // calculate the barycentric coords. Not taking in account the depth they have.
     float bary_0 = bcp / abc;
     float bary_1 = cap / abc;
     float bary_2 = 1.0 - bary_0 - bary_1;
 
+    // Getting the weights based on depth. so further something is the smaller the weight
     float inv_w0 = 1.0 / clip_0.w;
     float inv_w1 = 1.0 / clip_1.w;
     float inv_w2 = 1.0 / clip_2.w;
 
-    float denom = bary_0 * inv_w0 + bary_1 * inv_w1 + bary_2 * inv_w2;
+    // multiplying the barycentric coords by these weights. but now no longer add up to 1.
+    float b0w = bary_0 * inv_w0;
+    float b1w = bary_1 * inv_w1;
+    float b2w = bary_2 * inv_w2;
 
-    float3 color = (vertex_0.color * bary_0 * inv_w0 + vertex_1.color * bary_1* inv_w1 + vertex_2.color * bary_2* inv_w2) / denom;
-    float2 uv = (vertex_0.tex_coord * bary_0 * inv_w0 + vertex_1.tex_coord * bary_1 * inv_w1 + vertex_2.tex_coord * bary_2 * inv_w2) / denom;
-    float3 normal = (vertex_0.normal * bary_0 * inv_w0 + vertex_1.normal * bary_1 * inv_w1 + vertex_2.normal * bary_2 * inv_w2) / denom;
+    // get the value to multiply by to get it back to 1.
+    float inv_denom = 1.0 / (b0w + b1w + b2w);
+
+    // interpolate! first using the weighted barycentric coords and then multiplying to get it back to a sum of 1.
+    float3 color = (vertex_0.color * b0w + vertex_1.color * b1w + vertex_2.color * b2w) * inv_denom;
+    float2 uv = (vertex_0.tex_coord * b0w + vertex_1.tex_coord * b1w + vertex_2.tex_coord * b2w) * inv_denom;
+    float3 normal = (vertex_0.normal * b0w + vertex_1.normal * b1w + vertex_2.normal * b2w) * inv_denom;
 
     if (object.textureID >= 0) {
 	    float3 texture_color = textures[object.textureID].SampleLevel(uv, 0).xyz;

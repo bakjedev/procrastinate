@@ -40,8 +40,11 @@ struct RuntimeApplication
     engine->GetScene().AddComponent<CMesh>(wall_entity, wall_mesh);
 
     camera_entity = engine->GetScene().Create();
-    engine->GetScene().AddComponent<CTransform>(camera_entity, glm::mat4(1.0F));
+    auto* camera_transform = engine->GetScene().AddComponent<CTransform>(camera_entity, glm::mat4(1.0F));
     engine->GetScene().AddComponent<CCamera>(camera_entity, 70.0F);
+    camera_transform->world = glm::mat4(1.0F);
+    camera_transform->world = glm::translate(camera_transform->world, glm::vec3(0.0F, -40.0F, -60.0F));
+    camera_transform->world = glm::rotate(camera_transform->world, glm::radians(180.0F), glm::vec3(0.0F, 1.0F, 0.0F));
 
     const auto cylinder_mesh = engine->GetResourceManager().load<MeshResource>(
         "firstmesh", MeshResourceLoader{}, (root_path / "engine/assets/cylinder.obj").string(), engine);
