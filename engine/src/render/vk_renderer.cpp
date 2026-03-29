@@ -42,6 +42,7 @@ constexpr uint32_t kStorageBufferCount = 20;
 constexpr uint32_t kStorageImageCount = 20;
 constexpr uint32_t kCombinedImageSamplerCount = 20;
 constexpr uint32_t kMaxTextures = 20;
+constexpr uint32_t kUniformBufferCount = 20;
 
 VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager, EventManager& event_manager) :
     window_(window), event_manager_(&event_manager)
@@ -125,7 +126,8 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
   descriptor_pool_info.pool_sizes = {
       {.type = vk::DescriptorType::eCombinedImageSampler, .descriptorCount = kCombinedImageSamplerCount},
       {.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = kStorageBufferCount},
-      {.type = vk::DescriptorType::eStorageImage, .descriptorCount = kStorageImageCount}};
+      {.type = vk::DescriptorType::eStorageImage, .descriptorCount = kStorageImageCount},
+      {.type = vk::DescriptorType::eUniformBuffer, .descriptorCount = kUniformBufferCount}};
 
   descriptor_pool_ = std::make_unique<VulkanDescriptorPool>(device_->get(), descriptor_pool_info);
 
@@ -159,27 +161,35 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
                                                  .binding = 4,
                                                  .descriptorType = vk::DescriptorType::eStorageImage,
                                                  .descriptorCount = 1,
-                                                 .stageFlags = vk::ShaderStageFlagBits::eCompute}},
+                                                 .stageFlags = vk::ShaderStageFlagBits::eCompute},
+                  vk::DescriptorSetLayoutBinding{// Overdraw
+                                                 .binding = 5,
+                                                 .descriptorType = vk::DescriptorType::eStorageImage,
+                                                 .descriptorCount = 1,
+                                                 .stageFlags = vk::ShaderStageFlagBits::eFragment}},
       std::vector<vk::DescriptorBindingFlags>{}, vk::DescriptorSetLayoutCreateFlags{});
 
   static_descriptor_set_layout_ = std::make_unique<VulkanDescriptorSetLayout>(
       device_->get(),
-      std::vector{
-          vk::DescriptorSetLayoutBinding{
-              // Mesh infos
-              .binding = 0,
-              .descriptorType = vk::DescriptorType::eStorageBuffer,
-              .descriptorCount = 1,
-              .stageFlags = vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eVertex},
-          vk::DescriptorSetLayoutBinding{
-              // Textures
-              .binding = 1,
-              .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-              .descriptorCount = kMaxTextures,
-              .stageFlags = vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eCompute},
-      },
-      std::vector<vk::DescriptorBindingFlags>{vk::DescriptorBindingFlags{},
-                                              vk::DescriptorBindingFlagBits::ePartiallyBound},
+      std::vector{vk::DescriptorSetLayoutBinding{
+                      // Mesh infos
+                      .binding = 0,
+                      .descriptorType = vk::DescriptorType::eStorageBuffer,
+                      .descriptorCount = 1,
+                      .stageFlags = vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eVertex},
+                  vk::DescriptorSetLayoutBinding{
+                      // Textures
+                      .binding = 1,
+                      .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                      .descriptorCount = kMaxTextures,
+                      .stageFlags = vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eCompute},
+                  vk::DescriptorSetLayoutBinding{// ubo
+                                                 .binding = 3,
+                                                 .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                                 .descriptorCount = 1,
+                                                 .stageFlags = vk::ShaderStageFlagBits::eFragment}},
+      std::vector<vk::DescriptorBindingFlags>{
+          vk::DescriptorBindingFlags{}, vk::DescriptorBindingFlagBits::ePartiallyBound, vk::DescriptorBindingFlags{}},
       vk::DescriptorSetLayoutCreateFlags{});
 
   static_descriptor_set_ = descriptor_pool_->allocate(static_descriptor_set_layout_->get());
@@ -579,6 +589,20 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   ZoneNamedN(graphicsmesheszone, "MeshPass", true);
   constexpr vk::DebugUtilsLabelEXT label_info2{.pLabelName = "MeshPass"};
   cmd.beginDebugUtilsLabelEXT(label_info2, instance_->getDynamicLoader());
+
+  VulkanImage::TransitionImageLayout(frame->Overdraw()->get(), cmd, vk::ImageLayout::eGeneral,
+                                     vk::ImageLayout::eTransferDstOptimal);
+
+  vk::ImageSubresourceRange range{.aspectMask = vk::ImageAspectFlagBits::eColor,
+                                  .baseMipLevel = 0,
+                                  .levelCount = 1,
+                                  .baseArrayLayer = 0,
+                                  .layerCount = 1};
+  vk::ClearColorValue clearValue{std::array<float, 4>{0.f, 0.f, 0.f, 0.f}};
+  cmd.clearColorImage(frame->Overdraw()->get(), vk::ImageLayout::eTransferDstOptimal, clearValue, range);
+
+  VulkanImage::TransitionImageLayout(frame->Overdraw()->get(), cmd, vk::ImageLayout::eTransferDstOptimal,
+                                     vk::ImageLayout::eGeneral);
 
   VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eTransferSrcOptimal,
                                      vk::ImageLayout::eColorAttachmentOptimal);
@@ -1049,10 +1073,77 @@ void VulkanRenderer::RecreateSwapChain()
   aspect_ratio_ = static_cast<float>(width) / static_cast<float>(height);
 }
 
-void VulkanRenderer::RecreateFrameImages(const uint32_t width, const uint32_t height) const
+void VulkanRenderer::RecreateFrameImages(const uint32_t width, const uint32_t height)
 {
+  std::vector<vk::WriteDescriptorSet> writes;
+  std::vector<vk::DescriptorImageInfo> image_infos;
+
+  image_infos.reserve(frames_.size());
+
+  vk::DescriptorBufferInfo ubo_buffer_info{.buffer = nullptr, .offset = 0, .range = vk::WholeSize};
+
+  if (!uniform_buffer_)
+  {
+    constexpr BufferInfo info{.size = sizeof(UniformBuffer),
+                              .usage = vk::BufferUsageFlagBits::eUniformBuffer,
+                              .memoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU,
+                              .memoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT};
+    uniform_buffer_ = std::make_unique<VulkanBuffer>(info, allocator_->get(), device_.get());
+
+    ubo_buffer_info.buffer = uniform_buffer_->get();
+    const vk::WriteDescriptorSet ubo_write{.dstSet = static_descriptor_set_,
+                                           .dstBinding = 3,
+                                           .dstArrayElement = 0,
+                                           .descriptorCount = 1,
+                                           .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                           .pBufferInfo = &ubo_buffer_info};
+    writes.reserve(frames_.size() * 2);
+
+    writes.push_back(ubo_write);
+  } else
+  {
+    writes.reserve(frames_.size());
+  }
+
+  uniform_buffer_->map();
+  auto* ubo = uniform_buffer_->GetMappedDataAs<UniformBuffer>();
+  ubo->viewport.x = static_cast<float>(width);
+  ubo->viewport.y = static_cast<float>(height);
+  uniform_buffer_->unmap();
+
   for (const auto& frame: frames_)
   {
     frame->RecreateFrameImages(width, height);
+
+    image_infos.push_back(
+        {.sampler = nullptr, .imageView = frame->Overdraw()->view(), .imageLayout = vk::ImageLayout::eGeneral});
+
+    const vk::WriteDescriptorSet write{.dstSet = frame->DescriptorSet(),
+                                       .dstBinding = 5,
+                                       .dstArrayElement = 0,
+                                       .descriptorCount = 1,
+                                       .descriptorType = vk::DescriptorType::eStorageImage,
+                                       .pImageInfo = &image_infos.back()};
+
+    writes.push_back(write);
   }
+
+  device_->get().updateDescriptorSets(static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+
+  auto cmd = util::BeginSingleTimeCommandBuffer(*graphics_pool_);
+  for (const auto& image: swap_chain_->images())
+  {
+    VulkanImage::TransitionImageLayout(image, cmd, vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR);
+  }
+
+  for (const auto& frame: frames_)
+  {
+    VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eUndefined,
+                                       vk::ImageLayout::eTransferSrcOptimal);
+    VulkanImage::TransitionImageLayout(frame->DepthImage()->get(), cmd, vk::ImageLayout::eUndefined,
+                                       vk::ImageLayout::eDepthAttachmentOptimal);
+    VulkanImage::TransitionImageLayout(frame->Overdraw()->get(), cmd, vk::ImageLayout::eUndefined,
+                                       vk::ImageLayout::eGeneral);
+  }
+  util::EndSingleTimeCommandBuffer(cmd, device_->GraphicsQueue(), *graphics_pool_);
 }

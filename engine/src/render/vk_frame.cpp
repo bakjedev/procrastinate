@@ -101,4 +101,15 @@ void VulkanFrame::RecreateFrameImages(const uint32_t width, const uint32_t heigh
       .aspect_flags = vk::ImageAspectFlagBits::eColor,
   };
   render_image_ = std::make_unique<VulkanImage>(render_image_info, allocator_->get());
+
+  overdraw_image_ = nullptr;
+  const ImageInfo overdraw_image_info{
+      .width = width,
+      .height = height,
+      .format = vk::Format::eR32Uint,
+      .usage =
+          vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
+      .aspect_flags = vk::ImageAspectFlagBits::eColor,
+  };
+  overdraw_image_ = std::make_unique<VulkanImage>(overdraw_image_info, allocator_->get());
 }

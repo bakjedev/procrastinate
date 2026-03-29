@@ -34,6 +34,8 @@ public:
 
   [[nodiscard]] VulkanBuffer* DrawCount() const { return draw_count_.get(); }
 
+  [[nodiscard]] VulkanImage* Overdraw() const { return overdraw_image_.get(); }
+
   [[nodiscard]] VulkanBuffer* DebugLineVertexBuffer() const { return debug_line_vertex_buffer_.get(); }
 
   [[nodiscard]] vk::Semaphore ImageAvailable() const { return image_available_.get(); }
@@ -52,6 +54,7 @@ private:
 
   std::unique_ptr<VulkanImage> depth_image_;
   std::unique_ptr<VulkanImage> render_image_;
+  std::unique_ptr<VulkanImage> overdraw_image_;
 
   std::unique_ptr<VulkanBuffer> object_buffer_;
   std::unique_ptr<VulkanBuffer> indirect_buffer_;
