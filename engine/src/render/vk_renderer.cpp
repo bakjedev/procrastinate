@@ -543,6 +543,14 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
         break;
     }
   }
+  // -----------------------------------------------------------
+  // Upload
+  // -----------------------------------------------------------
+  if (should_upload_)
+  {
+    Upload();
+    should_upload_ = false;
+  }
 
   // -----------------------------------------------------------
   // Begin frame
@@ -863,6 +871,7 @@ uint32_t VulkanRenderer::AddMesh(const std::vector<Vertex>& vertices, const std:
                                  .index_count = static_cast<uint32_t>(indices.size()),
                                  .first_index = first_index,
                                  .vertex_offset = vertex_offset});
+  should_upload_ = true;
   return mesh_id;
 }
 int32_t VulkanRenderer::AddTexture(std::span<const unsigned char> texture, int32_t width, int32_t height)
@@ -871,6 +880,7 @@ int32_t VulkanRenderer::AddTexture(std::span<const unsigned char> texture, int32
   const auto texture_id = static_cast<uint32_t>(textures_.size());
   textures_.emplace_back(texture.begin(), texture.end());
   texture_infos_.emplace_back(texture_id, width, height);
+  should_upload_ = true;
   return idx;
 }
 

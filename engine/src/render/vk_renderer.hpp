@@ -135,6 +135,8 @@ private:
 
   static constexpr uint32_t max_frames_in_flight_ = 2;
 
+  bool should_upload_ = false;
+
   std::unique_ptr<VulkanInstance> instance_;
   std::unique_ptr<VulkanSurface> surface_;
   std::unique_ptr<VulkanDevice> device_;

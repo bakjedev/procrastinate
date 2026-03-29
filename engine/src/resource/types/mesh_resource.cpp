@@ -107,7 +107,6 @@ MeshResource MeshResourceLoader::operator()(const std::string &path, Engine *eng
   {
     res.texture_id = -1;
   }
-  renderer.Upload();
 
   return res;
 }
