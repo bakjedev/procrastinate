@@ -25,7 +25,7 @@ struct RuntimeApplication
         "catMesh", MeshResourceLoader{}, (rootPath / "engine/assets/concrete_cat_statue_1k.obj").string(), engine);
     catTransform->world = glm::mat4(1.0F);
     catTransform->world = glm::translate(catTransform->world, glm::vec3(0.0F, -20.0F, 0.0F));
-    catTransform->world = glm::scale(catTransform->world, glm::vec3(10.0F, 10.0F, 10.0F));
+    catTransform->world = glm::scale(catTransform->world, glm::vec3(100.0F, 100.0F, 100.0F));
     catTransform->world = glm::rotate(catTransform->world, glm::radians(180.0F), glm::vec3(1.0F, 0.0F, 0.0F));
 
 
@@ -42,6 +42,8 @@ struct RuntimeApplication
     auto* cameraTransform = engine->GetScene().AddComponent<CTransform>(cameraEntity);
     auto* cameraComponent = engine->GetScene().AddComponent<CCamera>(cameraEntity);
     cameraTransform->world = glm::mat4(1.0F);
+    cameraTransform->world = glm::translate(cameraTransform->world, glm::vec3(0.0F, -40.0F, -60.0F));
+    cameraTransform->world = glm::rotate(cameraTransform->world, glm::radians(180.0F), glm::vec3(0.0F, 1.0F, 0.0F));
     cameraComponent->fov = 70.0F;
 
     constexpr int gridSize = 100;
