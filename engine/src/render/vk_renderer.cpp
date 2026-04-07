@@ -43,6 +43,7 @@ constexpr uint32_t kStorageImageCount = 20;
 constexpr uint32_t kCombinedImageSamplerCount = 20;
 constexpr uint32_t kMaxTextures = 20;
 constexpr uint32_t kUniformBufferCount = 20;
+constexpr uint32_t kShadingChunkSize = 16;
 
 VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager, EventManager& event_manager) :
     window_(window), event_manager_(&event_manager)
@@ -726,7 +727,8 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
 
   {
     const auto [width, height] = window_->GetWindowSize();
-    cmd.dispatch((width + 15) / 16, (height + 15) / 16, 1);
+    cmd.dispatch((width + kShadingChunkSize - 1) / kShadingChunkSize,
+                 (height + kShadingChunkSize - 1) / kShadingChunkSize, 1);
   }
   VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eGeneral,
                                      vk::ImageLayout::eColorAttachmentOptimal);
