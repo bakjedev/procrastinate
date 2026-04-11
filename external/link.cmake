@@ -3,6 +3,7 @@ target_link_libraries(engine PUBLIC EnTT::EnTT)
 target_link_libraries(engine PUBLIC glm::glm)
 target_link_libraries(engine PUBLIC Vulkan::Vulkan)
 target_link_libraries(engine PUBLIC Tracy::TracyClient)
+target_link_libraries(engine PUBLIC fastgltf::fastgltf)
 
 target_link_libraries(engine PUBLIC stb)
 

@@ -9,6 +9,7 @@
 #include "input/input_enums.hpp"
 #include "resource/resource_manager.hpp"
 #include "resource/types/mesh_resource.hpp"
+#include "resource/types/model_resource.hpp"
 #include "util/print.hpp"
 
 struct RuntimeApplication
@@ -18,6 +19,9 @@ struct RuntimeApplication
     engine = &eng;
     const auto& root_path = files::GetAssetsPathRoot();
 
+    const auto avocado_model = engine->GetResourceManager().load<ModelResource>(
+        "avocado", ModelResourceLoader{}, (root_path / "engine/assets/models/Avocado.glb").string(), engine);
+
     const auto cat_entity = engine->GetScene().Create();
 
     auto* cat_transform = engine->GetScene().AddComponent<CTransform>(cat_entity, glm::mat4(1.0F));
@@ -26,7 +30,7 @@ struct RuntimeApplication
     cat_transform->world = glm::rotate(cat_transform->world, glm::radians(180.0F), glm::vec3(1.0F, 0.0F, 0.0F));
 
     const auto cat_mesh = engine->GetResourceManager().load<MeshResource>(
-        "catMesh", MeshResourceLoader{}, (root_path / "engine/assets/concrete_cat_statue_1k.obj").string(), engine);
+        "catMesh", MeshObjResourceLoader{}, (root_path / "engine/assets/concrete_cat_statue_1k.obj").string(), engine);
     engine->GetScene().AddComponent<CMesh>(cat_entity, cat_mesh);
 
     const auto wall_entity = engine->GetScene().Create();
@@ -36,7 +40,7 @@ struct RuntimeApplication
     wall_transform->world = glm::scale(wall_transform->world, glm::vec3(1.2F, 1.0F, 1.0F));
 
     const auto wall_mesh = engine->GetResourceManager().load<MeshResource>(
-        "wallMesh", MeshResourceLoader{}, (root_path / "engine/assets/wall.obj").string(), engine);
+        "wallMesh", MeshObjResourceLoader{}, (root_path / "engine/assets/wall.obj").string(), engine);
     engine->GetScene().AddComponent<CMesh>(wall_entity, wall_mesh);
 
     camera_entity = engine->GetScene().Create();
@@ -47,9 +51,9 @@ struct RuntimeApplication
     camera_transform->world = glm::rotate(camera_transform->world, glm::radians(180.0F), glm::vec3(0.0F, 1.0F, 0.0F));
 
     const auto cylinder_mesh = engine->GetResourceManager().load<MeshResource>(
-        "firstmesh", MeshResourceLoader{}, (root_path / "engine/assets/cylinder.obj").string(), engine);
+        "firstmesh", MeshObjResourceLoader{}, (root_path / "engine/assets/cylinder.obj").string(), engine);
     const auto icosphere_mesh = engine->GetResourceManager().load<MeshResource>(
-        "secondmesh", MeshResourceLoader{}, (root_path / "engine/assets/icosphere.obj").string(), engine);
+        "secondmesh", MeshObjResourceLoader{}, (root_path / "engine/assets/icosphere.obj").string(), engine);
 
     constexpr int grid_size = 100;
     for (int j{}; j < grid_size; ++j)

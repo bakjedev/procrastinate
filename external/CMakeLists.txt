@@ -88,6 +88,19 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(stb)
 
+FetchContent_Declare(
+        fastgltf
+        GIT_REPOSITORY https://github.com/spnda/fastgltf.git
+        GIT_TAG v0.9.0
+)
+FetchContent_MakeAvailable(fastgltf)
+
+get_target_property(FASTGLTF_REAL fastgltf::fastgltf ALIASED_TARGET)
+get_target_property(FASTGLTF_INCLUDES ${FASTGLTF_REAL} INTERFACE_INCLUDE_DIRECTORIES)
+set_target_properties(${FASTGLTF_REAL} PROPERTIES
+        INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${FASTGLTF_INCLUDES}"
+)
+
 add_library(stb INTERFACE)
 target_include_directories(stb SYSTEM INTERFACE ${stb_SOURCE_DIR})
 

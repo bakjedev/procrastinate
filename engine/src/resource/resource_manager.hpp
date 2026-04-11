@@ -6,7 +6,9 @@
 #include "files/files.hpp"
 #include "resource.hpp"
 #include "resource/types/mesh_resource.hpp"
+#include "types/model_resource.hpp"
 #include "types/shader_resource.hpp"
+
 
 class ResourceManager
 {
@@ -39,7 +41,7 @@ public:
   }
 
 private:
-  std::tuple<ResourceStorage<ShaderResource>, ResourceStorage<MeshResource>> storages_;
+  std::tuple<ResourceStorage<ModelResource>, ResourceStorage<ShaderResource>, ResourceStorage<MeshResource>> storages_;
 
   std::filesystem::path root_path_;
 };

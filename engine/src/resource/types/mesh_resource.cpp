@@ -11,7 +11,7 @@
 #include "stb_image.h"
 #include "util/print.hpp"
 
-MeshResource MeshResourceLoader::operator()(const std::string &path, Engine *engine) const
+MeshResource MeshObjResourceLoader::operator()(const std::string &path, Engine *engine) const
 {
   MeshResource res{};
   std::vector<tinyobj::shape_t> shapes;
@@ -108,5 +108,14 @@ MeshResource MeshResourceLoader::operator()(const std::string &path, Engine *eng
     res.texture_id = -1;
   }
 
+  return res;
+}
+MeshResource MeshDataResourceLoader::operator()(std::vector<uint32_t> indices, std::vector<Vertex> vertices,
+                                                Engine *engine) const
+{
+  MeshResource res{};
+  auto &renderer = engine->GetRenderer();
+  res.renderer_id = renderer.AddMesh(vertices, indices, {}, {});
+  res.texture_id = -1;
   return res;
 }
