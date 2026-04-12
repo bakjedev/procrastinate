@@ -1,6 +1,7 @@
 #pragma once
 #include <cassert>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -60,8 +61,8 @@ public:
 
   T* operator->() { return &storage_->resources_[index_]; }
   T& operator*() { return storage_->resources_[index_]; }
-  const T* operator->() const { return &storage_->resources_[index_]; }
-  const T& operator*() const { return storage_->resources_[index_]; }
+  const T* operator->() const { return &*storage_->resources_[index_]; }
+  const T& operator*() const { return *storage_->resources_[index_]; }
 
   [[nodiscard]] bool valid() const { return storage_ != nullptr; }
   explicit operator bool() const { return valid(); }
@@ -95,7 +96,7 @@ class ResourceStorage
   friend class ResourceHandle<T>;
   using Handle = ResourceHandle<T>;
 
-  std::vector<T> resources_;
+  std::vector<std::optional<T>> resources_;
   std::vector<uint32_t> ref_counts_;
   std::vector<std::string> keys_;
   std::vector<uint32_t> free_;
@@ -113,13 +114,11 @@ class ResourceStorage
     {
       for (const auto& callback: on_destroy_)
       {
-        callback(resources_[index]);
+        callback(*resources_[index]);
       }
       key_to_index_.erase(keys_.at(index));
       keys_.at(index).clear();
-      // resources_[index] = T{};
-      // could destroy resource here but why not leave it, gets destroyed when
-      // replaced anyway.
+      resources_[index].reset();
       free_.push_back(index);
     }
   }
@@ -148,7 +147,7 @@ public:
     } else
     {
       index = static_cast<uint32_t>(resources_.size());
-      resources_.push_back(std::move(resource));
+      resources_.emplace_back(std::move(resource));
       ref_counts_.emplace_back();
       keys_.emplace_back();
     }
