@@ -12,9 +12,6 @@
 #include "core/window.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
-#include "imgui.h"
-#include "imgui_impl_sdl3.h"
-#include "imgui_impl_vulkan.h"
 #include "render/vk_barriers.hpp"
 #include "render/vk_buffer.hpp"
 #include "render/vk_descriptor.hpp"
@@ -493,25 +490,25 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
     shading_pipeline_ = std::make_unique<VulkanPipeline>(device_->get(), shading_pipeline_info);
   }
 
-  // -----------------------------------------------------------
-  // INITIALIZE ImGui
-  // -----------------------------------------------------------
-  auto format = vk::Format::eB8G8R8A8Unorm;
-  vk::PipelineRenderingCreateInfo rendering_info{.colorAttachmentCount = 1, .pColorAttachmentFormats = &format};
-
-  ImGui_ImplVulkan_InitInfo init_info = {};
-  init_info.Instance = instance_->get();
-  init_info.PhysicalDevice = device_->GetPhysical();
-  init_info.Device = device_->get();
-  init_info.QueueFamily = graphics_queue_family;
-  init_info.Queue = device_->GraphicsQueue();
-  init_info.DescriptorPool = descriptor_pool_->get();
-  init_info.MinImageCount = max_frames_in_flight_;
-  init_info.ImageCount = static_cast<uint32_t>(frames_.size());
-  init_info.UseDynamicRendering = true;
-  init_info.PipelineInfoMain.PipelineRenderingCreateInfo = rendering_info;
-
-  ImGui_ImplVulkan_Init(&init_info);
+  // // -----------------------------------------------------------
+  // // INITIALIZE ImGui
+  // // -----------------------------------------------------------
+  // auto format = vk::Format::eB8G8R8A8Unorm;
+  // vk::PipelineRenderingCreateInfo rendering_info{.colorAttachmentCount = 1, .pColorAttachmentFormats = &format};
+  //
+  // ImGui_ImplVulkan_InitInfo init_info = {};
+  // init_info.Instance = instance_->get();
+  // init_info.PhysicalDevice = device_->GetPhysical();
+  // init_info.Device = device_->get();
+  // init_info.QueueFamily = graphics_queue_family;
+  // init_info.Queue = device_->GraphicsQueue();
+  // init_info.DescriptorPool = descriptor_pool_->get();
+  // init_info.MinImageCount = max_frames_in_flight_;
+  // init_info.ImageCount = static_cast<uint32_t>(frames_.size());
+  // init_info.UseDynamicRendering = true;
+  // init_info.PipelineInfoMain.PipelineRenderingCreateInfo = rendering_info;
+  //
+  // ImGui_ImplVulkan_Init(&init_info);
   util::println("Initialized renderer");
 }
 
@@ -519,15 +516,13 @@ VulkanRenderer::~VulkanRenderer()
 {
   device_->WaitIdle();
 
-  ImGui_ImplVulkan_Shutdown();
-  ImGui_ImplSDL3_Shutdown();
-  ImGui::DestroyContext();
+  // ImGui_ImplVulkan_Shutdown();
+  // ImGui_ImplSDL3_Shutdown();
+  // ImGui::DestroyContext();
 }
 
-void VulkanRenderer::run(glm::mat4 world, float fov)
+void VulkanRenderer::BeginFrame()
 {
-  ZoneScopedN("RenderLoop");
-
   // -----------------------------------------------------------
   // Handle window resize event
   // -----------------------------------------------------------
@@ -554,14 +549,14 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   }
 
   // -----------------------------------------------------------
-  // Begin frame
+  // Prepare frame
   // -----------------------------------------------------------
 
-  const auto image_index = BeginFrame().value_or(UINT32_MAX);
+  current_image_index_ = PrepareFrame().value_or(UINT32_MAX);
 
-  if (image_index == UINT32_MAX)
+  if (current_image_index_ == UINT32_MAX)
   {
-    throw std::runtime_error("imageIndex is UINT32_MAX");
+    throw std::runtime_error("current image index is UINT32_MAX");
   }
 
   const auto& frame = frames_.at(current_frame_);
@@ -577,6 +572,20 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
       debug_line_vertices_.data(), static_cast<uint32_t>(sizeof(DebugLineVertex) * debug_line_vertices_.size()));
 
   // -----------------------------------------------------------
+  // Begin command buffer
+  // -----------------------------------------------------------
+  const auto cmd = frame->GraphicsCmd();
+  constexpr vk::CommandBufferBeginInfo begin_info{};
+  cmd.begin(begin_info);
+}
+
+void VulkanRenderer::Render(glm::mat4 world, float fov) const
+{
+  const auto& frame = frames_.at(current_frame_);
+  const auto cmd = frame->GraphicsCmd();
+
+  ZoneScopedN("RenderLoop");
+  // -----------------------------------------------------------
   // Calculate view, projection and frustum
   // -----------------------------------------------------------
   ZoneNamedN(matrixzone, "Matrices", true);
@@ -585,13 +594,6 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
 
   const auto view_proj = projection * view;
   const auto frustum = ExtractFrustum(view_proj);
-
-  // -----------------------------------------------------------
-  // Begin command buffer
-  // -----------------------------------------------------------
-  const auto cmd = frame->GraphicsCmd();
-  constexpr vk::CommandBufferBeginInfo begin_info{};
-  cmd.begin(begin_info);
 
   // -----------------------------------------------------------
   // Compute pass - create indirect draw commands
@@ -773,42 +775,48 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
   cmd.endRendering();
 
   cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
+}
 
-  // -----------------------------------------------------------
-  // ImGui pass
-  // -----------------------------------------------------------
-  ZoneNamedN(imguizone, "ImGui", true);
+void VulkanRenderer::EndFrame()
+{
+  const auto& frame = frames_.at(current_frame_);
+  const auto cmd = frame->GraphicsCmd();
 
-  constexpr vk::DebugUtilsLabelEXT label_info4{.pLabelName = "ImGuiPass"};
-  cmd.beginDebugUtilsLabelEXT(label_info4, instance_->getDynamicLoader());
-
-  ImGui_ImplVulkan_NewFrame();
-  ImGui_ImplSDL3_NewFrame();
-  ImGui::NewFrame();
-
-  ImGui::Begin("uhh");
-  ImGui::End();
-
-  ImGui::Render();
-
-  const vk::RenderingAttachmentInfo imgui_color_attachment{
-      .imageView = frame->RenderImage()->view(),
-      .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-      .loadOp = vk::AttachmentLoadOp::eLoad, // Load existing scene
-      .storeOp = vk::AttachmentStoreOp::eStore,
-  };
-
-  const vk::RenderingInfo imgui_render_info{
-      .renderArea = vk::Rect2D{.offset = {.x = 0, .y = 0}, .extent = swap_chain_->extent()},
-      .layerCount = 1,
-      .colorAttachmentCount = 1,
-      .pColorAttachments = &imgui_color_attachment};
-
-  cmd.beginRendering(imgui_render_info);
-  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
-  cmd.endRendering();
-
-  cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
+  // // -----------------------------------------------------------
+  // // ImGui pass
+  // // -----------------------------------------------------------
+  // ZoneNamedN(imguizone, "ImGui", true);
+  //
+  // constexpr vk::DebugUtilsLabelEXT label_info4{.pLabelName = "ImGuiPass"};
+  // cmd.beginDebugUtilsLabelEXT(label_info4, instance_->getDynamicLoader());
+  //
+  // ImGui_ImplVulkan_NewFrame();
+  // ImGui_ImplSDL3_NewFrame();
+  // ImGui::NewFrame();
+  //
+  // ImGui::Begin("uhh");
+  // ImGui::End();
+  //
+  // ImGui::Render();
+  //
+  // const vk::RenderingAttachmentInfo imgui_color_attachment{
+  //     .imageView = frame->RenderImage()->view(),
+  //     .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+  //     .loadOp = vk::AttachmentLoadOp::eLoad, // Load existing scene
+  //     .storeOp = vk::AttachmentStoreOp::eStore,
+  // };
+  //
+  // const vk::RenderingInfo imgui_render_info{
+  //     .renderArea = vk::Rect2D{.offset = {.x = 0, .y = 0}, .extent = swap_chain_->extent()},
+  //     .layerCount = 1,
+  //     .colorAttachmentCount = 1,
+  //     .pColorAttachments = &imgui_color_attachment};
+  //
+  // cmd.beginRendering(imgui_render_info);
+  // ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+  // cmd.endRendering();
+  //
+  // cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
 
   ZoneNamedN(blitzone, "Blitting", true);
   constexpr vk::DebugUtilsLabelEXT label_info5{.pLabelName = "BlittingPass"};
@@ -816,7 +824,7 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
 
   VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eColorAttachmentOptimal,
                                      vk::ImageLayout::eTransferSrcOptimal);
-  VulkanImage::TransitionImageLayout(swap_chain_->getImage(image_index), cmd, vk::ImageLayout::ePresentSrcKHR,
+  VulkanImage::TransitionImageLayout(swap_chain_->getImage(current_image_index_), cmd, vk::ImageLayout::ePresentSrcKHR,
                                      vk::ImageLayout::eTransferDstOptimal);
 
   const vk::ImageBlit blit_region{.srcSubresource =
@@ -842,21 +850,22 @@ void VulkanRenderer::run(glm::mat4 world, float fov)
                                                                .y = static_cast<int32_t>(swap_chain_->extent().height),
                                                                .z = 1}}}};
 
-  cmd.blitImage(frame->RenderImage()->get(), vk::ImageLayout::eTransferSrcOptimal, swap_chain_->getImage(image_index),
-                vk::ImageLayout::eTransferDstOptimal, 1U, &blit_region, vk::Filter::eNearest);
+  cmd.blitImage(frame->RenderImage()->get(), vk::ImageLayout::eTransferSrcOptimal,
+                swap_chain_->getImage(current_image_index_), vk::ImageLayout::eTransferDstOptimal, 1U, &blit_region,
+                vk::Filter::eNearest);
 
-  VulkanImage::TransitionImageLayout(swap_chain_->getImage(image_index), cmd, vk::ImageLayout::eTransferDstOptimal,
-                                     vk::ImageLayout::ePresentSrcKHR);
+  VulkanImage::TransitionImageLayout(swap_chain_->getImage(current_image_index_), cmd,
+                                     vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
 
   cmd.end();
 
   // -----------------------------------------------------------
-  // End frame
+  // Submit frame
   // -----------------------------------------------------------
   ZoneNamedN(endzone, "Endzone", true);
-  EndFrame(image_index);
+  SubmitFrame(current_image_index_);
 }
 
 uint32_t VulkanRenderer::AddMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices,
@@ -1120,7 +1129,7 @@ void VulkanRenderer::OnMeshResourceDestroyed(const MeshResource& resource)
   util::println("Yo: {}", resource.renderer_id);
 }
 
-std::optional<uint32_t> VulkanRenderer::BeginFrame() const
+std::optional<uint32_t> VulkanRenderer::PrepareFrame() const
 {
   ZoneScopedN("VulkanRenderer::beginFrame");
   const auto& frame = frames_.at(current_frame_);
@@ -1144,7 +1153,7 @@ std::optional<uint32_t> VulkanRenderer::BeginFrame() const
   return image_index;
 }
 
-auto VulkanRenderer::EndFrame(const uint32_t image_index) -> void
+auto VulkanRenderer::SubmitFrame(const uint32_t image_index) -> void
 {
   ZoneScopedN("VulkanRenderer::endFrame");
   const auto& frame = frames_.at(current_frame_);

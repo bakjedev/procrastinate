@@ -30,7 +30,7 @@ ModelResource ModelResourceLoader::operator()(const std::string &path, Engine *e
 
   const auto &loaded_asset = asset.get();
 
-  for (const auto &material: loaded_asset.materials)
+  for ([[maybe_unused]] const auto &material: loaded_asset.materials)
   {
   }
 

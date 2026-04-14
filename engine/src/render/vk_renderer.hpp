@@ -107,7 +107,9 @@ public:
   VulkanRenderer &operator=(VulkanRenderer &&) = delete;
   ~VulkanRenderer();
 
-  void run(glm::mat4 world, float fov);
+  void BeginFrame();
+  void Render(glm::mat4 world, float fov) const;
+  void EndFrame();
 
   uint32_t AddMesh(const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices, const glm::vec3 &b_min,
                    const glm::vec3 &b_max);
@@ -127,8 +129,8 @@ public:
   void OnMeshResourceDestroyed(const MeshResource &resource);
 
 private:
-  [[nodiscard]] std::optional<uint32_t> BeginFrame() const;
-  void EndFrame(uint32_t image_index);
+  [[nodiscard]] std::optional<uint32_t> PrepareFrame() const;
+  void SubmitFrame(uint32_t image_index);
 
   void RecreateSwapChain();
   void RecreateFrameImages(uint32_t width, uint32_t height);
@@ -175,6 +177,7 @@ private:
   std::vector<vk::UniqueSemaphore> submit_semaphores_;
 
   uint32_t current_frame_ = 0;
+  uint32_t current_image_index_ = 0;
   float aspect_ratio_ = 1.0F;
 
   std::vector<RenderObject> render_objects_;

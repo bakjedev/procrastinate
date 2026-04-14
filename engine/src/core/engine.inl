@@ -58,6 +58,8 @@ void Engine::Run(App& app)
       renderer_->RenderMesh(transform.world, mesh.renderer_id, mesh.texture_id);
     }
 
+    renderer_->BeginFrame();
+
     const auto camera_view = scene_->registry().view<CCamera, CTransform>();
     entt::entity camera_entity = entt::null;
     auto it = camera_view.begin();
@@ -70,8 +72,11 @@ void Engine::Run(App& app)
       const auto& camera = camera_view.get<CCamera>(camera_entity);
       const auto& transform = camera_view.get<CTransform>(camera_entity);
       app.Render();
-      renderer_->run(transform.world, camera.fov);
+      renderer_->Render(transform.world, camera.fov);
     }
+
+    renderer_->EndFrame();
+
     FrameMark;
   }
 
