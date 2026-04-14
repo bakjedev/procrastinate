@@ -29,8 +29,13 @@ ModelResource ModelResourceLoader::operator()(const std::string &path, Engine *e
   }
 
   const auto &loaded_asset = asset.get();
-  uint32_t primitive_id = 0;
 
+  for (const auto &material: loaded_asset.materials)
+  {
+
+  }
+
+  uint32_t primitive_id = 0;
   std::stack<std::pair<const fastgltf::Node *, glm::mat4>> node_stack;
 
   for (const auto node_index: loaded_asset.scenes[0].nodeIndices)
