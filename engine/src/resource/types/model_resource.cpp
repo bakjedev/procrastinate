@@ -32,7 +32,6 @@ ModelResource ModelResourceLoader::operator()(const std::string &path, Engine *e
 
   for (const auto &material: loaded_asset.materials)
   {
-
   }
 
   uint32_t primitive_id = 0;
