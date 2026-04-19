@@ -71,9 +71,9 @@ void Engine::Run(App& app)
     {
       const auto& camera = camera_view.get<CCamera>(camera_entity);
       const auto& transform = camera_view.get<CTransform>(camera_entity);
-      app.Render();
       renderer_->Render(transform.world, camera.fov);
     }
+    app.Render();
 
     renderer_->EndFrame();
 

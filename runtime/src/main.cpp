@@ -5,8 +5,15 @@
 #include "files/files.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "imgui.h"
+#include "imgui_impl_sdl3.h"
+#include "imgui_impl_vulkan.h"
 #include "input/input.hpp"
 #include "input/input_enums.hpp"
+#include "render/vk_device.hpp"
+#include "render/vk_frame.hpp"
+#include "render/vk_image.hpp"
+#include "render/vk_swap_chain.hpp"
 #include "resource/resource_manager.hpp"
 #include "resource/types/mesh_resource.hpp"
 #include "resource/types/model_resource.hpp"
@@ -83,6 +90,33 @@ struct RuntimeApplication
         }
       }
     }
+
+    // -----------------------------------------------------------
+    // INITIALIZE ImGui
+    // -----------------------------------------------------------
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui_ImplSDL3_InitForVulkan(engine->GetWindow().get());
+
+    auto format = vk::Format::eB8G8R8A8Unorm;
+    vk::PipelineRenderingCreateInfo rendering_info{.colorAttachmentCount = 1, .pColorAttachmentFormats = &format};
+
+    auto& renderer = engine->GetRenderer();
+    const auto context = renderer.GetContext();
+    ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.Instance = context.instance;
+    init_info.PhysicalDevice = context.physical_device;
+    init_info.Device = context.device;
+    init_info.QueueFamily = context.graphics_queue_family;
+    init_info.Queue = context.graphics_queue;
+    init_info.DescriptorPool = context.descriptor_pool;
+    init_info.MinImageCount = context.min_image_count;
+    init_info.ImageCount = context.image_count;
+    init_info.UseDynamicRendering = true;
+    init_info.PipelineInfoMain.PipelineRenderingCreateInfo = rendering_info;
+    ImGui_ImplVulkan_Init(&init_info);
+
+    engine->GetEventManager().AddCallback([](SDL_Event* event) { ImGui_ImplSDL3_ProcessEvent(event); });
   }
 
   void Update(const float delta_time) const
@@ -194,11 +228,57 @@ struct RuntimeApplication
     {
       camera_world = glm::rotate(camera_world, delta_time, glm::vec3(0.0F, -1.0F, 0.0F));
     }
+
+    auto& event_manager = engine->GetEventManager();
   }
 
   void FixedUpdate(float /*unused*/) {}
-  void Render() {}
-  void Shutdown() const {}
+
+  void Render()
+  {
+    const auto& renderer = engine->GetRenderer();
+    const auto& frame = renderer.GetCurrentFrame();
+    const auto cmd = frame.GraphicsCmd();
+
+    // -----------------------------------------------------------
+    // ImGui pass
+    // -----------------------------------------------------------
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
+    ImGui::NewFrame();
+
+    ImGui::Begin("uhh");
+    ImGui::End();
+
+    ImGui::Render();
+
+    VulkanImage::TransitionImageLayout(frame.RenderImage()->get(), cmd, vk::ImageLayout::eColorAttachmentOptimal,
+                                       vk::ImageLayout::eColorAttachmentOptimal);
+
+    const vk::RenderingAttachmentInfo imgui_color_attachment{
+        .imageView = frame.RenderImage()->view(),
+        .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+        .loadOp = vk::AttachmentLoadOp::eLoad, // Load existing scene
+        .storeOp = vk::AttachmentStoreOp::eStore,
+    };
+    const vk::RenderingInfo imgui_render_info{
+        .renderArea = vk::Rect2D{.offset = {.x = 0, .y = 0}, .extent = renderer.GetSwapChain().extent()},
+        .layerCount = 1,
+        .colorAttachmentCount = 1,
+        .pColorAttachments = &imgui_color_attachment};
+
+    cmd.beginRendering(imgui_render_info);
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+    cmd.endRendering();
+  }
+
+  void Shutdown() const
+  {
+    engine->GetRenderer().GetDevice().WaitIdle();
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
+    ImGui::DestroyContext();
+  }
 
   uint32_t camera_entity;
 

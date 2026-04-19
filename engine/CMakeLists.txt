@@ -14,7 +14,6 @@ target_sources(engine PRIVATE
         src/core/engine.cpp
         src/core/events.cpp
         src/core/window.cpp
-        src/core/imgui.cpp
         src/input/input.cpp
         src/ecs/scene.cpp
         src/resource/types/mesh_resource.cpp

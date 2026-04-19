@@ -3,7 +3,6 @@
 #include <optional>
 
 #include "SDL3/SDL_events.h"
-#include "core/imgui.hpp"
 
 void EventManager::poll()
 {
@@ -53,14 +52,20 @@ void EventManager::poll()
         break;
     }
 
+    for (const EventCallback& callback: callbacks_)
+    {
+      callback(&sdl_event);
+    }
+
     if (event)
     {
       events_.push_back(*event);
     }
-    im_gui_system::ProcessEvent(&sdl_event);
   }
 }
 
 const std::vector<Event>& EventManager::GetEvents() const { return events_; }
+
+void EventManager::AddCallback(const EventCallback& callback) { callbacks_.push_back(callback); }
 
 void EventManager::clear() { events_.clear(); }

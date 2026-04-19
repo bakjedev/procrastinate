@@ -156,6 +156,13 @@ void VulkanImage::TransitionImageLayout(const vk::Image image, const vk::Command
     barrier.dstAccessMask = vk::AccessFlagBits2::eNone;
     barrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
     barrier.dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe;
+  } else if (old_layout == vk::ImageLayout::eColorAttachmentOptimal &&
+             new_layout == vk::ImageLayout::eColorAttachmentOptimal)
+  {
+    barrier.srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite;
+    barrier.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite;
+    barrier.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+    barrier.dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
   } else
   {
     throw std::runtime_error("Unsupported layout transition");

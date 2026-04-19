@@ -3,6 +3,8 @@
 #include <variant>
 #include <vector>
 
+union SDL_Event;
+
 enum class EventType : uint8_t
 {
   kNone,
@@ -49,14 +51,19 @@ struct Event
 class EventManager
 {
 public:
+  using EventCallback = void (*)(SDL_Event*);
+
   void poll();
 
   [[nodiscard]] const std::vector<Event>& GetEvents() const;
 
+  void AddCallback(const EventCallback& callback);
+
 private:
   std::vector<Event> events_;
-
   static constexpr size_t expected_events_ = 64;
+
+  std::vector<EventCallback> callbacks_;
 
   void clear();
 };

@@ -490,35 +490,12 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
     shading_pipeline_ = std::make_unique<VulkanPipeline>(device_->get(), shading_pipeline_info);
   }
 
-  // // -----------------------------------------------------------
-  // // INITIALIZE ImGui
-  // // -----------------------------------------------------------
-  // auto format = vk::Format::eB8G8R8A8Unorm;
-  // vk::PipelineRenderingCreateInfo rendering_info{.colorAttachmentCount = 1, .pColorAttachmentFormats = &format};
-  //
-  // ImGui_ImplVulkan_InitInfo init_info = {};
-  // init_info.Instance = instance_->get();
-  // init_info.PhysicalDevice = device_->GetPhysical();
-  // init_info.Device = device_->get();
-  // init_info.QueueFamily = graphics_queue_family;
-  // init_info.Queue = device_->GraphicsQueue();
-  // init_info.DescriptorPool = descriptor_pool_->get();
-  // init_info.MinImageCount = max_frames_in_flight_;
-  // init_info.ImageCount = static_cast<uint32_t>(frames_.size());
-  // init_info.UseDynamicRendering = true;
-  // init_info.PipelineInfoMain.PipelineRenderingCreateInfo = rendering_info;
-  //
-  // ImGui_ImplVulkan_Init(&init_info);
   util::println("Initialized renderer");
 }
 
 VulkanRenderer::~VulkanRenderer()
 {
   device_->WaitIdle();
-
-  // ImGui_ImplVulkan_Shutdown();
-  // ImGui_ImplSDL3_Shutdown();
-  // ImGui::DestroyContext();
 }
 
 void VulkanRenderer::BeginFrame()
@@ -781,42 +758,6 @@ void VulkanRenderer::EndFrame()
 {
   const auto& frame = frames_.at(current_frame_);
   const auto cmd = frame->GraphicsCmd();
-
-  // // -----------------------------------------------------------
-  // // ImGui pass
-  // // -----------------------------------------------------------
-  // ZoneNamedN(imguizone, "ImGui", true);
-  //
-  // constexpr vk::DebugUtilsLabelEXT label_info4{.pLabelName = "ImGuiPass"};
-  // cmd.beginDebugUtilsLabelEXT(label_info4, instance_->getDynamicLoader());
-  //
-  // ImGui_ImplVulkan_NewFrame();
-  // ImGui_ImplSDL3_NewFrame();
-  // ImGui::NewFrame();
-  //
-  // ImGui::Begin("uhh");
-  // ImGui::End();
-  //
-  // ImGui::Render();
-  //
-  // const vk::RenderingAttachmentInfo imgui_color_attachment{
-  //     .imageView = frame->RenderImage()->view(),
-  //     .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-  //     .loadOp = vk::AttachmentLoadOp::eLoad, // Load existing scene
-  //     .storeOp = vk::AttachmentStoreOp::eStore,
-  // };
-  //
-  // const vk::RenderingInfo imgui_render_info{
-  //     .renderArea = vk::Rect2D{.offset = {.x = 0, .y = 0}, .extent = swap_chain_->extent()},
-  //     .layerCount = 1,
-  //     .colorAttachmentCount = 1,
-  //     .pColorAttachments = &imgui_color_attachment};
-  //
-  // cmd.beginRendering(imgui_render_info);
-  // ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
-  // cmd.endRendering();
-  //
-  // cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
 
   ZoneNamedN(blitzone, "Blitting", true);
   constexpr vk::DebugUtilsLabelEXT label_info5{.pLabelName = "BlittingPass"};
@@ -1128,6 +1069,20 @@ void VulkanRenderer::OnMeshResourceDestroyed(const MeshResource& resource)
 {
   util::println("Yo: {}", resource.renderer_id);
 }
+VulkanRenderer::RenderContext VulkanRenderer::GetContext() const
+{
+  return RenderContext{.instance = instance_->get(),
+                       .physical_device = device_->GetPhysical(),
+                       .device = device_->get(),
+                       .graphics_queue_family = device_->QueueFamilies().graphics.value(),
+                       .graphics_queue = device_->GraphicsQueue(),
+                       .descriptor_pool = descriptor_pool_->get(),
+                       .min_image_count = max_frames_in_flight_,
+                       .image_count = static_cast<uint32_t>(frames_.size())};
+}
+const VulkanFrame& VulkanRenderer::GetCurrentFrame() const { return *frames_[current_frame_]; }
+const VulkanSwapChain& VulkanRenderer::GetSwapChain() const { return *swap_chain_; }
+const VulkanDevice& VulkanRenderer::GetDevice() const { return *device_; }
 
 std::optional<uint32_t> VulkanRenderer::PrepareFrame() const
 {

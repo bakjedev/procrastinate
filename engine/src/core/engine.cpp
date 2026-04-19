@@ -3,7 +3,6 @@
 #include <cassert>
 #include <memory>
 
-#include "core/imgui.hpp"
 #include "ecs/scene.hpp"
 #include "events.hpp"
 #include "input/input.hpp"
@@ -30,7 +29,6 @@ Engine::Engine()
       WindowInfo{.width = width, .height = height, .fullscreen = false, .title = "meowl"}, *event_manager_);
   input_ = std::make_unique<Input>(*event_manager_);
   resource_manager_ = std::make_unique<ResourceManager>();
-  im_gui_system::Initialize(window_.get());
   renderer_ = std::make_unique<VulkanRenderer>(window_.get(), *resource_manager_, *event_manager_);
   scene_ = std::make_unique<Scene>();
 

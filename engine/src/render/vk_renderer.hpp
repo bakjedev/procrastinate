@@ -128,6 +128,23 @@ public:
 
   void OnMeshResourceDestroyed(const MeshResource &resource);
 
+  struct RenderContext
+  {
+    vk::Instance instance;
+    vk::PhysicalDevice physical_device;
+    vk::Device device;
+    uint32_t graphics_queue_family;
+    vk::Queue graphics_queue;
+    vk::DescriptorPool descriptor_pool;
+    uint32_t min_image_count;
+    uint32_t image_count;
+  };
+
+  [[nodiscard]] RenderContext GetContext() const;
+  [[nodiscard]] const VulkanFrame &GetCurrentFrame() const;
+  [[nodiscard]] const VulkanSwapChain &GetSwapChain() const;
+  [[nodiscard]] const VulkanDevice &GetDevice() const;
+
 private:
   [[nodiscard]] std::optional<uint32_t> PrepareFrame() const;
   void SubmitFrame(uint32_t image_index);
