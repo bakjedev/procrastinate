@@ -110,3 +110,4 @@ add_library(vma STATIC vma/vma_usage.cpp)
 target_include_directories(vma PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(vma PUBLIC Vulkan::Vulkan)
 
+add_subdirectory(framework)
