@@ -573,10 +573,8 @@ void VulkanRenderer::RenderWithGraph(const glm::mat4& world, const float fov)
   context_->update_proxy(depth_proxy_, depth_imports_.at(current_frame_));
   context_->update_proxy(render_proxy_, render_imports_.at(current_frame_));
   context_->update_proxy(vis_proxy_, vis_imports_.at(current_frame_));
-  context_->update_proxy(object_proxy_, object_imports_.at(current_frame_));
   context_->update_proxy(indirect_proxy_, indirect_imports_.at(current_frame_));
   context_->update_proxy(draw_count_proxy_, draw_count_imports_.at(current_frame_));
-  context_->update_proxy(debug_line_proxy_, debug_line_imports_.at(current_frame_));
 
   context_->graph().execute(cmd);
 }
@@ -618,19 +616,15 @@ void VulkanRenderer::SetupImports()
   depth_imports_.resize(max_frames_in_flight_);
   render_imports_.resize(max_frames_in_flight_);
   vis_imports_.resize(max_frames_in_flight_);
-  object_imports_.resize(max_frames_in_flight_);
   indirect_imports_.resize(max_frames_in_flight_);
   draw_count_imports_.resize(max_frames_in_flight_);
-  debug_line_imports_.resize(max_frames_in_flight_);
   for (uint32_t i = 0; i < max_frames_in_flight_; i++)
   {
     auto& depth_res = depth_imports_[i];
     auto& render_res = render_imports_[i];
     auto& vis_res = vis_imports_[i];
-    auto& object_res = object_imports_[i];
     auto& indirect_res = indirect_imports_[i];
     auto& draw_count_res = draw_count_imports_[i];
-    auto& debug_line_res = debug_line_imports_[i];
 
     {
       ImageWrapper wrap(frames_.at(i)->DepthImage());
@@ -677,17 +671,6 @@ void VulkanRenderer::SetupImports()
     }
 
     {
-      BufferWrapper wrap(frames_.at(i)->ObjectBuffer());
-      if (object_res)
-      {
-        context_->update_buffer(object_res, wrap, fwrk::BufferState::Undefined);
-      } else
-      {
-        object_res = context_->import_buffer(wrap, fwrk::BufferState::Undefined);
-      }
-    }
-
-    {
       BufferWrapper wrap(frames_.at(i)->IndirectBuffer());
       if (indirect_res)
       {
@@ -708,26 +691,13 @@ void VulkanRenderer::SetupImports()
         draw_count_res = context_->import_buffer(wrap, fwrk::BufferState::Undefined);
       }
     }
-
-    {
-      BufferWrapper wrap(frames_.at(i)->DebugLineVertexBuffer());
-      if (debug_line_res)
-      {
-        context_->update_buffer(debug_line_res, wrap, fwrk::BufferState::Undefined);
-      } else
-      {
-        debug_line_res = context_->import_buffer(wrap, fwrk::BufferState::Undefined);
-      }
-    }
   }
   if (!swapchain_proxy_) swapchain_proxy_ = context_->create_proxy();
   if (!depth_proxy_) depth_proxy_ = context_->create_proxy();
   if (!render_proxy_) render_proxy_ = context_->create_proxy();
   if (!vis_proxy_) vis_proxy_ = context_->create_proxy();
-  if (!object_proxy_) object_proxy_ = context_->create_proxy();
   if (!indirect_proxy_) indirect_proxy_ = context_->create_proxy();
   if (!draw_count_proxy_) draw_count_proxy_ = context_->create_proxy();
-  if (!debug_line_proxy_) debug_line_proxy_ = context_->create_proxy();
 }
 
 void VulkanRenderer::SetupPasses()

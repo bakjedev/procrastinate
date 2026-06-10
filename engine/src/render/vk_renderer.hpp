@@ -244,18 +244,14 @@ private:
   std::vector<fwrk::ResourceID> depth_imports_;
   std::vector<fwrk::ResourceID> render_imports_;
   std::vector<fwrk::ResourceID> vis_imports_;
-  std::vector<fwrk::ResourceID> object_imports_;
   std::vector<fwrk::ResourceID> indirect_imports_;
   std::vector<fwrk::ResourceID> draw_count_imports_;
-  std::vector<fwrk::ResourceID> debug_line_imports_;
   fwrk::ResourceID swapchain_proxy_;
   fwrk::ResourceID depth_proxy_;
   fwrk::ResourceID render_proxy_;
   fwrk::ResourceID vis_proxy_;
-  fwrk::ResourceID object_proxy_;
   fwrk::ResourceID indirect_proxy_;
   fwrk::ResourceID draw_count_proxy_;
-  fwrk::ResourceID debug_line_proxy_;
   glm::mat4 projection_{};
   glm::mat4 view_{};
   Frustum frustum_{};
