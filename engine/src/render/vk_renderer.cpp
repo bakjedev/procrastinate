@@ -61,6 +61,8 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
 
   allocator_ = std::make_unique<VulkanAllocator>(device_->GetPhysical(), device_->get(), instance_->get());
 
+  context_ = std::make_unique<fwrk::Context>(device_->get());
+
   // -----------------------------------------------------------
   // SWAPCHAIN
   // -----------------------------------------------------------
@@ -490,13 +492,13 @@ VulkanRenderer::VulkanRenderer(Window* window, ResourceManager& resource_manager
     shading_pipeline_ = std::make_unique<VulkanPipeline>(device_->get(), shading_pipeline_info);
   }
 
+  SetupImports();
+  SetupPasses();
+
   util::println("Initialized renderer");
 }
 
-VulkanRenderer::~VulkanRenderer()
-{
-  device_->WaitIdle();
-}
+VulkanRenderer::~VulkanRenderer() { device_->WaitIdle(); }
 
 void VulkanRenderer::BeginFrame()
 {
@@ -556,249 +558,33 @@ void VulkanRenderer::BeginFrame()
   cmd.begin(begin_info);
 }
 
-void VulkanRenderer::Render(glm::mat4 world, float fov) const
+void VulkanRenderer::RenderWithGraph(const glm::mat4& world, const float fov)
 {
   const auto& frame = frames_.at(current_frame_);
   const auto cmd = frame->GraphicsCmd();
 
-  ZoneScopedN("RenderLoop");
-  // -----------------------------------------------------------
-  // Calculate view, projection and frustum
-  // -----------------------------------------------------------
-  ZoneNamedN(matrixzone, "Matrices", true);
-  const auto view = glm::inverse(world);
-  const auto projection = glm::perspective(glm::radians(fov), aspect_ratio_, kNearPlaneDistance, kFarPlaneDistance);
+  view_ = glm::inverse(world);
+  projection_ = glm::perspective(glm::radians(fov), aspect_ratio_, kNearPlaneDistance, kFarPlaneDistance);
 
-  const auto view_proj = projection * view;
-  const auto frustum = ExtractFrustum(view_proj);
+  const auto view_proj = projection_ * view_;
+  frustum_ = ExtractFrustum(view_proj);
 
-  // -----------------------------------------------------------
-  // Compute pass - create indirect draw commands
-  // -----------------------------------------------------------
-  ZoneNamedN(computezone, "ComputePass", true);
-  constexpr vk::DebugUtilsLabelEXT label_info1{.pLabelName = "FrustumGPUDrivenPass"};
-  cmd.beginDebugUtilsLabelEXT(label_info1, instance_->getDynamicLoader());
+  context_->update_proxy(swapchain_proxy_, swapchain_imports_.at(current_image_index_));
+  context_->update_proxy(depth_proxy_, depth_imports_.at(current_frame_));
+  context_->update_proxy(render_proxy_, render_imports_.at(current_frame_));
+  context_->update_proxy(vis_proxy_, vis_imports_.at(current_frame_));
+  context_->update_proxy(object_proxy_, object_imports_.at(current_frame_));
+  context_->update_proxy(indirect_proxy_, indirect_imports_.at(current_frame_));
+  context_->update_proxy(draw_count_proxy_, draw_count_imports_.at(current_frame_));
+  context_->update_proxy(debug_line_proxy_, debug_line_imports_.at(current_frame_));
 
-  cmd.fillBuffer(frame->DrawCount()->get(), 0, sizeof(uint32_t), 0);
-
-  vulkan_barriers::BufferBarrier(
-      cmd, vulkan_barriers::BufferInfo{.buffer = frame->DrawCount()->get(), .size = sizeof(uint32_t)},
-      vulkan_barriers::BufferUsageBit::CopyDestination, vulkan_barriers::BufferUsageBit::RWCompute);
-
-  const auto descriptor_sets = std::array{static_descriptor_set_, frame->DescriptorSet()};
-
-  cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, culling_pipeline_layout_->get(), 0, descriptor_sets.size(),
-                         descriptor_sets.data(), 0, nullptr);
-
-  const auto render_objects_size = static_cast<uint32_t>(render_objects_.size());
-  const CullingPushConstant culling_push_constant{
-      .frustum = frustum,
-      .render_object_count = render_objects_size,
-  };
-
-  cmd.pushConstants(culling_pipeline_layout_->get(), vk::ShaderStageFlagBits::eCompute, 0, sizeof(CullingPushConstant),
-                    &culling_push_constant);
-
-  cmd.bindPipeline(vk::PipelineBindPoint::eCompute, culling_pipeline_->get());
-  const uint32_t workgroups = (render_objects_size + 255) / 256;
-  cmd.dispatch(workgroups, 1, 1);
-
-  vulkan_barriers::BufferBarrier(
-      cmd, vulkan_barriers::BufferInfo{.buffer = frame->DrawCount()->get(), .size = sizeof(uint32_t)},
-      vulkan_barriers::BufferUsageBit::RWCompute, vulkan_barriers::BufferUsageBit::IndirectDraw);
-
-  vulkan_barriers::BufferBarrier(
-      cmd, vulkan_barriers::BufferInfo{.buffer = frame->IndirectBuffer()->get(), .size = vk::WholeSize},
-      vulkan_barriers::BufferUsageBit::RWCompute, vulkan_barriers::BufferUsageBit::IndirectDraw);
-
-  cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
-
-  // -----------------------------------------------------------
-  // Graphics pass - render meshes visibility
-  // -----------------------------------------------------------
-  ZoneNamedN(graphicsmesheszone, "MeshPass", true);
-  constexpr vk::DebugUtilsLabelEXT label_info2{.pLabelName = "MeshPass"};
-  cmd.beginDebugUtilsLabelEXT(label_info2, instance_->getDynamicLoader());
-
-  VulkanImage::TransitionImageLayout(frame->VisibilityImage()->get(), cmd, vk::ImageLayout::eShaderReadOnlyOptimal,
-                                     vk::ImageLayout::eColorAttachmentOptimal);
-
-  const vk::RenderingAttachmentInfo depth_attachment{
-      .imageView = frame->DepthImage()->view(),
-      .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
-      .loadOp = vk::AttachmentLoadOp::eClear,
-      .storeOp = vk::AttachmentStoreOp::eDontCare,
-      .clearValue = vk::ClearValue{.depthStencil = {.depth = 1.0F, .stencil = 0}}};
-
-  const vk::RenderingAttachmentInfo color_attachment{
-      .imageView = frame->VisibilityImage()->view(),
-      .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-      .loadOp = vk::AttachmentLoadOp::eClear,
-      .storeOp = vk::AttachmentStoreOp::eStore,
-      .clearValue = vk::ClearValue{
-          .color = vk::ClearColorValue{.uint32 = std::array{0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU}}}};
-
-  const vk::RenderingInfo render_info{
-      .renderArea = vk::Rect2D{.offset = {.x = 0, .y = 0}, .extent = swap_chain_->extent()},
-      .layerCount = 1,
-      .colorAttachmentCount = 1,
-      .pColorAttachments = &color_attachment,
-      .pDepthAttachment = &depth_attachment};
-
-  cmd.beginRendering(render_info);
-  cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pre_pass_pipeline_->get());
-
-  cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pre_pass_pipeline_layout_->get(), 0, descriptor_sets.size(),
-                         descriptor_sets.data(), 0, nullptr);
-
-  const RenderPushConstant render_push_constant{
-      .view = view,
-      .proj = projection,
-  };
-
-  cmd.pushConstants(pre_pass_pipeline_layout_->get(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(RenderPushConstant),
-                    &render_push_constant);
-  constexpr vk::DeviceSize offset = 0;
-  const auto vertex_buffer = vertex_buffer_->get();
-  cmd.bindVertexBuffers(0, 1, &vertex_buffer, &offset);
-  const auto index_buffer = index_buffer_->get();
-  cmd.bindIndexBuffer(index_buffer, 0, vk::IndexType::eUint32);
-
-  const vk::Viewport viewport{.x = 0.0F,
-                              .y = 0.0F,
-                              .width = static_cast<float>(swap_chain_->extent().width),
-                              .height = static_cast<float>(swap_chain_->extent().height),
-                              .minDepth = 0.0F,
-                              .maxDepth = 1.0F};
-  cmd.setViewport(0, 1, &viewport);
-
-  const vk::Rect2D scissor{.offset = {.x = 0, .y = 0},
-                           .extent = {.width = swap_chain_->extent().width, .height = swap_chain_->extent().height}};
-  cmd.setScissor(0, 1, &scissor);
-
-  cmd.drawIndexedIndirectCount(frame->IndirectBuffer()->get(), 0, frame->DrawCount()->get(), 0, render_objects_size,
-                               sizeof(vk::DrawIndexedIndirectCommand));
-  cmd.endRendering();
-
-  cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
-
-  // -----------------------------------------------------------
-  // Compute pass - shade render image with meshes
-  // -----------------------------------------------------------
-  ZoneNamedN(computeshadingzone, "ComputeShadingPass", true);
-  constexpr vk::DebugUtilsLabelEXT label_info6{.pLabelName = "ShadingPass"};
-  cmd.beginDebugUtilsLabelEXT(label_info6, instance_->getDynamicLoader());
-
-  VulkanImage::TransitionImageLayout(frame->VisibilityImage()->get(), cmd, vk::ImageLayout::eColorAttachmentOptimal,
-                                     vk::ImageLayout::eShaderReadOnlyOptimal);
-
-  VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eTransferSrcOptimal,
-                                     vk::ImageLayout::eGeneral);
-
-  cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, shading_pipeline_layout_->get(), 0, descriptor_sets.size(),
-                         descriptor_sets.data(), 0, nullptr);
-  cmd.bindPipeline(vk::PipelineBindPoint::eCompute, shading_pipeline_->get());
-
-  const ShadingPushConstant shading_push_constant{.view = view, .proj = projection};
-
-  cmd.pushConstants(shading_pipeline_layout_->get(), vk::ShaderStageFlagBits::eCompute, 0, sizeof(ShadingPushConstant),
-                    &shading_push_constant);
-
-  {
-    const auto [width, height] = window_->GetWindowSize();
-    cmd.dispatch((width + kShadingChunkSize - 1) / kShadingChunkSize,
-                 (height + kShadingChunkSize - 1) / kShadingChunkSize, 1);
-  }
-  VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eGeneral,
-                                     vk::ImageLayout::eColorAttachmentOptimal);
-
-  cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
-
-  // -----------------------------------------------------------
-  // Graphics pass - render debug lines
-  // -----------------------------------------------------------
-  ZoneNamedN(graphicslineszone, "DebugLinesPass", true);
-
-  constexpr vk::DebugUtilsLabelEXT label_info3{.pLabelName = "DebugLinesPass"};
-  cmd.beginDebugUtilsLabelEXT(label_info3, instance_->getDynamicLoader());
-
-  const vk::RenderingAttachmentInfo debug_line_color_attachment{
-      .imageView = frame->RenderImage()->view(),
-      .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-      .loadOp = vk::AttachmentLoadOp::eLoad,
-      .storeOp = vk::AttachmentStoreOp::eStore,
-  };
-
-  const vk::RenderingInfo debug_line_render_info{
-      .renderArea = vk::Rect2D{.offset = {.x = 0, .y = 0}, .extent = swap_chain_->extent()},
-      .layerCount = 1,
-      .colorAttachmentCount = 1,
-      .pColorAttachments = &debug_line_color_attachment};
-
-  cmd.beginRendering(debug_line_render_info);
-  cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, debug_line_pipeline_->get());
-
-  cmd.pushConstants(debug_line_pipeline_layout_->get(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(RenderPushConstant),
-                    &render_push_constant);
-  const auto debug_line_vertex_buffer = frame->DebugLineVertexBuffer()->get();
-  cmd.bindVertexBuffers(0, 1, &debug_line_vertex_buffer, &offset);
-
-  cmd.setViewport(0, 1, &viewport);
-
-  cmd.setScissor(0, 1, &scissor);
-
-  cmd.draw(static_cast<uint32_t>(debug_line_vertices_.size()), 1, 0, 0);
-
-  cmd.endRendering();
-
-  cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
+  context_->graph().execute(cmd);
 }
 
 void VulkanRenderer::EndFrame()
 {
   const auto& frame = frames_.at(current_frame_);
   const auto cmd = frame->GraphicsCmd();
-
-  ZoneNamedN(blitzone, "Blitting", true);
-  constexpr vk::DebugUtilsLabelEXT label_info5{.pLabelName = "BlittingPass"};
-  cmd.beginDebugUtilsLabelEXT(label_info5, instance_->getDynamicLoader());
-
-  VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eColorAttachmentOptimal,
-                                     vk::ImageLayout::eTransferSrcOptimal);
-  VulkanImage::TransitionImageLayout(swap_chain_->getImage(current_image_index_), cmd, vk::ImageLayout::ePresentSrcKHR,
-                                     vk::ImageLayout::eTransferDstOptimal);
-
-  const vk::ImageBlit blit_region{.srcSubresource =
-                                      {
-                                          .aspectMask = vk::ImageAspectFlagBits::eColor,
-                                          .mipLevel = 0,
-                                          .baseArrayLayer = 0,
-                                          .layerCount = 1,
-                                      },
-                                  .srcOffsets = {{vk::Offset3D{.x = 0, .y = 0, .z = 0},
-                                                  vk::Offset3D{.x = static_cast<int32_t>(swap_chain_->extent().width),
-                                                               .y = static_cast<int32_t>(swap_chain_->extent().height),
-                                                               .z = 1}}},
-                                  .dstSubresource =
-                                      {
-                                          .aspectMask = vk::ImageAspectFlagBits::eColor,
-                                          .mipLevel = 0,
-                                          .baseArrayLayer = 0,
-                                          .layerCount = 1,
-                                      },
-                                  .dstOffsets = {{vk::Offset3D{.x = 0, .y = 0, .z = 0},
-                                                  vk::Offset3D{.x = static_cast<int32_t>(swap_chain_->extent().width),
-                                                               .y = static_cast<int32_t>(swap_chain_->extent().height),
-                                                               .z = 1}}}};
-
-  cmd.blitImage(frame->RenderImage()->get(), vk::ImageLayout::eTransferSrcOptimal,
-                swap_chain_->getImage(current_image_index_), vk::ImageLayout::eTransferDstOptimal, 1U, &blit_region,
-                vk::Filter::eNearest);
-
-  VulkanImage::TransitionImageLayout(swap_chain_->getImage(current_image_index_), cmd,
-                                     vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
-
-  cmd.endDebugUtilsLabelEXT(instance_->getDynamicLoader());
 
   cmd.end();
 
@@ -807,6 +593,339 @@ void VulkanRenderer::EndFrame()
   // -----------------------------------------------------------
   ZoneNamedN(endzone, "Endzone", true);
   SubmitFrame(current_image_index_);
+}
+
+void VulkanRenderer::SetupImports()
+{
+  swapchain_imports_.resize(swap_chain_->imageCount());
+  for (uint32_t i = 0; i < swap_chain_->imageCount(); i++)
+  {
+    auto& res = swapchain_imports_[i];
+
+    const fwrk::ImageResource img{.type = VK_IMAGE_TYPE_2D,
+                                  .size = {swap_chain_->extent().width, swap_chain_->extent().height, 1},
+                                  .format = static_cast<VkFormat>(swap_chain_->format()),
+                                  .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                                  .state = fwrk::ImageState::Undefined};
+    if (res)
+    {
+      context_->update_image(res, img, swap_chain_->getImage(i));
+    } else
+    {
+      res = context_->import_image(img, swap_chain_->getImage(i));
+    }
+  }
+  depth_imports_.resize(max_frames_in_flight_);
+  render_imports_.resize(max_frames_in_flight_);
+  vis_imports_.resize(max_frames_in_flight_);
+  object_imports_.resize(max_frames_in_flight_);
+  indirect_imports_.resize(max_frames_in_flight_);
+  draw_count_imports_.resize(max_frames_in_flight_);
+  debug_line_imports_.resize(max_frames_in_flight_);
+  for (uint32_t i = 0; i < max_frames_in_flight_; i++)
+  {
+    auto& depth_res = depth_imports_[i];
+    auto& render_res = render_imports_[i];
+    auto& vis_res = vis_imports_[i];
+    auto& object_res = object_imports_[i];
+    auto& indirect_res = indirect_imports_[i];
+    auto& draw_count_res = draw_count_imports_[i];
+    auto& debug_line_res = debug_line_imports_[i];
+
+    {
+      ImageWrapper wrap(frames_.at(i)->DepthImage());
+      if (depth_res)
+      {
+        context_->update_image(depth_res, wrap, fwrk::ImageState::Undefined);
+      } else
+      {
+        depth_res = context_->import_image(wrap, fwrk::ImageState::Undefined);
+      }
+    }
+
+    {
+      ImageWrapper wrap(frames_.at(i)->RenderImage());
+      if (render_res)
+      {
+        context_->update_image(render_res, wrap, fwrk::ImageState::Undefined);
+      } else
+      {
+        render_res = context_->import_image(wrap, fwrk::ImageState::Undefined);
+      }
+    }
+
+    {
+      ImageWrapper wrap(frames_.at(i)->VisibilityImage());
+      if (vis_res)
+      {
+        context_->update_image(vis_res, wrap, fwrk::ImageState::Undefined);
+      } else
+      {
+        vis_res = context_->import_image(wrap, fwrk::ImageState::Undefined);
+      }
+    }
+
+    {
+      ImageWrapper wrap(frames_.at(i)->VisibilityImage());
+      if (vis_res)
+      {
+        context_->update_image(vis_res, wrap, fwrk::ImageState::Undefined);
+      } else
+      {
+        vis_res = context_->import_image(wrap, fwrk::ImageState::Undefined);
+      }
+    }
+
+    {
+      BufferWrapper wrap(frames_.at(i)->ObjectBuffer());
+      if (object_res)
+      {
+        context_->update_buffer(object_res, wrap, fwrk::BufferState::Undefined);
+      } else
+      {
+        object_res = context_->import_buffer(wrap, fwrk::BufferState::Undefined);
+      }
+    }
+
+    {
+      BufferWrapper wrap(frames_.at(i)->IndirectBuffer());
+      if (indirect_res)
+      {
+        context_->update_buffer(indirect_res, wrap, fwrk::BufferState::Undefined);
+      } else
+      {
+        indirect_res = context_->import_buffer(wrap, fwrk::BufferState::Undefined);
+      }
+    }
+
+    {
+      BufferWrapper wrap(frames_.at(i)->DrawCount());
+      if (draw_count_res)
+      {
+        context_->update_buffer(draw_count_res, wrap, fwrk::BufferState::Undefined);
+      } else
+      {
+        draw_count_res = context_->import_buffer(wrap, fwrk::BufferState::Undefined);
+      }
+    }
+
+    {
+      BufferWrapper wrap(frames_.at(i)->DebugLineVertexBuffer());
+      if (debug_line_res)
+      {
+        context_->update_buffer(debug_line_res, wrap, fwrk::BufferState::Undefined);
+      } else
+      {
+        debug_line_res = context_->import_buffer(wrap, fwrk::BufferState::Undefined);
+      }
+    }
+  }
+  if (!swapchain_proxy_) swapchain_proxy_ = context_->create_proxy();
+  if (!depth_proxy_) depth_proxy_ = context_->create_proxy();
+  if (!render_proxy_) render_proxy_ = context_->create_proxy();
+  if (!vis_proxy_) vis_proxy_ = context_->create_proxy();
+  if (!object_proxy_) object_proxy_ = context_->create_proxy();
+  if (!indirect_proxy_) indirect_proxy_ = context_->create_proxy();
+  if (!draw_count_proxy_) draw_count_proxy_ = context_->create_proxy();
+  if (!debug_line_proxy_) debug_line_proxy_ = context_->create_proxy();
+}
+
+void VulkanRenderer::SetupPasses()
+{
+  fwrk::Graph& graph = context_->graph();
+
+  graph.add_compute_pass("draw count to 0")
+      .set_buffer_transfer_dst({.resource = {draw_count_proxy_}})
+      .set_execute(
+          [this](vk::CommandBuffer cmd)
+          {
+            const auto& frame = frames_.at(current_frame_);
+
+            cmd.fillBuffer(frame->DrawCount()->get(), 0, sizeof(uint32_t), 0);
+          });
+
+  graph.add_compute_pass("create commands")
+      .set_storage_buffer_write({.resource = {draw_count_proxy_}})
+      .set_storage_buffer_write({.resource = {indirect_proxy_}})
+      .set_execute(
+          [this](vk::CommandBuffer cmd)
+          {
+            const auto& frame = frames_.at(current_frame_);
+
+            const auto descriptor_sets = std::array{static_descriptor_set_, frame->DescriptorSet()};
+
+            cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, culling_pipeline_layout_->get(), 0,
+                                   descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
+
+            const auto render_objects_size = static_cast<uint32_t>(render_objects_.size());
+            const CullingPushConstant culling_push_constant{
+                .frustum = frustum_,
+                .render_object_count = render_objects_size,
+            };
+
+            cmd.pushConstants(culling_pipeline_layout_->get(), vk::ShaderStageFlagBits::eCompute, 0,
+                              sizeof(CullingPushConstant), &culling_push_constant);
+
+            cmd.bindPipeline(vk::PipelineBindPoint::eCompute, culling_pipeline_->get());
+            const uint32_t workgroups = (render_objects_size + 255) / 256;
+            cmd.dispatch(workgroups, 1, 1);
+          });
+
+  graph.add_graphics_pass("render mesh vis")
+      .set_color_attachment({.resource = {vis_proxy_},
+                             .load_op = fwrk::LoadOp::Clear,
+                             .store_op = fwrk::StoreOp::Store,
+                             .clear_value = {1.0F, 1.0F, 1.0f, 1.0F}})
+      .set_depth_attachment({.resource = {depth_proxy_},
+                             .load_op = fwrk::LoadOp::Clear,
+                             .store_op = fwrk::StoreOp::Store,
+                             .clear_value = {1.0F, 1.0F, 1.0F, 1.0F}})
+      .set_indirect_buffer_input({.resource = {draw_count_proxy_}, .stages = VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT})
+      .set_indirect_buffer_input({.resource = {indirect_proxy_}, .stages = VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT})
+      .set_execute(
+          [this](vk::CommandBuffer cmd)
+          {
+            const auto& frame = frames_.at(current_frame_);
+            const auto descriptor_sets = std::array{static_descriptor_set_, frame->DescriptorSet()};
+            const auto render_objects_size = static_cast<uint32_t>(render_objects_.size());
+
+            cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pre_pass_pipeline_->get());
+
+            cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pre_pass_pipeline_layout_->get(), 0,
+                                   descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
+
+            const RenderPushConstant render_push_constant{
+                .view = view_,
+                .proj = projection_,
+            };
+
+            cmd.pushConstants(pre_pass_pipeline_layout_->get(), vk::ShaderStageFlagBits::eVertex, 0,
+                              sizeof(RenderPushConstant), &render_push_constant);
+            constexpr vk::DeviceSize offset = 0;
+            const auto vertex_buffer = vertex_buffer_->get();
+            cmd.bindVertexBuffers(0, 1, &vertex_buffer, &offset);
+            const auto index_buffer = index_buffer_->get();
+            cmd.bindIndexBuffer(index_buffer, 0, vk::IndexType::eUint32);
+
+            const vk::Viewport viewport{.x = 0.0F,
+                                        .y = 0.0F,
+                                        .width = static_cast<float>(swap_chain_->extent().width),
+                                        .height = static_cast<float>(swap_chain_->extent().height),
+                                        .minDepth = 0.0F,
+                                        .maxDepth = 1.0F};
+            cmd.setViewport(0, 1, &viewport);
+
+            const vk::Rect2D scissor{
+                .offset = {.x = 0, .y = 0},
+                .extent = {.width = swap_chain_->extent().width, .height = swap_chain_->extent().height}};
+            cmd.setScissor(0, 1, &scissor);
+
+            cmd.drawIndexedIndirectCount(frame->IndirectBuffer()->get(), 0, frame->DrawCount()->get(), 0,
+                                         render_objects_size, sizeof(vk::DrawIndexedIndirectCommand));
+          });
+
+  graph.add_compute_pass("shade pass")
+      .set_image_read({.resource = {vis_proxy_}})
+      .set_storage_image_write({.resource = {render_proxy_}})
+      .set_execute(
+          [this](vk::CommandBuffer cmd)
+          {
+            const auto& frame = frames_.at(current_frame_);
+            const auto descriptor_sets = std::array{static_descriptor_set_, frame->DescriptorSet()};
+
+            cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, shading_pipeline_layout_->get(), 0,
+                                   descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
+            cmd.bindPipeline(vk::PipelineBindPoint::eCompute, shading_pipeline_->get());
+
+            const ShadingPushConstant shading_push_constant{.view = view_, .proj = projection_};
+
+            cmd.pushConstants(shading_pipeline_layout_->get(), vk::ShaderStageFlagBits::eCompute, 0,
+                              sizeof(ShadingPushConstant), &shading_push_constant);
+
+            {
+              const auto [width, height] = window_->GetWindowSize();
+              cmd.dispatch((width + kShadingChunkSize - 1) / kShadingChunkSize,
+                           (height + kShadingChunkSize - 1) / kShadingChunkSize, 1);
+            }
+          });
+
+  graph.add_graphics_pass("debug lines")
+      .set_color_attachment(
+          {.resource = {render_proxy_}, .load_op = fwrk::LoadOp::Load, .store_op = fwrk::StoreOp::Store})
+      .set_execute(
+          [this](vk::CommandBuffer cmd)
+          {
+            const auto& frame = frames_.at(current_frame_);
+            const RenderPushConstant render_push_constant{
+                .view = view_,
+                .proj = projection_,
+            };
+            cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, debug_line_pipeline_->get());
+
+            cmd.pushConstants(debug_line_pipeline_layout_->get(), vk::ShaderStageFlagBits::eVertex, 0,
+                              sizeof(RenderPushConstant), &render_push_constant);
+            const auto debug_line_vertex_buffer = frame->DebugLineVertexBuffer()->get();
+            constexpr vk::DeviceSize offset = 0;
+            cmd.bindVertexBuffers(0, 1, &debug_line_vertex_buffer, &offset);
+            const vk::Viewport viewport{.x = 0.0F,
+                                        .y = 0.0F,
+                                        .width = static_cast<float>(swap_chain_->extent().width),
+                                        .height = static_cast<float>(swap_chain_->extent().height),
+                                        .minDepth = 0.0F,
+                                        .maxDepth = 1.0F};
+            cmd.setViewport(0, 1, &viewport);
+
+            const vk::Rect2D scissor{
+                .offset = {.x = 0, .y = 0},
+                .extent = {.width = swap_chain_->extent().width, .height = swap_chain_->extent().height}};
+            cmd.setScissor(0, 1, &scissor);
+
+            cmd.draw(static_cast<uint32_t>(debug_line_vertices_.size()), 1, 0, 0);
+          });
+
+  graph.add_compute_pass("blit pass")
+      .set_image_transfer_src({.resource = {render_proxy_}})
+      .set_image_transfer_dst({.resource = {swapchain_proxy_}})
+      .set_execute(
+          [this](vk::CommandBuffer cmd)
+          {
+            const auto& frame = frames_.at(current_frame_);
+
+            const vk::ImageBlit blit_region{
+                .srcSubresource =
+                    {
+                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+                        .mipLevel = 0,
+                        .baseArrayLayer = 0,
+                        .layerCount = 1,
+                    },
+                .srcOffsets = {{vk::Offset3D{.x = 0, .y = 0, .z = 0},
+                                vk::Offset3D{.x = static_cast<int32_t>(swap_chain_->extent().width),
+                                             .y = static_cast<int32_t>(swap_chain_->extent().height),
+                                             .z = 1}}},
+                .dstSubresource =
+                    {
+                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+                        .mipLevel = 0,
+                        .baseArrayLayer = 0,
+                        .layerCount = 1,
+                    },
+                .dstOffsets = {{vk::Offset3D{.x = 0, .y = 0, .z = 0},
+                                vk::Offset3D{.x = static_cast<int32_t>(swap_chain_->extent().width),
+                                             .y = static_cast<int32_t>(swap_chain_->extent().height),
+                                             .z = 1}}}};
+
+            cmd.blitImage(frame->RenderImage()->get(), vk::ImageLayout::eTransferSrcOptimal,
+                          swap_chain_->getImage(current_image_index_), vk::ImageLayout::eTransferDstOptimal, 1U,
+                          &blit_region, vk::Filter::eNearest);
+          });
+
+
+  graph.set_image_end_state(
+      swapchain_proxy_,
+      {.access = VK_ACCESS_2_NONE, .stages = VK_PIPELINE_STAGE_2_NONE, .layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR});
+
+  graph.compile();
 }
 
 uint32_t VulkanRenderer::AddMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices,
@@ -1083,6 +1202,20 @@ VulkanRenderer::RenderContext VulkanRenderer::GetContext() const
 const VulkanFrame& VulkanRenderer::GetCurrentFrame() const { return *frames_[current_frame_]; }
 const VulkanSwapChain& VulkanRenderer::GetSwapChain() const { return *swap_chain_; }
 const VulkanDevice& VulkanRenderer::GetDevice() const { return *device_; }
+VkImageType VulkanRenderer::ImageWrapper::type() const { return VK_IMAGE_TYPE_2D; }
+VkExtent3D VulkanRenderer::ImageWrapper::size() const { return VkExtent3D(image_->width(), image_->height(), 1); }
+VkFormat VulkanRenderer::ImageWrapper::format() const { return static_cast<VkFormat>(image_->format()); }
+VkImageUsageFlags VulkanRenderer::ImageWrapper::usage() const
+{
+  return static_cast<VkImageUsageFlags>(image_->usage());
+}
+VkImage VulkanRenderer::ImageWrapper::image() const { return image_->get(); }
+VkDeviceSize VulkanRenderer::BufferWrapper::size() const { return buffer_->size(); }
+VkImageUsageFlags VulkanRenderer::BufferWrapper::usage() const
+{
+  return static_cast<VkImageUsageFlags>(buffer_->usage());
+}
+VkBuffer VulkanRenderer::BufferWrapper::buffer() const { return buffer_->get(); }
 
 std::optional<uint32_t> VulkanRenderer::PrepareFrame() const
 {
@@ -1153,6 +1286,8 @@ void VulkanRenderer::RecreateSwapChain()
   RecreateFrameImages(width, height);
 
   aspect_ratio_ = static_cast<float>(width) / static_cast<float>(height);
+
+  SetupImports();
 }
 
 void VulkanRenderer::RecreateFrameImages(const uint32_t width, const uint32_t height)
@@ -1223,21 +1358,4 @@ void VulkanRenderer::RecreateFrameImages(const uint32_t width, const uint32_t he
   }
 
   device_->get().updateDescriptorSets(static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
-
-  auto cmd = util::BeginSingleTimeCommandBuffer(*graphics_pool_);
-  for (const auto& image: swap_chain_->images())
-  {
-    VulkanImage::TransitionImageLayout(image, cmd, vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR);
-  }
-
-  for (const auto& frame: frames_)
-  {
-    VulkanImage::TransitionImageLayout(frame->RenderImage()->get(), cmd, vk::ImageLayout::eUndefined,
-                                       vk::ImageLayout::eTransferSrcOptimal);
-    VulkanImage::TransitionImageLayout(frame->VisibilityImage()->get(), cmd, vk::ImageLayout::eUndefined,
-                                       vk::ImageLayout::eShaderReadOnlyOptimal);
-    VulkanImage::TransitionImageLayout(frame->DepthImage()->get(), cmd, vk::ImageLayout::eUndefined,
-                                       vk::ImageLayout::eDepthAttachmentOptimal);
-  }
-  util::EndSingleTimeCommandBuffer(cmd, device_->GraphicsQueue(), *graphics_pool_);
 }

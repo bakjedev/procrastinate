@@ -210,6 +210,7 @@ void VulkanImage::Create(const ImageInfo &info)
   VkImage temp_image = VK_NULL_HANDLE;
   VK_CHECK(vmaCreateImage(allocator_, &raw_image_info, &alloc_info, &temp_image, &allocation_, nullptr));
   image_ = temp_image;
+  usage_ = info.usage;
 }
 
 void VulkanImage::CreateView(const vk::ImageAspectFlags aspect_flags)

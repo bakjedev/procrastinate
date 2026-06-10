@@ -43,10 +43,12 @@ public:
   [[nodiscard]] vk::Buffer get() const { return buffer_; }
   [[nodiscard]] VmaAllocation allocation() const { return allocation_; }
   [[nodiscard]] size_t size() const { return size_; }
+  [[nodiscard]] vk::BufferUsageFlags usage() const { return usage_; }
 
 private:
   vk::Buffer buffer_;
   VmaAllocation allocation_ = VK_NULL_HANDLE;
+  vk::BufferUsageFlags usage_;
   size_t size_ = 0;
   void* mapped_data_ = nullptr;
   VmaAllocator allocator_;

@@ -41,6 +41,7 @@ void VulkanBuffer::Create(const BufferInfo& info)
   buffer_ = temp_buffer;
   size_ = info.size;
   mapped_data_ = allocation_info.pMappedData;
+  usage_ = info.usage;
 }
 
 void VulkanBuffer::Write(const void* src_data)

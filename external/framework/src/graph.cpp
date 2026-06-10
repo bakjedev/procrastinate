@@ -38,6 +38,8 @@ bool fwrk::Graph::compile()
   sorted_pass_ids_.clear();
   end_dep_info_ = {};
   compiled_passes_.clear();
+  // end_image_states_.clear();
+  // end_buffer_states_.clear();
 
   size_t pass_count = passes_.size();
 
@@ -47,12 +49,14 @@ bool fwrk::Graph::compile()
   std::vector<std::vector<uint32_t>> incoming{pass_count};
   std::vector<std::vector<uint32_t>> outcoming{pass_count};
 
-  auto add_edge = [&incoming, &outcoming](const uint32_t from, const uint32_t to) {
+  auto add_edge = [&incoming, &outcoming](const uint32_t from, const uint32_t to)
+  {
     outcoming[from].push_back(to);
     incoming[to].push_back(from);
   };
 
-  for (auto& [_, info]: resource_deps_) {
+  for (auto& [_, info]: resource_deps_)
+  {
     std::ranges::sort(info.write_passes);
     std::ranges::sort(info.read_passes);
     const auto write_count = static_cast<uint32_t>(info.write_passes.size());
@@ -63,15 +67,19 @@ bool fwrk::Graph::compile()
 
     uint32_t write_idx = 0;
     uint32_t read_idx = 0;
-    while (write_idx < write_count || read_idx < read_count) {
+    while (write_idx < write_count || read_idx < read_count)
+    {
       // if we still have a write and a read and they happen in the same pass
       if (write_idx < write_count && read_idx < read_count &&
-          info.write_passes[write_idx] == info.read_passes[read_idx]) {
+          info.write_passes[write_idx] == info.read_passes[read_idx])
+      {
         uint32_t write_pass = info.write_passes[write_idx];
-        if (previous_write) {
+        if (previous_write)
+        {
           add_edge(*previous_write, write_pass);
         }
-        for (uint32_t read: previous_readers) {
+        for (uint32_t read: previous_readers)
+        {
           add_edge(read, write_pass);
         }
         previous_write = write_pass;
@@ -80,33 +88,41 @@ bool fwrk::Graph::compile()
         read_idx++;
         // if we still have a write and either we have no more reads or the write comes earlier than the read
       } else if (write_idx < write_count &&
-                 (read_idx >= read_count || info.write_passes[write_idx] < info.read_passes[read_idx])) {
+                 (read_idx >= read_count || info.write_passes[write_idx] < info.read_passes[read_idx]))
+      {
         uint32_t write_pass = info.write_passes[write_idx];
-        if (previous_write) {
+        if (previous_write)
+        {
           add_edge(*previous_write, write_pass);
         }
-        for (uint32_t read: previous_readers) {
+        for (uint32_t read: previous_readers)
+        {
           add_edge(read, write_pass);
         }
         previous_write = write_pass;
         previous_readers.clear();
         write_idx++;
         // if we still have a read but no more writes
-      } else {
+      } else
+      {
         uint32_t read_pass = info.read_passes[read_idx];
 
         auto it = info.read_deps.find(read_pass);
-        if (it != info.read_deps.end()) {
+        if (it != info.read_deps.end())
+        {
           uint32_t other = it->second;
           assert(std::ranges::binary_search(info.write_passes, other));
           add_edge(other, read_pass);
-          for (uint32_t write: info.write_passes) {
-            if (write > other && write < read_pass) { // loop over all other writers between this read and the explicit
-                                                      // dep write and add a reverse edge
+          for (uint32_t write: info.write_passes)
+          {
+            if (write > other && write < read_pass)
+            { // loop over all other writers between this read and the explicit
+              // dep write and add a reverse edge
               add_edge(read_pass, write);
             }
           }
-        } else if (previous_write) {
+        } else if (previous_write)
+        {
           add_edge(*previous_write, read_pass);
         }
 
@@ -115,12 +131,14 @@ bool fwrk::Graph::compile()
       }
     }
   }
-  for (auto& in: incoming) {
+  for (auto& in: incoming)
+  {
     std::ranges::sort(in);
     auto [first, last] = std::ranges::unique(in);
     in.erase(first, last);
   }
-  for (auto& out: outcoming) {
+  for (auto& out: outcoming)
+  {
     std::ranges::sort(out);
     auto [first, last] = std::ranges::unique(out);
     out.erase(first, last);
@@ -133,29 +151,35 @@ bool fwrk::Graph::compile()
     sorted_pass_ids_.reserve(pass_count);
 
     std::vector<uint32_t> in_deg(pass_count);
-    for (uint32_t i = 0; i < pass_count; i++) {
+    for (uint32_t i = 0; i < pass_count; i++)
+    {
       in_deg[i] = static_cast<uint32_t>(incoming[i].size());
     }
 
     // find all nodes with no incoming edges
     std::deque<uint32_t> root_nodes;
-    for (uint32_t i = 0; i < incoming.size(); i++) {
-      if (incoming[i].empty()) {
+    for (uint32_t i = 0; i < incoming.size(); i++)
+    {
+      if (incoming[i].empty())
+      {
         root_nodes.push_back(i);
       }
     }
 
     // sort
-    while (!root_nodes.empty()) {
+    while (!root_nodes.empty())
+    {
       auto node = root_nodes.front();
       root_nodes.pop_front();
       sorted_pass_ids_.push_back(node);
 
-      for (auto it: outcoming[node]) {
+      for (auto it: outcoming[node])
+      {
         in_deg[it]--;
 
         // recurse
-        if (in_deg[it] == 0) {
+        if (in_deg[it] == 0)
+        {
           root_nodes.push_back(it);
         }
       }
@@ -169,7 +193,8 @@ bool fwrk::Graph::compile()
   // ----------------------------------------
   compiled_passes_.resize(pass_count);
 
-  for (const uint32_t pass_id: sorted_pass_ids_) {
+  for (const uint32_t pass_id: sorted_pass_ids_)
+  {
     Pass& pass = passes_[pass_id];
     auto& [dependencies, rendering, name, func] = compiled_passes_[pass_id];
     auto& [image_barriers, buffer_barriers] = dependencies;
@@ -178,11 +203,13 @@ bool fwrk::Graph::compile()
     func = std::move(pass.func);
 
     // image memory barriers
-    for (const ImageAccess& image_access: pass.images) {
+    for (const ImageAccess& image_access: pass.images)
+    {
       const Resource& resource = context_->resources_.at(*image_access.resource.id); // sorta unsafe
 
       VkImageAspectFlags aspect = image_access.aspect;
-      if (aspect == VK_IMAGE_ASPECT_NONE && resource.type == ResourceType::Image) {
+      if (aspect == VK_IMAGE_ASPECT_NONE && resource.type == ResourceType::Image)
+      {
         const ImageResource& image = context_->images_.at(resource.slot);
         aspect = get_aspect_for_format(image.format);
       }
@@ -199,8 +226,10 @@ bool fwrk::Graph::compile()
           subresource);
 
       // rendering attachment
-      if (image_access.attachment) {
-        if (!rendering.has_value()) {
+      if (image_access.attachment)
+      {
+        if (!rendering.has_value())
+        {
           rendering.emplace();
           rendering->render_info = pass.render_info;
         }
@@ -213,7 +242,8 @@ bool fwrk::Graph::compile()
         info.layout = image_access.layout;
         info.load_op = load_op;
         info.store_op = store_op;
-        if (resolve) {
+        if (resolve)
+        {
           const ImageAccess& resolve_access = pass.images.at(*resolve);
           info.resolve->resource = resolve_access.resource;
           info.resolve->subresource.aspectMask = resolve_access.aspect;
@@ -223,11 +253,13 @@ bool fwrk::Graph::compile()
           info.resolve->subresource.levelCount = resolve_access.level_count;
           info.resolve->mode = resolve_mode;
         }
-        if ((aspect & VK_IMAGE_ASPECT_COLOR_BIT) != 0) {
+        if ((aspect & VK_IMAGE_ASPECT_COLOR_BIT) != 0)
+        {
           info.clear_value =
               VkClearValue{.color = {.float32 = {clear_value.r, clear_value.g, clear_value.b, clear_value.a}}};
           rendering->color_atts.push_back(info);
-        } else if ((aspect & VK_IMAGE_ASPECT_DEPTH_BIT) != 0 || (aspect & VK_IMAGE_ASPECT_STENCIL_BIT) != 0) {
+        } else if ((aspect & VK_IMAGE_ASPECT_DEPTH_BIT) != 0 || (aspect & VK_IMAGE_ASPECT_STENCIL_BIT) != 0)
+        {
           info.clear_value =
               VkClearValue{.depthStencil = {.depth = clear_value.r, .stencil = static_cast<uint32_t>(clear_value.r)}};
           rendering->depth_att = info;
@@ -236,7 +268,8 @@ bool fwrk::Graph::compile()
     }
 
     // buffer memory barriers
-    for (const BufferAccess& buffer_access: pass.buffers) {
+    for (const BufferAccess& buffer_access: pass.buffers)
+    {
       buffer_barriers.emplace_back(buffer_access.resource,
                                    BufferState{.access = buffer_access.access, .stages = buffer_access.stages},
                                    buffer_access.size, buffer_access.offset);
@@ -249,22 +282,27 @@ bool fwrk::Graph::compile()
 void fwrk::Graph::execute(VkCommandBuffer cmd)
 {
   if (!cmd) return;
-  for (const CompiledPass& pass: compiled_passes_) {
+  for (const CompiledPass& pass: compiled_passes_)
+  {
     // ---------------------
     // Create image barriers
     // ---------------------
     std::vector<VkImageMemoryBarrier2> image_barriers;
-    for (const auto& img_barr: pass.deps.image_barriers) {
+    for (const auto& img_barr: pass.deps.image_barriers)
+    {
       const Resource* resource = &context_->resources_.at(*img_barr.resource.id); // sorta unsafe
-      if (resource->type == ResourceType::Proxy) {
+      if (resource->type == ResourceType::Proxy)
+      {
         assert(resource->target != UINT32_MAX && "Received a proxy that targets nothing");
         resource = &context_->resources_.at(resource->target); // sorta unsafe
       }
       ImageResource& image = context_->images_.at(resource->slot);
 
-      if (image.state != img_barr.dst_state) {
+      if (image.state != img_barr.dst_state)
+      {
         VkImageAspectFlags aspect = img_barr.subresource_range.aspectMask;
-        if (aspect == VK_IMAGE_ASPECT_NONE) {
+        if (aspect == VK_IMAGE_ASPECT_NONE)
+        {
           aspect = get_aspect_for_format(image.format);
         }
 
@@ -290,15 +328,18 @@ void fwrk::Graph::execute(VkCommandBuffer cmd)
     // Create buffer barriers
     // ----------------------
     std::vector<VkBufferMemoryBarrier2> buffer_barriers;
-    for (const auto& buf_barr: pass.deps.buffer_barriers) {
+    for (const auto& buf_barr: pass.deps.buffer_barriers)
+    {
       const Resource* resource = &context_->resources_.at(*buf_barr.resource.id); // sorta unsafe
-      if (resource->type == ResourceType::Proxy) {
+      if (resource->type == ResourceType::Proxy)
+      {
         assert((resource->target != UINT32_MAX) && "Received a proxy that targets nothing");
         resource = &context_->resources_.at(resource->target); // sorta unsafe
       }
       BufferResource& buffer = context_->buffers_.at(resource->slot);
 
-      if (buffer.state != buf_barr.dst_state) {
+      if (buffer.state != buf_barr.dst_state)
+      {
         VkBufferMemoryBarrier2& barrier = buffer_barriers.emplace_back(VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2);
         barrier.srcStageMask = buffer.state.stages;
         barrier.srcAccessMask = buffer.state.access;
@@ -333,12 +374,15 @@ void fwrk::Graph::execute(VkCommandBuffer cmd)
     VkRenderingInfo rendering_info{};
     std::vector<VkRenderingAttachmentInfo> color_attachments;
     std::optional<VkRenderingAttachmentInfo> depth_attachment{};
-    if (pass.render) {
+    if (pass.render)
+    {
       VkExtent2D extent{UINT32_MAX, UINT32_MAX};
 
-      for (auto& att: pass.render->color_atts) {
+      for (auto& att: pass.render->color_atts)
+      {
         const Resource* resource = &context_->resources_.at(*att.resource.id); // sorta unsafe
-        if (resource->type == ResourceType::Proxy) {
+        if (resource->type == ResourceType::Proxy)
+        {
           assert(resource->target != UINT32_MAX && "Received a proxy that targets nothing");
           resource = &context_->resources_.at(resource->target); // sorta unsafe
         }
@@ -347,9 +391,11 @@ void fwrk::Graph::execute(VkCommandBuffer cmd)
         info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
         info.imageView = context_->get_image_view({att.subresource, att.view_type}, *resource);
         info.imageLayout = att.layout;
-        if (att.resolve) {
+        if (att.resolve)
+        {
           const Resource* resolve_resource = &context_->resources_.at(*att.resolve->resource.id); // sorta unsafe
-          if (resolve_resource->type == ResourceType::Proxy) {
+          if (resolve_resource->type == ResourceType::Proxy)
+          {
             assert(resource->target != UINT32_MAX && "Received a proxy that targets nothing");
             resolve_resource = &context_->resources_.at(resolve_resource->target); // sorta unsafe
           }
@@ -368,10 +414,12 @@ void fwrk::Graph::execute(VkCommandBuffer cmd)
         extent.height = std::min(extent.height, std::max(1u, image.size.height >> att.subresource.baseMipLevel));
       }
 
-      if (pass.render->depth_att) {
+      if (pass.render->depth_att)
+      {
         const RenderingAttachmentInfo& att = *pass.render->depth_att;
         const Resource* resource = &context_->resources_.at(*att.resource.id); // sorta unsafe
-        if (resource->type == ResourceType::Proxy) {
+        if (resource->type == ResourceType::Proxy)
+        {
           assert(resource->target != UINT32_MAX && "Received a proxy that targets nothing");
           resource = &context_->resources_.at(resource->target); // sorta unsafe
         }
@@ -381,9 +429,11 @@ void fwrk::Graph::execute(VkCommandBuffer cmd)
         info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
         info.imageView = context_->get_image_view({att.subresource, att.view_type}, *resource);
         info.imageLayout = att.layout;
-        if (att.resolve) {
+        if (att.resolve)
+        {
           const Resource* resolve_resource = &context_->resources_.at(*att.resolve->resource.id); // sorta unsafe
-          if (resolve_resource->type == ResourceType::Proxy) {
+          if (resolve_resource->type == ResourceType::Proxy)
+          {
             assert(resource->target != UINT32_MAX && "Received a proxy that targets nothing");
             resolve_resource = &context_->resources_.at(resolve_resource->target); // sorta unsafe
           }
@@ -421,15 +471,18 @@ void fwrk::Graph::execute(VkCommandBuffer cmd)
   // Create end image barriers
   // --------------------------
   std::vector<VkImageMemoryBarrier2> end_image_barriers;
-  for (const auto& [id, state]: end_image_states_) {
+  for (const auto& [id, state]: end_image_states_)
+  {
     const Resource* resource = &context_->resources_.at(*id.id);
-    if (resource->type == ResourceType::Proxy) {
+    if (resource->type == ResourceType::Proxy)
+    {
       assert(resource->target != UINT32_MAX && "Received a proxy that targets nothing");
       resource = &context_->resources_.at(resource->target); // sorta unsafe
     }
     ImageResource& image = context_->images_.at(resource->slot);
 
-    if (image.state != state) {
+    if (image.state != state)
+    {
       VkImageMemoryBarrier2& barrier = end_image_barriers.emplace_back(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2);
       barrier.srcStageMask = image.state.stages;
       barrier.srcAccessMask = image.state.access;
@@ -452,15 +505,18 @@ void fwrk::Graph::execute(VkCommandBuffer cmd)
   // Create end buffer barriers
   // --------------------------
   std::vector<VkBufferMemoryBarrier2> end_buffer_barriers;
-  for (const auto& [id, state]: end_buffer_states_) {
+  for (const auto& [id, state]: end_buffer_states_)
+  {
     const Resource* resource = &context_->resources_.at(*id.id);
-    if (resource->type == ResourceType::Proxy) {
+    if (resource->type == ResourceType::Proxy)
+    {
       assert(resource->target != UINT32_MAX && "Received a proxy that targets nothing");
       resource = &context_->resources_.at(resource->target); // sorta unsafe
     }
     BufferResource& buffer = context_->buffers_.at(resource->slot);
 
-    if (buffer.state != state) {
+    if (buffer.state != state)
+    {
       VkBufferMemoryBarrier2& barrier = end_buffer_barriers.emplace_back(VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2);
       barrier.srcStageMask = buffer.state.stages;
       barrier.srcAccessMask = buffer.state.access;
@@ -499,13 +555,12 @@ void fwrk::Graph::execute(VkCommandBuffer cmd)
   // -------------------
   passes_.clear();
   resource_deps_.clear();
-  end_image_states_.clear();
-  end_buffer_states_.clear();
 }
 
 VkImageAspectFlags fwrk::Graph::get_aspect_for_format(const VkFormat format)
 {
-  switch (format) {
+  switch (format)
+  {
     case VK_FORMAT_D16_UNORM:
     case VK_FORMAT_D32_SFLOAT:
     case VK_FORMAT_X8_D24_UNORM_PACK32:

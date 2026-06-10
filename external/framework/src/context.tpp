@@ -58,10 +58,6 @@ void fwrk::Context::update_buffer(const ResourceID resource, const I& buffer, co
 template<fwrk::ImageInterface I>
 fwrk::ImageResource fwrk::Context::construct_image(const I& image, const ImageState& state)
 {
-  return ImageResource{.type = image.type(),
-                       .size = image.size(),
-                       .format = image.format(),
-                       .usage = image.usage(),
-                       .aspect = image.aspect(),
-                       .state = state};
+  return ImageResource{
+      .type = image.type(), .size = image.size(), .format = image.format(), .usage = image.usage(), .state = state};
 }

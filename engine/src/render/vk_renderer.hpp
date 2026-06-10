@@ -4,6 +4,7 @@
 #include <optional>
 #include <vulkan/vulkan.hpp>
 
+#include "framework/src/context.hpp"
 #include "util/frustum.hpp"
 
 
@@ -108,8 +109,11 @@ public:
   ~VulkanRenderer();
 
   void BeginFrame();
-  void Render(glm::mat4 world, float fov) const;
+  void RenderWithGraph(const glm::mat4 &world, float fov);
   void EndFrame();
+
+  void SetupImports();
+  void SetupPasses();
 
   uint32_t AddMesh(const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices, const glm::vec3 &b_min,
                    const glm::vec3 &b_max);
@@ -146,6 +150,26 @@ public:
   [[nodiscard]] const VulkanDevice &GetDevice() const;
 
 private:
+  struct ImageWrapper
+  {
+    VkImageType type() const;
+    VkExtent3D size() const;
+    VkFormat format() const;
+    VkImageUsageFlags usage() const;
+    VkImage image() const;
+
+    VulkanImage *image_;
+  };
+
+  struct BufferWrapper
+  {
+    VkDeviceSize size() const;
+    VkImageUsageFlags usage() const;
+    VkBuffer buffer() const;
+
+    VulkanBuffer *buffer_;
+  };
+
   [[nodiscard]] std::optional<uint32_t> PrepareFrame() const;
   void SubmitFrame(uint32_t image_index);
 
@@ -214,6 +238,27 @@ private:
   std::vector<std::unique_ptr<VulkanImage>> texture_images_;
   vk::UniqueSampler texture_sampler_;
   std::unique_ptr<VulkanBuffer> uniform_buffer_;
+
+  std::unique_ptr<fwrk::Context> context_;
+  std::vector<fwrk::ResourceID> swapchain_imports_;
+  std::vector<fwrk::ResourceID> depth_imports_;
+  std::vector<fwrk::ResourceID> render_imports_;
+  std::vector<fwrk::ResourceID> vis_imports_;
+  std::vector<fwrk::ResourceID> object_imports_;
+  std::vector<fwrk::ResourceID> indirect_imports_;
+  std::vector<fwrk::ResourceID> draw_count_imports_;
+  std::vector<fwrk::ResourceID> debug_line_imports_;
+  fwrk::ResourceID swapchain_proxy_;
+  fwrk::ResourceID depth_proxy_;
+  fwrk::ResourceID render_proxy_;
+  fwrk::ResourceID vis_proxy_;
+  fwrk::ResourceID object_proxy_;
+  fwrk::ResourceID indirect_proxy_;
+  fwrk::ResourceID draw_count_proxy_;
+  fwrk::ResourceID debug_line_proxy_;
+  glm::mat4 projection_{};
+  glm::mat4 view_{};
+  Frustum frustum_{};
 
   Window *window_ = nullptr;
   EventManager *event_manager_ = nullptr;

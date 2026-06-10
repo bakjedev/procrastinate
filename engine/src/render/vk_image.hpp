@@ -29,6 +29,7 @@ public:
   [[nodiscard]] vk::Format format() const { return format_; }
   [[nodiscard]] uint32_t width() const { return width_; }
   [[nodiscard]] uint32_t height() const { return height_; }
+  [[nodiscard]] vk::ImageUsageFlags usage() const { return usage_; }
 
   void TransitionLayout(vk::CommandBuffer cmd, vk::ImageLayout old_layout, vk::ImageLayout new_layout) const;
 
@@ -44,6 +45,7 @@ private:
   vk::Format format_;
   uint32_t width_;
   uint32_t height_;
+  vk::ImageUsageFlags usage_;
 
   VmaAllocator allocator_;
   vk::Device device_;
