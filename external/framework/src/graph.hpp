@@ -10,10 +10,12 @@
 #include "types/pass.hpp"
 #include "types/resource.hpp"
 
-namespace fwrk {
+namespace fwrk
+{
   class Context;
 
-  class Graph {
+  class Graph
+  {
   public:
     void set_image_end_state(ResourceID resource, const ImageState& state);
     void set_buffer_end_state(ResourceID resource, const BufferState& state);
@@ -33,13 +35,15 @@ namespace fwrk {
 
     explicit Graph(Context* context) : context_(context) {}
 
-    struct AttachmentResolveInfo {
+    struct AttachmentResolveInfo
+    {
       ResourceID resource;
       VkResolveModeFlags mode;
       VkImageSubresourceRange subresource;
     };
 
-    struct RenderingAttachmentInfo {
+    struct RenderingAttachmentInfo
+    {
       ResourceID resource;
       VkImageSubresourceRange subresource;
       VkImageViewType view_type;
@@ -50,31 +54,36 @@ namespace fwrk {
       std::optional<AttachmentResolveInfo> resolve;
     };
 
-    struct RenderingInfo {
+    struct RenderingInfo
+    {
       std::vector<RenderingAttachmentInfo> color_atts;
       std::optional<RenderingAttachmentInfo> depth_att;
       RenderInfo render_info;
     };
 
-    struct ImageMemoryBarrier {
+    struct ImageMemoryBarrier
+    {
       ResourceID resource;
       ImageState dst_state{};
       VkImageSubresourceRange subresource_range{};
     };
 
-    struct BufferMemoryBarrier {
+    struct BufferMemoryBarrier
+    {
       ResourceID resource;
       BufferState dst_state{};
       VkDeviceSize size{};
       VkDeviceSize offset{};
     };
 
-    struct DependencyInfo {
+    struct DependencyInfo
+    {
       std::vector<ImageMemoryBarrier> image_barriers;
       std::vector<BufferMemoryBarrier> buffer_barriers;
     };
 
-    struct CompiledPass {
+    struct CompiledPass
+    {
       DependencyInfo deps;
       std::optional<RenderingInfo> render;
       std::string name;
@@ -90,7 +99,8 @@ namespace fwrk {
 
     std::vector<std::pair<ResourceID, ImageState>> end_image_states_;
     std::vector<std::pair<ResourceID, BufferState>> end_buffer_states_;
-    DependencyInfo end_dep_info_;
+    std::vector<std::pair<ResourceID, ImageState>> compiled_end_image_states_;
+    std::vector<std::pair<ResourceID, BufferState>> compiled_end_buffer_states_;
 
     Context* context_;
 
